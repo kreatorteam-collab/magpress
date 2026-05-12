@@ -92,7 +92,7 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
 function magpress_enqueue_assets() {
     // Google Fonts — Open Sans (400, 600, 700, 800) cu display=swap
     // Configurabil via Customizer (magpress_google_font); gol = nu se incarca
-    $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800'));
+    $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
     if ($google_font !== '') {
         $url = 'https://fonts.googleapis.com/css2?' . http_build_query([
             'family'  => $google_font,
@@ -118,7 +118,7 @@ function magpress_enqueue_assets() {
  * Preconnect la Google Fonts (mic boost PageSpeed) — atat CSS-ul cat si fisierele woff2.
  */
 function magpress_preconnect_google_fonts($urls, $relation_type) {
-    if (get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800') === '') return $urls;
+    if (get_theme_mod('magpress_google_font', 'Open Sans:400,700') === '') return $urls;
     if ($relation_type === 'preconnect') {
         $urls[] = ['href' => 'https://fonts.googleapis.com'];
         $urls[] = ['href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'];
@@ -514,7 +514,7 @@ function magpress_customize_register($wp_customize) {
     ]);
 
     $wp_customize->add_setting('magpress_google_font', [
-        'default'           => 'Open Sans:400,600,700,800',
+        'default'           => 'Open Sans:400,700',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
