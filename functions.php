@@ -90,7 +90,9 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
  * Enqueue CSS tema.
  */
 function magpress_enqueue_assets() {
-    wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], MAGPRESS_VERSION);
+    $css_path = MAGPRESS_DIR . '/assets/css/style.css';
+    $ver = file_exists($css_path) ? filemtime($css_path) : MAGPRESS_VERSION;
+    wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], $ver);
 }
 add_action('wp_enqueue_scripts', 'magpress_enqueue_assets');
 
