@@ -287,8 +287,10 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 
 /* ===================== ARTICLE BODY ===================== */
 .article-body{max-width:none;margin:0 auto}
-/* Textul propriu-zis limitat la 1000px pentru lizibilitate (rânduri ~80 caractere) */
+/* Pe articole single — textul limitat la 1000px (lizibilitate) */
 .article-body .entry-content{max-width:1000px;margin:0 auto}
+/* Pe pagini statice (Contact, Despre, GDPR) — textul full container */
+body.page .article-body .entry-content{max-width:none}
 .article-body .entry-content{font-size:1.125rem;line-height:1.75;color:#333}
 .article-body .entry-content > *{margin-bottom:1.5rem}
 .article-body .entry-content p{color:#333;margin-bottom:1.5rem;font-size:1.125rem;line-height:1.75}
