@@ -170,18 +170,24 @@ function magpress_site_config() {
  */
 function magpress_default_colors() {
     return [
-        'primary'     => '#1a1a1a',
-        'accent'      => '#6fa84a',
-        'background'  => '#ffffff',
-        'text'        => '#1a1a1a',
-        'text_muted'  => '#6b6b6b',
-        'border'      => '#e6e6e6',
-        'surface'     => '#f6f7f5',
-        'heading_h1'  => '#1a1a1a',
-        'heading_h2'  => '#1a1a1a',
-        'heading_h3'  => '#1a1a1a',
-        'link'        => '#6fa84a',
-        'link_hover'  => '#1a1a1a',
+        'primary'         => '#1a1a1a',
+        'accent'          => '#6fa84a',
+        'background'      => '#ffffff',
+        'text'            => '#1a1a1a',
+        'text_muted'      => '#6b6b6b',
+        'border'          => '#e6e6e6',
+        'surface'         => '#f6f7f5',
+        'heading_h1'      => '#1a1a1a',
+        'heading_h2'      => '#1a1a1a',
+        'heading_h3'      => '#1a1a1a',
+        'link'            => '#6fa84a',
+        'link_hover'      => '#1a1a1a',
+        'menu_bg'         => '#ffffff',
+        'menu_link'       => '#1a1a1a',
+        'menu_link_hover' => '#6fa84a',
+        'footer_bg'       => '#f6f7f5',
+        'footer_text'     => '#6b6b6b',
+        'footer_link'     => '#1a1a1a',
     ];
 }
 
@@ -279,18 +285,24 @@ function magpress_customize_register($wp_customize) {
     ]);
 
     $colors = [
-        'accent'      => ['Accent (highlight, butoane, badge-uri)',     '#6fa84a'],
-        'primary'     => ['Primary (text închis, header bar)',          '#1a1a1a'],
-        'text'        => ['Text principal',                              '#1a1a1a'],
-        'text_muted'  => ['Text secundar (meta, sub-titluri)',           '#6b6b6b'],
-        'background'  => ['Background pagină',                           '#ffffff'],
-        'surface'     => ['Surface (newsletter, footer)',                '#f6f7f5'],
-        'border'      => ['Border (linii subțiri, chenare)',             '#e6e6e6'],
-        'heading_h1'  => ['Titluri H1 (articol, archive)',               '#1a1a1a'],
-        'heading_h2'  => ['Titluri H2 (subtitluri, section headers)',    '#1a1a1a'],
-        'heading_h3'  => ['Titluri H3 (sub-sub-titluri, carduri)',       '#1a1a1a'],
-        'link'        => ['Link (text articol)',                         '#6fa84a'],
-        'link_hover'  => ['Link hover',                                   '#1a1a1a'],
+        'accent'          => ['Accent (highlight, butoane, badge-uri)',     '#6fa84a'],
+        'primary'         => ['Primary (text închis, header bar)',          '#1a1a1a'],
+        'text'            => ['Text principal',                              '#1a1a1a'],
+        'text_muted'      => ['Text secundar (meta, sub-titluri)',           '#6b6b6b'],
+        'background'      => ['Background pagină',                           '#ffffff'],
+        'surface'         => ['Surface (boxe newsletter/etc)',               '#f6f7f5'],
+        'border'          => ['Border (linii subțiri, chenare)',             '#e6e6e6'],
+        'heading_h1'      => ['Titluri H1 (articol, archive)',               '#1a1a1a'],
+        'heading_h2'      => ['Titluri H2 (subtitluri, section headers)',    '#1a1a1a'],
+        'heading_h3'      => ['Titluri H3 (sub-sub-titluri, carduri)',       '#1a1a1a'],
+        'link'            => ['Link (text articol)',                         '#6fa84a'],
+        'link_hover'      => ['Link hover',                                   '#1a1a1a'],
+        'menu_bg'         => ['Meniu — background',                          '#ffffff'],
+        'menu_link'       => ['Meniu — culoare link',                        '#1a1a1a'],
+        'menu_link_hover' => ['Meniu — culoare link hover',                  '#6fa84a'],
+        'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
+        'footer_text'     => ['Footer — text',                               '#6b6b6b'],
+        'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
     ];
 
     foreach ($colors as $key => $data) {
