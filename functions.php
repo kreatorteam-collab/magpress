@@ -319,43 +319,90 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'text',
     ]);
 
-    // ---------- Sectiune: Homepage (sloturi categorii) ----------
+    // ---------- Sectiune: Homepage (12 sloturi flexibile) ----------
     $wp_customize->add_section('magpress_homepage', [
         'title'       => 'Magpress: Homepage',
-        'description' => 'Configurează ce categorii apar pe homepage și câte articole din fiecare. Lasă categoria goală ca să sari peste un slot.',
+        'description' => '12 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă).',
         'priority'    => 27,
     ]);
 
-    // Construim alegerile pentru dropdown-uri
-    $cat_choices = ['0' => '— Nicio categorie (sari peste slot) —'];
+    $slot_types = [
+        'none'     => '— Gol (sari peste slot) —',
+        'category' => 'Categorie (rând articole)',
+        'ad'       => 'Reclamă / AdSense (cod HTML)',
+    ];
+
+    $cat_choices = ['0' => '— Alege o categorie —'];
     foreach (get_categories(['hide_empty' => false, 'number' => 100, 'orderby' => 'name']) as $c) {
         $cat_choices[(string) $c->term_id] = $c->name;
     }
 
-    for ($i = 1; $i <= 6; $i++) {
-        $wp_customize->add_setting("magpress_homepage_cat_{$i}", [
+    for ($i = 1; $i <= 12; $i++) {
+        // 1. Tip slot
+        $wp_customize->add_setting("magpress_slot_{$i}_type", [
+            'default'           => $i <= 4 ? 'category' : 'none',
+            'sanitize_callback' => function($v) use ($slot_types) {
+                return isset($slot_types[$v]) ? $v : 'none';
+            },
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_type", [
+            'label'   => "━━━ Slot {$i} ━━━",
+            'section' => 'magpress_homepage',
+            'type'    => 'select',
+            'choices' => $slot_types,
+        ]);
+
+        // 2. Categorie (vizibila daca tip = category)
+        $wp_customize->add_setting("magpress_slot_{$i}_cat", [
             'default'           => 0,
             'sanitize_callback' => 'absint',
             'transport'         => 'refresh',
         ]);
-        $wp_customize->add_control("magpress_homepage_cat_{$i}", [
-            'label'   => "Slot {$i} — Categorie",
-            'section' => 'magpress_homepage',
-            'type'    => 'select',
-            'choices' => $cat_choices,
+        $wp_customize->add_control("magpress_slot_{$i}_cat", [
+            'label'           => "Slot {$i} — Categorie",
+            'section'         => 'magpress_homepage',
+            'type'            => 'select',
+            'choices'         => $cat_choices,
+            'active_callback' => function() use ($i) {
+                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
+            },
         ]);
 
-        $wp_customize->add_setting("magpress_homepage_count_{$i}", [
+        // 3. Numar articole (vizibila daca tip = category)
+        $wp_customize->add_setting("magpress_slot_{$i}_count", [
             'default'           => 8,
             'sanitize_callback' => 'absint',
             'transport'         => 'refresh',
         ]);
-        $wp_customize->add_control("magpress_homepage_count_{$i}", [
-            'label'       => "Slot {$i} — Număr articole",
-            'description' => 'Recomandat: 4 sau 8 (multipli de 4 pentru aspect curat). Min 2, max 20.',
-            'section'     => 'magpress_homepage',
-            'type'        => 'number',
-            'input_attrs' => ['min' => 2, 'max' => 20, 'step' => 1],
+        $wp_customize->add_control("magpress_slot_{$i}_count", [
+            'label'           => "Slot {$i} — Articole",
+            'description'     => 'Recomandat: 4 sau 8. Min 2, max 20.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'number',
+            'input_attrs'     => ['min' => 2, 'max' => 20, 'step' => 1],
+            'active_callback' => function() use ($i) {
+                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
+            },
+        ]);
+
+        // 4. Cod reclama (vizibila daca tip = ad)
+        $wp_customize->add_setting("magpress_slot_{$i}_ad", [
+            'default'           => '',
+            'sanitize_callback' => function($v) {
+                // Admin-only (Customizer requires manage_options) — acceptam HTML/script complet
+                return is_string($v) ? $v : '';
+            },
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_ad", [
+            'label'           => "Slot {$i} — Cod HTML / AdSense",
+            'description'     => 'Lipește aici codul AdSense, banner image sau orice HTML/script. Va apărea centrat pe homepage între sloturile de categorii.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'textarea',
+            'active_callback' => function() use ($i) {
+                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'ad';
+            },
         ]);
     }
 
@@ -414,19 +461,37 @@ function magpress_breadcrumbs() {
 }
 
 /**
- * Sloturi homepage configurate in Customizer.
- * Returns: array de [['cat' => WP_Term, 'count' => int], ...]
- * Fallback: top 4 categorii cu 8 articole fiecare.
+ * Sloturi homepage configurate in Customizer (12 sloturi).
+ * Fiecare slot poate fi: 'category' (rand articole) sau 'ad' (HTML/AdSense).
+ * Returns: array de ['type' => 'category'|'ad', ...payload...]
  */
 function magpress_homepage_slots() {
     $slots = [];
+    for ($i = 1; $i <= 12; $i++) {
+        $type = get_theme_mod("magpress_slot_{$i}_type", 'none');
+        if ($type === 'category') {
+            $cat_id = (int) get_theme_mod("magpress_slot_{$i}_cat", 0);
+            if ($cat_id <= 0) continue;
+            $cat = get_category($cat_id);
+            if (!$cat || is_wp_error($cat)) continue;
+            $count = (int) get_theme_mod("magpress_slot_{$i}_count", 8);
+            $slots[] = ['type' => 'category', 'cat' => $cat, 'count' => max(2, min(20, $count))];
+        } elseif ($type === 'ad') {
+            $html = trim((string) get_theme_mod("magpress_slot_{$i}_ad", ''));
+            if ($html === '') continue;
+            $slots[] = ['type' => 'ad', 'html' => $html];
+        }
+    }
+    if ($slots) return $slots;
+
+    // Fallback: setari vechi (slot 1-6 din versiunea anterioara)
     for ($i = 1; $i <= 6; $i++) {
         $cat_id = (int) get_theme_mod("magpress_homepage_cat_{$i}", 0);
-        $count  = (int) get_theme_mod("magpress_homepage_count_{$i}", 8);
         if ($cat_id <= 0) continue;
         $cat = get_category($cat_id);
         if (!$cat || is_wp_error($cat)) continue;
-        $slots[] = ['cat' => $cat, 'count' => max(2, min(20, $count))];
+        $count = (int) get_theme_mod("magpress_homepage_count_{$i}", 8);
+        $slots[] = ['type' => 'category', 'cat' => $cat, 'count' => max(2, min(20, $count))];
     }
     if ($slots) return $slots;
 
@@ -435,14 +500,14 @@ function magpress_homepage_slots() {
     if (!empty($cfg['homepage_categories']) && is_array($cfg['homepage_categories'])) {
         foreach ($cfg['homepage_categories'] as $slug) {
             $c = get_category_by_slug($slug);
-            if ($c) $slots[] = ['cat' => $c, 'count' => 8];
+            if ($c) $slots[] = ['type' => 'category', 'cat' => $c, 'count' => 8];
         }
         if ($slots) return $slots;
     }
 
     // Fallback final: top 4 categorii
     $top = get_categories(['orderby' => 'count', 'order' => 'DESC', 'number' => 4, 'hide_empty' => true]);
-    foreach ($top as $c) $slots[] = ['cat' => $c, 'count' => 8];
+    foreach ($top as $c) $slots[] = ['type' => 'category', 'cat' => $c, 'count' => 8];
     return $slots;
 }
 
