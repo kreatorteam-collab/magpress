@@ -65,6 +65,8 @@ get_header();
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
 
+  <?php get_template_part('template-parts/google-discover'); ?>
+
 </div>
 
 <?php get_footer();
