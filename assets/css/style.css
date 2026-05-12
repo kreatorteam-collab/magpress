@@ -185,9 +185,9 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .related-row{margin:2.5rem 0}
 
 /* ===================== AD SLOT (AdSense/HTML pe homepage si articol) ===================== */
-.ad-slot{margin:2.5rem auto;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;max-width:1000px}
-.ad-slot > *{max-width:100%}
-.ad-slot iframe,.ad-slot ins{max-width:100%!important}
+.ad-slot{margin:2.5rem auto;text-align:center;min-height:90px;display:block;overflow:visible;max-width:1000px;width:100%}
+.ad-slot ins.adsbygoogle{display:block!important;margin:0 auto;min-width:300px}
+.ad-slot iframe{max-width:100%!important;display:block;margin:0 auto}
 /* Variante pe articol — spatiere putin diferita */
 .ad-slot--mid-article{margin:2rem auto;clear:both}
 .ad-slot--end-article{margin:2rem auto 3rem;clear:both}
