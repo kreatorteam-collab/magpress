@@ -106,6 +106,12 @@ function magpress_enqueue_assets() {
     $css_path = MAGPRESS_DIR . '/assets/css/style.css';
     $ver = file_exists($css_path) ? filemtime($css_path) : MAGPRESS_VERSION;
     wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], $ver);
+
+    // Branding CSS — atasat dupa style.css (cascade-ul il face sa castige peste defaults)
+    $branding = magpress_get_branding_css();
+    if ($branding) {
+        wp_add_inline_style('magpress-main', $branding);
+    }
 }
 
 /**
@@ -212,17 +218,17 @@ function magpress_header_layout() {
 }
 
 /**
- * Injecteaza override-uri CSS pentru culori si font.
+ * Genereaza CSS-ul de branding (culori + font) ca string.
+ * Apelat din enqueue_assets cu wp_add_inline_style ca sa fie atasat AFTER style.css.
  */
-function magpress_inject_site_branding() {
+function magpress_get_branding_css() {
     $defaults = magpress_default_colors();
     $css = ':root{';
     foreach ($defaults as $key => $default) {
         $val = magpress_color($key);
-        if ($val && $val !== $default) {
-            $cssVar = $key === 'background' ? '--c-bg' : '--c-' . str_replace('_', '-', $key);
-            $css .= $cssVar . ':' . esc_attr($val) . ';';
-        }
+        if (!$val || $val === $default) continue;
+        $cssVar = $key === 'background' ? '--c-bg' : '--c-' . str_replace('_', '-', $key);
+        $css .= $cssVar . ':' . esc_attr($val) . ';';
     }
     $font = get_theme_mod('magpress_font_family');
     if (!$font) {
@@ -231,12 +237,8 @@ function magpress_inject_site_branding() {
     }
     if ($font) $css .= '--f-sans:' . esc_attr($font) . ';';
     $css .= '}';
-
-    if ($css !== ':root{}') {
-        echo "<style id='magpress-branding'>{$css}</style>\n";
-    }
+    return $css === ':root{}' ? '' : $css;
 }
-add_action('wp_head', 'magpress_inject_site_branding', 5);
 
 /**
  * Customizer: secțiune Magpress cu culori + layout header.
