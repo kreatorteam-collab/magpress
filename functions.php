@@ -606,7 +606,10 @@ function magpress_breadcrumbs() {
 function magpress_homepage_slots() {
     $slots = [];
     for ($i = 1; $i <= 12; $i++) {
-        $type = get_theme_mod("magpress_slot_{$i}_type", 'none');
+        // IMPORTANT: default identic cu cel din customize_register, altfel WP returneaza 'none'
+        // pentru sloturile pe care user-ul le-a lasat pe default (nu-l salveaza in DB).
+        $default_type = $i <= 4 ? 'category' : 'none';
+        $type = get_theme_mod("magpress_slot_{$i}_type", $default_type);
         if ($type === 'category') {
             $cat_id = (int) get_theme_mod("magpress_slot_{$i}_cat", 0);
             if ($cat_id <= 0) continue;
