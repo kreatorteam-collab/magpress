@@ -36,6 +36,10 @@ $layout = magpress_header_layout();
   <?php /* Bara de meniu — SEPARATA de header (child direct al body) ca sa functioneze position:sticky */ ?>
   <div class="site-nav-bar site-nav-bar--centered">
     <div class="site-nav-bar__inner container">
+      <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
+      <label for="magpress-menu-toggle" class="menu-toggle" aria-label="Deschide meniul">
+        <span></span><span></span><span></span>
+      </label>
       <nav class="primary-nav" aria-label="Meniu principal">
         <?php magpress_render_primary_menu(); ?>
       </nav>
@@ -57,6 +61,11 @@ $layout = magpress_header_layout();
           <span class="site-title"><?php bloginfo('name'); ?></span>
         <?php endif; ?>
       </a>
+
+      <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
+      <label for="magpress-menu-toggle" class="menu-toggle" aria-label="Deschide meniul">
+        <span></span><span></span><span></span>
+      </label>
 
       <nav class="primary-nav" aria-label="Meniu principal">
         <?php magpress_render_primary_menu(); ?>
