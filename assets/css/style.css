@@ -150,6 +150,11 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .category-row,
 .related-row{margin:2.5rem 0}
 
+/* ===================== AD SLOT (AdSense/HTML pe homepage) ===================== */
+.ad-slot{margin:2.5rem auto;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ad-slot > *{max-width:100%}
+.ad-slot iframe,.ad-slot ins{max-width:100%!important}
+
 /* ===================== CARD ===================== */
 .card{position:relative;display:flex;flex-direction:column;background:var(--c-bg);border-radius:var(--radius);overflow:hidden;border:1px solid var(--c-border);transition:box-shadow .2s, transform .2s, border-color .2s}
 .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-2px);border-color:var(--c-border)}
