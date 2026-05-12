@@ -45,6 +45,8 @@ $cats = get_the_category();
     </div>
   </article>
 
+  <?php echo magpress_get_end_article_ad(); ?>
+
   <?php
   // Related — 4 articole din aceeasi categorie, excluzand pe asta.
   if ($cats):
@@ -78,8 +80,6 @@ $cats = get_the_category();
       <?php comments_template(); ?>
     </section>
   <?php endif; ?>
-
-  <?php get_template_part('template-parts/newsletter'); ?>
 
 </div>
 
