@@ -18,10 +18,9 @@ $layout = magpress_header_layout();
 
 <a class="skip-link" href="#main">Sari la conținut</a>
 
-<header class="site-header site-header--<?php echo esc_attr($layout); ?>">
+<?php if ($layout === 'centered'): ?>
 
-  <?php if ($layout === 'centered'): ?>
-
+  <header class="site-header site-header--centered">
     <div class="site-header__top container">
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
@@ -32,20 +31,23 @@ $layout = magpress_header_layout();
         <?php endif; ?>
       </a>
     </div>
+  </header>
 
-    <div class="site-header__nav-wrap">
-      <div class="site-header__nav container">
-        <nav class="primary-nav" aria-label="Meniu principal">
-          <?php magpress_render_primary_menu(); ?>
-        </nav>
-        <a class="search-toggle" href="<?php echo esc_url(home_url('/?s=')); ?>" aria-label="Caută">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        </a>
-      </div>
+  <?php /* Bara de meniu — SEPARATA de header (child direct al body) ca sa functioneze position:sticky */ ?>
+  <div class="site-nav-bar site-nav-bar--centered">
+    <div class="site-nav-bar__inner container">
+      <nav class="primary-nav" aria-label="Meniu principal">
+        <?php magpress_render_primary_menu(); ?>
+      </nav>
+      <a class="search-toggle" href="<?php echo esc_url(home_url('/?s=')); ?>" aria-label="Caută">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </a>
     </div>
+  </div>
 
-  <?php else: /* inline */ ?>
+<?php else: /* inline */ ?>
 
+  <header class="site-header site-header--inline">
     <div class="site-header__inner container">
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
@@ -66,9 +68,8 @@ $layout = magpress_header_layout();
         </a>
       </div>
     </div>
+  </header>
 
-  <?php endif; ?>
-
-</header>
+<?php endif; ?>
 
 <main id="main" class="site-main">
