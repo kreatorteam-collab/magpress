@@ -265,6 +265,19 @@ function magpress_customize_register($wp_customize) {
         ],
     ]);
 
+    // Google Discover follow box (homepage + single)
+    $wp_customize->add_setting('magpress_show_google_discover', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_show_google_discover', [
+        'label'       => 'Box „Google Discover" (sursă preferată)',
+        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare pe homepage (după ultimul slot) și pe articol (înainte de comentarii).',
+        'section'     => 'magpress_layout',
+        'type'        => 'checkbox',
+    ]);
+
     // Header sticky pe desktop
     $wp_customize->add_setting('magpress_header_sticky', [
         'default'           => 1,
