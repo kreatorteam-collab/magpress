@@ -1,0 +1,86 @@
+<?php
+/**
+ * Single article — design inspirat din povesteacasei.ro.
+ */
+if (!defined('ABSPATH')) { exit; }
+get_header();
+the_post();
+$cats = get_the_category();
+?>
+
+<div class="container site-content">
+
+  <header class="article-hero">
+    <?php magpress_breadcrumbs(); ?>
+
+    <?php if ($cats): ?>
+      <a class="badge badge--pill" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
+    <?php endif; ?>
+
+    <h1 class="article-title"><?php the_title(); ?></h1>
+
+    <?php if (has_excerpt()): ?>
+      <p class="article-excerpt"><?php echo esc_html(get_the_excerpt()); ?></p>
+    <?php endif; ?>
+
+    <div class="article-meta">
+      <span>De <strong><?php the_author(); ?></strong></span>
+      <span class="sep">|</span>
+      <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
+      <span class="sep">|</span>
+      <span><?php echo (int) magpress_reading_time(); ?> min citire</span>
+    </div>
+  </header>
+
+  <?php if (has_post_thumbnail()): ?>
+    <figure class="article-image">
+      <?php the_post_thumbnail('magpress-feature', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+    </figure>
+  <?php endif; ?>
+
+  <article class="article-body">
+    <div class="entry-content">
+      <?php the_content(); ?>
+      <?php wp_link_pages(['before' => '<nav class="page-links">', 'after' => '</nav>']); ?>
+    </div>
+  </article>
+
+  <?php
+  // Related — 4 articole din aceeasi categorie, excluzand pe asta.
+  if ($cats):
+    $cat_ids = wp_list_pluck($cats, 'term_id');
+    $related = new WP_Query([
+        'posts_per_page'      => 4,
+        'category__in'        => $cat_ids,
+        'post__not_in'        => [get_the_ID()],
+        'ignore_sticky_posts' => 1,
+        'orderby'             => 'rand',
+    ]);
+    if ($related->have_posts()): ?>
+      <section class="related-row">
+        <?php
+          set_query_var('section_title', 'Articole similare');
+          set_query_var('section_url', get_category_link($cats[0]));
+          get_template_part('template-parts/section-header');
+        ?>
+        <div class="card-grid">
+          <?php while ($related->have_posts()): $related->the_post();
+            get_template_part('template-parts/card');
+          endwhile; ?>
+        </div>
+      </section>
+    <?php endif; wp_reset_postdata();
+  endif;
+  ?>
+
+  <?php if (comments_open() || get_comments_number()): ?>
+    <section class="article-comments">
+      <?php comments_template(); ?>
+    </section>
+  <?php endif; ?>
+
+  <?php get_template_part('template-parts/newsletter'); ?>
+
+</div>
+
+<?php get_footer();
