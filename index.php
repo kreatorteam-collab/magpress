@@ -19,7 +19,7 @@ get_header();
         get_template_part('template-parts/card');
       endwhile; ?>
     </div>
-    <?php the_posts_pagination(['mid_size' => 2, 'class' => 'magpress-pagination']); ?>
+    <?php the_posts_pagination(['mid_size' => 2, 'class' => 'magpress-pagination', 'screen_reader_text' => ' ', 'aria_label' => 'Paginare']); ?>
   <?php else: ?>
     <p>Nu există articole publicate încă.</p>
   <?php endif; ?>
