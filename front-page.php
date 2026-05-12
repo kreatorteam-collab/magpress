@@ -33,11 +33,13 @@ get_header();
   <?php endif; wp_reset_postdata(); ?>
 
   <?php
-  // Category rows.
-  $home_cats = magpress_homepage_categories();
-  foreach ($home_cats as $cat):
+  // Category rows — sloturi configurate din Customizer
+  $slots = magpress_homepage_slots();
+  foreach ($slots as $slot):
+      $cat   = $slot['cat'];
+      $count = $slot['count'];
       $q = new WP_Query([
-          'posts_per_page'      => 8,
+          'posts_per_page'      => $count,
           'cat'                 => $cat->term_id,
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
