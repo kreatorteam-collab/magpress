@@ -13,13 +13,6 @@ get_header();
 
     <h1 class="archive-title"><?php single_term_title(); ?></h1>
 
-    <?php
-    global $wp_query;
-    $count = (int) $wp_query->found_posts;
-    if ($count > 0): ?>
-      <p class="archive-count"><?php echo esc_html($count); ?> articole</p>
-    <?php endif; ?>
-
     <?php $desc = term_description();
     if (!empty($desc)): ?>
       <div class="archive-description"><?php echo wp_kses_post($desc); ?></div>
@@ -35,10 +28,12 @@ get_header();
 
     <?php
     the_posts_pagination([
-        'mid_size'  => 2,
-        'prev_text' => '«',
-        'next_text' => '»',
-        'class'     => 'magpress-pagination',
+        'mid_size'           => 2,
+        'prev_text'          => '«',
+        'next_text'          => '»',
+        'class'              => 'magpress-pagination',
+        'screen_reader_text' => ' ', // Goleste label-ul "Paginatie articole"
+        'aria_label'         => 'Paginare',
     ]);
     ?>
   <?php else: ?>
