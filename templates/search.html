@@ -1,0 +1,53 @@
+<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","layout":{"type":"constrained","contentSize":"1280px"},"style":{"spacing":{"padding":{"top":"2rem","bottom":"3rem","left":"1rem","right":"1rem"}}}} -->
+<main class="wp-block-group" style="padding-top:2rem;padding-right:1rem;padding-bottom:3rem;padding-left:1rem">
+
+  <!-- wp:query-title {"type":"search","level":1} /-->
+  <!-- wp:search {"label":"Caută","showLabel":false,"placeholder":"Caută în site...","buttonText":"Caută"} /-->
+
+  <!-- wp:columns -->
+  <div class="wp-block-columns">
+
+    <!-- wp:column {"width":"66.66%"} -->
+    <div class="wp-block-column" style="flex-basis:66.66%">
+      <!-- wp:query {"queryId":4,"query":{"perPage":10,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":true}} -->
+      <div class="wp-block-query">
+        <!-- wp:post-template -->
+          <!-- wp:group {"className":"magpress-card","layout":{"type":"constrained"}} -->
+          <div class="wp-block-group magpress-card">
+            <!-- wp:post-featured-image {"isLink":true,"aspectRatio":"3/2"} /-->
+            <!-- wp:post-title {"isLink":true,"className":"card-title"} /-->
+            <!-- wp:post-excerpt {"moreText":""} /-->
+            <!-- wp:post-date {"className":"card-meta"} /-->
+          </div>
+          <!-- /wp:group -->
+        <!-- /wp:post-template -->
+        <!-- wp:query-pagination -->
+          <!-- wp:query-pagination-previous /-->
+          <!-- wp:query-pagination-numbers /-->
+          <!-- wp:query-pagination-next /-->
+        <!-- /wp:query-pagination -->
+        <!-- wp:query-no-results -->
+          <!-- wp:paragraph -->
+          <p>Niciun rezultat. Încercați alți termeni.</p>
+          <!-- /wp:paragraph -->
+        <!-- /wp:query-no-results -->
+      </div>
+      <!-- /wp:query -->
+    </div>
+    <!-- /wp:column -->
+
+    <!-- wp:column {"width":"33.33%"} -->
+    <div class="wp-block-column" style="flex-basis:33.33%">
+      <!-- wp:template-part {"slug":"sidebar"} /-->
+    </div>
+    <!-- /wp:column -->
+
+  </div>
+  <!-- /wp:columns -->
+
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->
