@@ -90,10 +90,34 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
  * Enqueue CSS tema.
  */
 function magpress_enqueue_assets() {
+    // Google Fonts — Open Sans (400, 600, 700, 800) cu display=swap
+    // Configurabil via Customizer (magpress_google_font); gol = nu se incarca
+    $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800'));
+    if ($google_font !== '') {
+        $url = 'https://fonts.googleapis.com/css2?' . http_build_query([
+            'family'  => $google_font,
+            'display' => 'swap',
+        ], '', '&', PHP_QUERY_RFC3986);
+        // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
+        $url = str_replace('%3A', ':', $url);
+        wp_enqueue_style('magpress-google-font', $url, [], null);
+    }
+
     $css_path = MAGPRESS_DIR . '/assets/css/style.css';
     $ver = file_exists($css_path) ? filemtime($css_path) : MAGPRESS_VERSION;
     wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], $ver);
 }
+
+/**
+ * Preconnect la Google Fonts (mic boost PageSpeed).
+ */
+function magpress_preconnect_google_fonts($urls, $relation_type) {
+    if ($relation_type === 'preconnect' && get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800') !== '') {
+        $urls[] = ['href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'];
+    }
+    return $urls;
+}
+add_filter('wp_resource_hints', 'magpress_preconnect_google_fonts', 10, 2);
 add_action('wp_enqueue_scripts', 'magpress_enqueue_assets');
 
 /**
@@ -289,8 +313,20 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_font_family', [
-        'label'       => 'Font family (CSS)',
-        'description' => 'Ex: "Inter", sans-serif. Lasă gol pentru default-ul sistemului.',
+        'label'       => 'Font family CSS (override)',
+        'description' => 'Lasă gol pentru "Open Sans" (default). Ex: "Inter", sans-serif. Sau "Lora", serif pentru articole.',
+        'section'     => 'magpress_colors',
+        'type'        => 'text',
+    ]);
+
+    $wp_customize->add_setting('magpress_google_font', [
+        'default'           => 'Open Sans:400,600,700,800',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_google_font', [
+        'label'       => 'Google Font de încărcat',
+        'description' => 'Nume font + greutăți (format: "Open Sans:400,600,700,800"). Lasă gol pentru a nu încărca niciun Google Font.',
         'section'     => 'magpress_colors',
         'type'        => 'text',
     ]);
