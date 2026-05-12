@@ -115,15 +115,64 @@ function magpress_enqueue_assets() {
 }
 
 /**
- * Preconnect la Google Fonts (mic boost PageSpeed).
+ * Preconnect la Google Fonts (mic boost PageSpeed) — atat CSS-ul cat si fisierele woff2.
  */
 function magpress_preconnect_google_fonts($urls, $relation_type) {
-    if ($relation_type === 'preconnect' && get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800') !== '') {
+    if (get_theme_mod('magpress_google_font', 'Open Sans:400,600,700,800') === '') return $urls;
+    if ($relation_type === 'preconnect') {
+        $urls[] = ['href' => 'https://fonts.googleapis.com'];
         $urls[] = ['href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'];
     }
     return $urls;
 }
 add_filter('wp_resource_hints', 'magpress_preconnect_google_fonts', 10, 2);
+
+/**
+ * Preload imaginea LCP (cel mai mare element vizibil above-the-fold).
+ * Homepage: prima imagine featured.
+ * Single article: imaginea featured a articolului.
+ * Imbunatateste LCP cu ~0.5-1.5s pe conexiuni lente.
+ */
+function magpress_preload_lcp_image() {
+    $img_id = 0;
+
+    if (is_front_page() || is_home()) {
+        // Primul articol sticky sau cel mai recent
+        $featured = get_posts([
+            'posts_per_page'      => 1,
+            'post__in'            => get_option('sticky_posts'),
+            'ignore_sticky_posts' => 1,
+            'post_status'         => 'publish',
+            'no_found_rows'       => true,
+            'fields'              => 'ids',
+        ]);
+        if (!$featured) {
+            $featured = get_posts([
+                'posts_per_page' => 1,
+                'post_status'    => 'publish',
+                'no_found_rows'  => true,
+                'fields'         => 'ids',
+            ]);
+        }
+        if ($featured) $img_id = get_post_thumbnail_id($featured[0]);
+    } elseif (is_singular('post') || is_page()) {
+        $img_id = get_post_thumbnail_id();
+    }
+
+    if (!$img_id) return;
+
+    $src = wp_get_attachment_image_url($img_id, 'magpress-feature');
+    if (!$src) return;
+
+    $srcset = wp_get_attachment_image_srcset($img_id, 'magpress-feature');
+    $sizes  = wp_get_attachment_image_sizes($img_id, 'magpress-feature');
+
+    echo '<link rel="preload" as="image" href="' . esc_url($src) . '"';
+    if ($srcset) echo ' imagesrcset="' . esc_attr($srcset) . '"';
+    if ($sizes)  echo ' imagesizes="' . esc_attr($sizes) . '"';
+    echo ' fetchpriority="high">' . "\n";
+}
+add_action('wp_head', 'magpress_preload_lcp_image', 2);
 add_action('wp_enqueue_scripts', 'magpress_enqueue_assets');
 
 /**
@@ -477,6 +526,37 @@ function magpress_customize_register($wp_customize) {
     ]);
 }
 add_action('customize_register', 'magpress_customize_register');
+
+/**
+ * Inline critical CSS — minimul absolut pentru above-the-fold (header + container + featured).
+ * Restul CSS-ului (style.css) ramane sa se incarce normal, dar critical apare instant
+ * fara sa astepte download-ul fisierului → boost FCP/LCP.
+ */
+function magpress_inline_critical_css() {
+    $css = '*,*::before,*::after{box-sizing:border-box}'
+         . 'html{-webkit-text-size-adjust:100%;overflow-x:clip}'
+         . 'body{margin:0;font-family:"Open Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;background:#fff;-webkit-font-smoothing:antialiased;overflow-x:clip;max-width:100vw}'
+         . 'img,svg{max-width:100%;height:auto;display:block}'
+         . 'a{color:#1a1a1a;text-decoration:none}'
+         . '.container{max-width:1320px;margin:0 auto;padding:0 clamp(1rem,3vw,2rem);width:100%}'
+         . '.site-header{background:#fff;border-bottom:1px solid #e6e6e6}'
+         . '.site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1rem clamp(1rem,3vw,2rem)}'
+         . '.site-header--centered .site-header__top{display:flex!important;justify-content:center!important;align-items:center!important;padding:2rem 0 1.25rem!important;text-align:center!important}'
+         . '.site-header--centered .site-header__top .site-logo{max-height:110px!important;width:auto!important;display:block!important;margin:0 auto}'
+         . '.site-nav-bar{background:#fff;border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6}'
+         . '.featured-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin:2rem 0 3rem;width:100%}'
+         . '.featured-grid>*{min-width:0;max-width:100%}'
+         . '@media(min-width:768px){.featured-grid{grid-template-columns:1fr 1fr}}'
+         . '.featured-card{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/10;min-height:280px;background:#f6f7f5}'
+         . '.featured-card__image{position:absolute;inset:0;display:block;z-index:1}'
+         . '.featured-card__image img{width:100%;height:100%;object-fit:cover}'
+         . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
+         . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
+         . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
+         . '.skip-link{position:absolute;left:-9999px}';
+    echo "<style id='magpress-critical'>{$css}</style>\n";
+}
+add_action('wp_head', 'magpress_inline_critical_css', 1);
 
 /**
  * Calculeaza timpul de citire al unui articol (in minute).
