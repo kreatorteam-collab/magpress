@@ -1,98 +1,112 @@
 <!-- wp:template-part {"slug":"header","tagName":"header"} /-->
 
-<!-- wp:group {"tagName":"main","layout":{"type":"constrained","contentSize":"1280px"},"style":{"spacing":{"padding":{"top":"2rem","bottom":"3rem","left":"1rem","right":"1rem"}}}} -->
-<main class="wp-block-group" style="padding-top:2rem;padding-right:1rem;padding-bottom:3rem;padding-left:1rem">
+<!-- wp:group {"tagName":"main","layout":{"type":"constrained","contentSize":"1400px"},"style":{"spacing":{"padding":{"top":"1.5rem","bottom":"3rem"}}}} -->
+<main class="wp-block-group" style="padding-top:1.5rem;padding-bottom:3rem">
 
-  <!-- wp:columns -->
-  <div class="wp-block-columns">
+  <!-- wp:group {"className":"article-hero","layout":{"type":"constrained","contentSize":"900px"}} -->
+  <div class="wp-block-group article-hero">
 
-    <!-- wp:column {"width":"66.66%"} -->
-    <div class="wp-block-column" style="flex-basis:66.66%">
-
-      <!-- wp:group {"tagName":"article","className":"single-article","layout":{"type":"constrained"}} -->
-      <article class="wp-block-group single-article">
-
-        <!-- wp:post-terms {"term":"category","className":"entry-category"} /-->
-        <!-- wp:post-title {"level":1,"className":"entry-title"} /-->
-
-        <!-- wp:group {"className":"entry-meta","layout":{"type":"flex"}} -->
-        <div class="wp-block-group entry-meta">
-          <!-- wp:post-author {"showAvatar":false} /-->
-          <!-- wp:post-date /-->
-          <!-- wp:post-terms {"term":"post_tag","prefix":"Tag-uri: "} /-->
-        </div>
-        <!-- /wp:group -->
-
-        <!-- wp:post-featured-image {"aspectRatio":"16/9"} /-->
-
-        <!-- wp:post-content {"layout":{"type":"constrained"},"className":"entry-content"} /-->
-
-        <!-- wp:separator -->
-        <hr class="wp-block-separator has-alpha-channel-opacity"/>
-        <!-- /wp:separator -->
-
-        <!-- wp:heading {"level":3} -->
-        <h3 class="wp-block-heading">Articole similare</h3>
-        <!-- /wp:heading -->
-
-        <!-- wp:query {"queryId":2,"query":{"perPage":3,"pages":1,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":false,"taxQuery":null,"parents":[]},"namespace":"magpress/related"} -->
-        <div class="wp-block-query">
-          <!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
-            <!-- wp:group {"className":"magpress-card","layout":{"type":"constrained"}} -->
-            <div class="wp-block-group magpress-card">
-              <!-- wp:post-featured-image {"isLink":true,"aspectRatio":"3/2"} /-->
-              <!-- wp:post-title {"isLink":true,"className":"card-title","fontSize":"small"} /-->
-            </div>
-            <!-- /wp:group -->
-          <!-- /wp:post-template -->
-        </div>
-        <!-- /wp:query -->
-
-        <!-- wp:comments -->
-        <div class="wp-block-comments">
-          <!-- wp:comments-title /-->
-          <!-- wp:comment-template -->
-            <!-- wp:columns -->
-            <div class="wp-block-columns">
-              <!-- wp:column {"width":"40px"} -->
-              <div class="wp-block-column" style="flex-basis:40px">
-                <!-- wp:avatar {"size":40} /-->
-              </div>
-              <!-- /wp:column -->
-              <!-- wp:column -->
-              <div class="wp-block-column">
-                <!-- wp:comment-author-name /-->
-                <!-- wp:comment-date /-->
-                <!-- wp:comment-content /-->
-                <!-- wp:comment-reply-link /-->
-              </div>
-              <!-- /wp:column -->
-            </div>
-            <!-- /wp:columns -->
-          <!-- /wp:comment-template -->
-          <!-- wp:comments-pagination -->
-            <!-- wp:comments-pagination-previous /-->
-            <!-- wp:comments-pagination-numbers /-->
-            <!-- wp:comments-pagination-next /-->
-          <!-- /wp:comments-pagination -->
-          <!-- wp:post-comments-form /-->
-        </div>
-        <!-- /wp:comments -->
-
-      </article>
-      <!-- /wp:group -->
-
+    <!-- wp:group {"className":"breadcrumbs","layout":{"type":"flex","flexWrap":"wrap"}} -->
+    <div class="wp-block-group breadcrumbs">
+      <!-- wp:html -->
+      <a href="/">Acasă</a>
+      <span class="sep">/</span>
+      <!-- /wp:html -->
+      <!-- wp:post-terms {"term":"category","separator":" › "} /-->
     </div>
-    <!-- /wp:column -->
+    <!-- /wp:group -->
 
-    <!-- wp:column {"width":"33.33%"} -->
-    <div class="wp-block-column" style="flex-basis:33.33%">
-      <!-- wp:template-part {"slug":"sidebar"} /-->
+    <!-- wp:post-terms {"term":"category","className":"category-badge"} /-->
+
+    <!-- wp:post-title {"level":1,"className":"entry-title"} /-->
+
+    <!-- wp:post-excerpt {"className":"entry-excerpt","moreText":""} /-->
+
+    <!-- wp:group {"className":"entry-meta","layout":{"type":"flex","flexWrap":"wrap"}} -->
+    <div class="wp-block-group entry-meta">
+      <!-- wp:html -->
+      <span class="meta-author-prefix">De</span>
+      <!-- /wp:html -->
+      <!-- wp:post-author {"showAvatar":false} /-->
+      <!-- wp:html --><span class="sep">|</span><!-- /wp:html -->
+      <!-- wp:post-date /-->
+      <!-- wp:html --><span class="sep">|</span><!-- /wp:html -->
+      <!-- wp:post-content-time-to-read /-->
     </div>
-    <!-- /wp:column -->
+    <!-- /wp:group -->
 
   </div>
-  <!-- /wp:columns -->
+  <!-- /wp:group -->
+
+  <!-- wp:post-featured-image {"aspectRatio":"16/9","style":{"border":{"radius":"10px"},"spacing":{"margin":{"top":"1.5rem","bottom":"2rem"}}}} /-->
+
+  <!-- wp:group {"tagName":"article","className":"single-article","layout":{"type":"constrained","contentSize":"780px"}} -->
+  <article class="wp-block-group single-article">
+
+    <!-- wp:post-content {"layout":{"type":"constrained"},"className":"entry-content"} /-->
+
+    <!-- wp:separator {"style":{"spacing":{"margin":{"top":"2.5rem","bottom":"2.5rem"}}}} -->
+    <hr class="wp-block-separator has-alpha-channel-opacity"/>
+    <!-- /wp:separator -->
+
+    <!-- wp:group {"className":"related-section","layout":{"type":"constrained"}} -->
+    <div class="wp-block-group related-section">
+      <!-- wp:heading {"level":2} -->
+      <h2 class="wp-block-heading">Articole similare</h2>
+      <!-- /wp:heading -->
+
+      <!-- wp:query {"queryId":30,"query":{"perPage":4,"pages":1,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":false},"namespace":"magpress/related"} -->
+      <div class="wp-block-query">
+        <!-- wp:post-template {"className":"magpress-grid","layout":{"type":"grid","columnCount":4}} -->
+          <!-- wp:group {"className":"magpress-card","layout":{"type":"constrained"}} -->
+          <div class="wp-block-group magpress-card">
+            <!-- wp:post-featured-image {"isLink":true,"aspectRatio":"3/2"} /-->
+            <!-- wp:group {"className":"card-body"} -->
+            <div class="wp-block-group card-body">
+              <!-- wp:post-title {"isLink":true,"level":3,"className":"card-title"} /-->
+            </div>
+            <!-- /wp:group -->
+          </div>
+          <!-- /wp:group -->
+        <!-- /wp:post-template -->
+      </div>
+      <!-- /wp:query -->
+    </div>
+    <!-- /wp:group -->
+
+    <!-- wp:comments {"className":"comments-section"} -->
+    <div class="wp-block-comments comments-section">
+      <!-- wp:comments-title /-->
+      <!-- wp:comment-template -->
+        <!-- wp:columns -->
+        <div class="wp-block-columns">
+          <!-- wp:column {"width":"48px"} -->
+          <div class="wp-block-column" style="flex-basis:48px"><!-- wp:avatar {"size":48} /--></div>
+          <!-- /wp:column -->
+          <!-- wp:column -->
+          <div class="wp-block-column">
+            <!-- wp:comment-author-name /-->
+            <!-- wp:comment-date /-->
+            <!-- wp:comment-content /-->
+            <!-- wp:comment-reply-link /-->
+          </div>
+          <!-- /wp:column -->
+        </div>
+        <!-- /wp:columns -->
+      <!-- /wp:comment-template -->
+      <!-- wp:comments-pagination -->
+        <!-- wp:comments-pagination-previous /-->
+        <!-- wp:comments-pagination-numbers /-->
+        <!-- wp:comments-pagination-next /-->
+      <!-- /wp:comments-pagination -->
+      <!-- wp:post-comments-form /-->
+    </div>
+    <!-- /wp:comments -->
+
+  </article>
+  <!-- /wp:group -->
+
+  <!-- wp:pattern {"slug":"magpress/newsletter"} /-->
 
 </main>
 <!-- /wp:group -->
