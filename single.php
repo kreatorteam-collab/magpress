@@ -94,6 +94,8 @@ $cats = get_the_category();
   endif;
   ?>
 
+  <?php get_template_part('template-parts/google-discover'); ?>
+
   <?php if (comments_open() || get_comments_number()): ?>
     <section class="article-comments">
       <?php comments_template(); ?>
