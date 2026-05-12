@@ -35,14 +35,28 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .skip-link{position:absolute;left:-9999px}
 .skip-link:focus{position:fixed;top:1rem;left:1rem;background:var(--c-primary);color:#fff;padding:.5rem 1rem;z-index:9999;border-radius:6px}
 
-/* ===================== HEADER ===================== */
+/* ===================== HEADER — LAYOUT INLINE (default) ===================== */
 .site-header{background:var(--c-bg);border-bottom:1px solid var(--c-border)}
-.site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-top:1rem;padding-bottom:1rem}
+.site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-top:1rem;padding-bottom:1rem}
+
+/* ===================== HEADER — LAYOUT CENTERED (logo sus, meniu sub) ===================== */
+.site-header--centered .site-header__top{display:flex;justify-content:center;align-items:center;padding:1.5rem 0 1rem;text-align:center}
+.site-header--centered .site-header__top .site-branding{justify-content:center}
+.site-header--centered .site-header__top .site-logo{max-height:72px}
+.site-header--centered .site-header__top .site-title{font-size:1.75rem}
+.site-header--centered .site-header__nav-wrap{border-top:1px solid var(--c-border);background:var(--c-bg)}
+.site-header--centered .site-header__nav{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.5rem 0;position:relative}
+.site-header--centered .site-header__nav .primary-nav{flex:0 1 auto}
+.site-header--centered .site-header__nav .search-toggle{position:absolute;right:clamp(1rem,3vw,2rem)}
+
+/* ===================== BRANDING ===================== */
 .site-branding{display:inline-flex;align-items:center;flex-shrink:0;text-decoration:none}
 .site-branding .site-logo{max-height:48px;width:auto}
 .site-branding .site-title{font-size:1.4rem;font-weight:800;color:var(--c-text);letter-spacing:-.02em}
+
+/* ===================== PRIMARY NAV ===================== */
 .primary-nav{flex:1;display:flex;justify-content:center}
-.primary-nav .menu{display:flex;gap:.25rem;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+.primary-nav .menu{display:flex;gap:.25rem;list-style:none;margin:0;padding:0;flex-wrap:wrap;justify-content:center}
 .primary-nav .menu li{position:relative}
 .primary-nav .menu > li > a{display:inline-block;padding:.5rem .9rem;font-size:.9rem;font-weight:700;color:var(--c-text);text-transform:uppercase;letter-spacing:.04em;border-radius:6px}
 .primary-nav .menu > li > a:hover{background:var(--c-surface);color:var(--c-accent)}
@@ -119,11 +133,13 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 /* ===================== ARCHIVE ===================== */
 .archive-header{margin:1rem 0 2rem}
 .archive-title{font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-.025em;margin:.25rem 0 .5rem;color:var(--c-text)}
-.archive-count{font-size:.95rem;color:var(--c-text-muted);margin:0 0 .5rem}
 .archive-description{font-size:1rem;color:var(--c-text-muted);max-width:780px;margin:0}
 
+/* Ascunde label-ul "Paginație articole" generat de WP */
+.magpress-pagination .screen-reader-text{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important}
+
 /* ===================== ARTICLE HERO (single) ===================== */
-.article-hero{margin:1rem auto 1.5rem;max-width:900px}
+.article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}
 .article-title{font-size:clamp(1.75rem,3.5vw,2.5rem);line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:0 0 1rem;color:var(--c-text)}
 .article-excerpt{font-size:1.1rem;line-height:1.55;color:var(--c-text-muted);margin:0 0 1.25rem}
@@ -132,11 +148,13 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .article-meta .sep{color:var(--c-border)}
 
 /* ===================== ARTICLE IMAGE ===================== */
-.article-image{margin:0 auto 2rem;max-width:1100px}
-.article-image img{width:100%;height:auto;border-radius:var(--radius-lg);display:block}
+.article-image{margin:0 auto 2rem;max-width:none}
+.article-image img{width:100%;height:auto;border-radius:var(--radius-lg);display:block;max-height:540px;object-fit:cover}
 
 /* ===================== ARTICLE BODY ===================== */
-.article-body{max-width:var(--content);margin:0 auto}
+.article-body{max-width:none;margin:0 auto}
+/* Continutul propriu-zis al articolului ramane lizibil (~860px) */
+.article-body .entry-content{max-width:860px;margin:0 auto}
 .article-body .entry-content{font-size:1.05rem;line-height:1.75}
 .article-body .entry-content > *{margin-bottom:1.1em}
 .article-body .entry-content h2{font-size:1.5rem;margin-top:2.25rem;margin-bottom:1rem;font-weight:800;letter-spacing:-.02em}
