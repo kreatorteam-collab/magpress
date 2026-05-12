@@ -65,8 +65,6 @@ get_header();
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
 
-  <?php get_template_part('template-parts/newsletter'); ?>
-
 </div>
 
 <?php get_footer();
