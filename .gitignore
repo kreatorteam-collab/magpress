@@ -2,6 +2,11 @@
 /site-config.json
 /wp-content/themes/magpress-config/
 
+# Deploy scripts cu secrete (NU în git!)
+/_deploy/
+deploy.php
+deploy-config.php
+
 # Build artifacts
 /node_modules/
 /vendor/
