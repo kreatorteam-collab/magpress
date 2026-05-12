@@ -25,7 +25,7 @@ get_header();
       endwhile; ?>
     </div>
 
-    <?php the_posts_pagination(['mid_size' => 2, 'class' => 'magpress-pagination']); ?>
+    <?php the_posts_pagination(['mid_size' => 2, 'class' => 'magpress-pagination', 'screen_reader_text' => ' ', 'aria_label' => 'Paginare']); ?>
   <?php else: ?>
     <p class="no-results">Niciun rezultat. Încearcă alți termeni.</p>
   <?php endif; ?>
