@@ -267,7 +267,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 /* ===================== ARCHIVE ===================== */
 .archive-header{margin:1rem 0 2rem}
 .archive-title{font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-.025em;margin:.25rem 0 .5rem;color:var(--c-text)}
-.archive-description{font-size:1rem;color:var(--c-text-muted);max-width:780px;margin:0}
+.archive-description{font-size:1rem;color:var(--c-text-muted);max-width:none;margin:0}
 
 /* Ascunde label-ul "Paginație articole" generat de WP */
 .magpress-pagination .screen-reader-text{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important}
