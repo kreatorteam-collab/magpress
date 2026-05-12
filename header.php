@@ -20,8 +20,13 @@ $layout = magpress_header_layout();
 
 <?php if ($layout === 'centered'): ?>
 
+  <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
+
   <header class="site-header site-header--centered">
     <div class="site-header__top container">
+      <label for="magpress-menu-toggle" class="menu-toggle menu-toggle--mobile" aria-label="Deschide meniul">
+        <span></span><span></span><span></span>
+      </label>
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
           $logo_id = get_theme_mod('custom_logo');
@@ -30,16 +35,13 @@ $layout = magpress_header_layout();
           <span class="site-title"><?php bloginfo('name'); ?></span>
         <?php endif; ?>
       </a>
+      <span class="header-spacer" aria-hidden="true"></span>
     </div>
   </header>
 
   <?php /* Bara de meniu — SEPARATA de header (child direct al body) ca sa functioneze position:sticky */ ?>
   <div class="site-nav-bar site-nav-bar--centered">
     <div class="site-nav-bar__inner container">
-      <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
-      <label for="magpress-menu-toggle" class="menu-toggle" aria-label="Deschide meniul">
-        <span></span><span></span><span></span>
-      </label>
       <nav class="primary-nav" aria-label="Meniu principal">
         <?php magpress_render_primary_menu(); ?>
       </nav>
@@ -49,10 +51,21 @@ $layout = magpress_header_layout();
     </div>
   </div>
 
+  <?php /* Dropdown meniu mobil — apare cand hamburger e bifat */ ?>
+  <nav class="mobile-menu" aria-label="Meniu mobil">
+    <?php magpress_render_primary_menu(); ?>
+  </nav>
+
 <?php else: /* inline */ ?>
+
+  <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
 
   <header class="site-header site-header--inline">
     <div class="site-header__inner container">
+      <label for="magpress-menu-toggle" class="menu-toggle menu-toggle--mobile" aria-label="Deschide meniul">
+        <span></span><span></span><span></span>
+      </label>
+
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
           $logo_id = get_theme_mod('custom_logo');
@@ -61,11 +74,6 @@ $layout = magpress_header_layout();
           <span class="site-title"><?php bloginfo('name'); ?></span>
         <?php endif; ?>
       </a>
-
-      <input type="checkbox" id="magpress-menu-toggle" class="menu-toggle-checkbox" aria-hidden="true">
-      <label for="magpress-menu-toggle" class="menu-toggle" aria-label="Deschide meniul">
-        <span></span><span></span><span></span>
-      </label>
 
       <nav class="primary-nav" aria-label="Meniu principal">
         <?php magpress_render_primary_menu(); ?>
@@ -78,6 +86,10 @@ $layout = magpress_header_layout();
       </div>
     </div>
   </header>
+
+  <nav class="mobile-menu" aria-label="Meniu mobil">
+    <?php magpress_render_primary_menu(); ?>
+  </nav>
 
 <?php endif; ?>
 
