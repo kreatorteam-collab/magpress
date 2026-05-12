@@ -198,8 +198,9 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .article-body{max-width:none;margin:0 auto}
 /* Textul propriu-zis limitat la 1000px pentru lizibilitate (rânduri ~80 caractere) */
 .article-body .entry-content{max-width:1000px;margin:0 auto}
-.article-body .entry-content{font-size:1.05rem;line-height:1.75}
-.article-body .entry-content > *{margin-bottom:1.1em}
+.article-body .entry-content{font-size:1.125rem;line-height:1.75;color:#333}
+.article-body .entry-content > *{margin-bottom:1.5rem}
+.article-body .entry-content p{color:#333;margin-bottom:1.5rem;font-size:1.125rem;line-height:1.75}
 .article-body .entry-content h2{font-size:1.5rem;margin-top:2.25rem;margin-bottom:1rem;font-weight:800;letter-spacing:-.02em}
 .article-body .entry-content h3{font-size:1.2rem;margin-top:2rem;margin-bottom:.75rem;font-weight:700}
 .article-body .entry-content img{margin:1.5rem auto;border-radius:var(--radius);height:auto}
