@@ -406,6 +406,37 @@ function magpress_customize_register($wp_customize) {
         ]);
     }
 
+    // ---------- Sectiune: Reclame articol ----------
+    $wp_customize->add_section('magpress_article_ads', [
+        'title'       => 'Magpress: Reclame articol',
+        'description' => 'Coduri HTML/AdSense pentru pagini de articol (single). Lasă gol pentru a nu afișa.',
+        'priority'    => 28,
+    ]);
+
+    $wp_customize->add_setting('magpress_article_ad_mid', [
+        'default'           => '',
+        'sanitize_callback' => function($v) { return is_string($v) ? $v : ''; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_article_ad_mid', [
+        'label'       => 'Reclamă după paragraful 3',
+        'description' => 'Cod AdSense / HTML care apare în mijlocul articolului, după al 3-lea paragraf. Dacă articolul are <4 paragrafe, nu se afișează.',
+        'section'     => 'magpress_article_ads',
+        'type'        => 'textarea',
+    ]);
+
+    $wp_customize->add_setting('magpress_article_ad_end', [
+        'default'           => '',
+        'sanitize_callback' => function($v) { return is_string($v) ? $v : ''; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_article_ad_end', [
+        'label'       => 'Reclamă sub articol',
+        'description' => 'Cod AdSense / HTML care apare imediat sub conținutul articolului, înainte de „Articole similare".',
+        'section'     => 'magpress_article_ads',
+        'type'        => 'textarea',
+    ]);
+
     $wp_customize->add_setting('magpress_google_font', [
         'default'           => 'Open Sans:400,600,700,800',
         'sanitize_callback' => 'sanitize_text_field',
@@ -509,6 +540,34 @@ function magpress_homepage_slots() {
     $top = get_categories(['orderby' => 'count', 'order' => 'DESC', 'number' => 4, 'hide_empty' => true]);
     foreach ($top as $c) $slots[] = ['type' => 'category', 'cat' => $c, 'count' => 8];
     return $slots;
+}
+
+/**
+ * Injecteaza reclama in mijlocul articolului — dupa al 3-lea paragraf <p>.
+ * Aplicat doar pe single post.
+ */
+function magpress_inject_mid_article_ad($content) {
+    if (!is_singular('post') || !in_the_loop() || !is_main_query()) return $content;
+    $ad = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
+    if ($ad === '') return $content;
+
+    // Split la </p> si insereaza dupa al 3-lea
+    $parts = explode('</p>', $content);
+    if (count($parts) < 5) return $content; // <4 paragrafe — nu injectam
+
+    $ad_html = '<div class="ad-slot ad-slot--mid-article">' . $ad . '</div>';
+    $injected = implode('</p>', array_slice($parts, 0, 3)) . '</p>' . $ad_html . implode('</p>', array_slice($parts, 3));
+    return $injected;
+}
+add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
+
+/**
+ * Returneaza HTML-ul reclamei de la sfarsitul articolului (apelat din single.php).
+ */
+function magpress_get_end_article_ad() {
+    $ad = trim((string) get_theme_mod('magpress_article_ad_end', ''));
+    if ($ad === '') return '';
+    return '<div class="ad-slot ad-slot--end-article">' . $ad . '</div>';
 }
 
 /**
