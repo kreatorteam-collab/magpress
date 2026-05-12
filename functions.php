@@ -126,6 +126,7 @@ add_action('widgets_init', 'magpress_register_sidebars');
 /**
  * Citeste configul per-site (culori, branding, categorii homepage).
  * Path: /wp-content/themes/magpress-config/site-config.json
+ * Fallback secundar pentru cazurile cand Customizer nu e setat.
  */
 function magpress_site_config() {
     static $config = null;
@@ -139,26 +140,137 @@ function magpress_site_config() {
 }
 
 /**
- * Injecteaza override-uri CSS din site-config.json (culori, font).
+ * Default-uri pentru culori (folosite cand Customizer nu e setat).
+ */
+function magpress_default_colors() {
+    return [
+        'primary'    => '#1a1a1a',
+        'accent'     => '#6fa84a',
+        'background' => '#ffffff',
+        'text'       => '#1a1a1a',
+        'text_muted' => '#6b6b6b',
+        'border'     => '#e6e6e6',
+        'surface'    => '#f6f7f5',
+    ];
+}
+
+/**
+ * Citeste o culoare: Customizer (theme_mod) → site-config.json → default.
+ */
+function magpress_color($key) {
+    $val = get_theme_mod('magpress_color_' . $key);
+    if ($val) return $val;
+    $cfg = magpress_site_config();
+    if (!empty($cfg['colors'][$key])) return $cfg['colors'][$key];
+    $defaults = magpress_default_colors();
+    return $defaults[$key] ?? '';
+}
+
+/**
+ * Citeste header layout: 'inline' (default) sau 'centered'.
+ */
+function magpress_header_layout() {
+    $layout = get_theme_mod('magpress_header_layout', 'inline');
+    return in_array($layout, ['inline', 'centered'], true) ? $layout : 'inline';
+}
+
+/**
+ * Injecteaza override-uri CSS pentru culori si font.
  */
 function magpress_inject_site_branding() {
-    $cfg = magpress_site_config();
-    if (empty($cfg['colors']) && empty($cfg['font_family'])) { return; }
-
+    $defaults = magpress_default_colors();
     $css = ':root{';
-    if (!empty($cfg['colors']['primary']))    $css .= '--c-primary:'   . esc_attr($cfg['colors']['primary']) . ';';
-    if (!empty($cfg['colors']['accent']))     $css .= '--c-accent:'    . esc_attr($cfg['colors']['accent']) . ';';
-    if (!empty($cfg['colors']['background'])) $css .= '--c-bg:'        . esc_attr($cfg['colors']['background']) . ';';
-    if (!empty($cfg['colors']['text']))       $css .= '--c-text:'      . esc_attr($cfg['colors']['text']) . ';';
-    if (!empty($cfg['colors']['text_muted'])) $css .= '--c-text-muted:'. esc_attr($cfg['colors']['text_muted']) . ';';
-    if (!empty($cfg['colors']['border']))     $css .= '--c-border:'    . esc_attr($cfg['colors']['border']) . ';';
-    if (!empty($cfg['colors']['surface']))    $css .= '--c-surface:'   . esc_attr($cfg['colors']['surface']) . ';';
-    if (!empty($cfg['font_family']))          $css .= '--f-sans:'      . esc_attr($cfg['font_family']) . ';';
+    foreach ($defaults as $key => $default) {
+        $val = magpress_color($key);
+        if ($val && $val !== $default) {
+            $cssVar = $key === 'background' ? '--c-bg' : '--c-' . str_replace('_', '-', $key);
+            $css .= $cssVar . ':' . esc_attr($val) . ';';
+        }
+    }
+    $font = get_theme_mod('magpress_font_family');
+    if (!$font) {
+        $cfg = magpress_site_config();
+        if (!empty($cfg['font_family'])) $font = $cfg['font_family'];
+    }
+    if ($font) $css .= '--f-sans:' . esc_attr($font) . ';';
     $css .= '}';
 
-    echo "<style id='magpress-branding'>{$css}</style>\n";
+    if ($css !== ':root{}') {
+        echo "<style id='magpress-branding'>{$css}</style>\n";
+    }
 }
 add_action('wp_head', 'magpress_inject_site_branding', 5);
+
+/**
+ * Customizer: secțiune Magpress cu culori + layout header.
+ */
+function magpress_customize_register($wp_customize) {
+
+    // ---------- Sectiune: Layout ----------
+    $wp_customize->add_section('magpress_layout', [
+        'title'    => 'Magpress: Layout',
+        'priority' => 25,
+    ]);
+
+    $wp_customize->add_setting('magpress_header_layout', [
+        'default'           => 'inline',
+        'sanitize_callback' => function($v) { return in_array($v, ['inline', 'centered'], true) ? $v : 'inline'; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_header_layout', [
+        'label'       => 'Stil header',
+        'description' => 'Inline = logo stânga + meniu pe aceeași linie. Centered = logo centrat sus + meniu sub.',
+        'section'     => 'magpress_layout',
+        'type'        => 'radio',
+        'choices'     => [
+            'inline'   => 'Inline (logo + meniu pe aceeași linie)',
+            'centered' => 'Centered (logo sus centrat, meniu sub)',
+        ],
+    ]);
+
+    // ---------- Sectiune: Culori ----------
+    $wp_customize->add_section('magpress_colors', [
+        'title'    => 'Magpress: Culori',
+        'priority' => 30,
+    ]);
+
+    $colors = [
+        'accent'     => ['Accent (highlight, butoane, badge-uri)', '#6fa84a'],
+        'primary'    => ['Primary (text închis, header bar)',      '#1a1a1a'],
+        'text'       => ['Text principal',                          '#1a1a1a'],
+        'text_muted' => ['Text secundar (meta, sub-titluri)',       '#6b6b6b'],
+        'background' => ['Background pagină',                       '#ffffff'],
+        'surface'    => ['Surface (newsletter, footer)',            '#f6f7f5'],
+        'border'     => ['Border (linii subțiri, chenare)',         '#e6e6e6'],
+    ];
+
+    foreach ($colors as $key => $data) {
+        $setting = 'magpress_color_' . $key;
+        $wp_customize->add_setting($setting, [
+            'default'           => $data[1],
+            'sanitize_callback' => 'sanitize_hex_color',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, $setting, [
+            'label'   => $data[0],
+            'section' => 'magpress_colors',
+        ]));
+    }
+
+    // ---------- Sectiune: Font ----------
+    $wp_customize->add_setting('magpress_font_family', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_font_family', [
+        'label'       => 'Font family (CSS)',
+        'description' => 'Ex: "Inter", sans-serif. Lasă gol pentru default-ul sistemului.',
+        'section'     => 'magpress_colors',
+        'type'        => 'text',
+    ]);
+}
+add_action('customize_register', 'magpress_customize_register');
 
 /**
  * Calculeaza timpul de citire al unui articol (in minute).
@@ -214,6 +326,27 @@ function magpress_homepage_categories() {
         if ($cats) return $cats;
     }
     return get_categories(['orderby' => 'count', 'order' => 'DESC', 'number' => 4, 'hide_empty' => true]);
+}
+
+/**
+ * Render meniul principal (cu fallback la categorii daca nu e configurat).
+ */
+function magpress_render_primary_menu() {
+    if (has_nav_menu('primary')) {
+        wp_nav_menu([
+            'theme_location' => 'primary',
+            'container'      => false,
+            'menu_class'     => 'menu',
+            'depth'          => 2,
+            'fallback_cb'    => false,
+        ]);
+        return;
+    }
+    echo '<ul class="menu">';
+    foreach (get_categories(['hide_empty' => true, 'number' => 6]) as $c) {
+        echo '<li><a href="' . esc_url(get_category_link($c)) . '">' . esc_html($c->name) . '</a></li>';
+    }
+    echo '</ul>';
 }
 
 /**
