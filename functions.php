@@ -235,6 +235,19 @@ function magpress_customize_register($wp_customize) {
         ],
     ]);
 
+    // Header sticky pe desktop
+    $wp_customize->add_setting('magpress_header_sticky', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_header_sticky', [
+        'label'       => 'Header sticky (rămâne fix sus la scroll)',
+        'description' => 'Doar pe desktop (≥ 768px). Pe mobile rămâne normal.',
+        'section'     => 'magpress_layout',
+        'type'        => 'checkbox',
+    ]);
+
     // ---------- Sectiune: Culori ----------
     $wp_customize->add_section('magpress_colors', [
         'title'    => 'Magpress: Culori',
@@ -372,6 +385,7 @@ function magpress_body_classes($classes) {
     if (is_page())       $clean[] = 'page';
     if (is_search())     $clean[] = 'search';
     if (is_404())        $clean[] = 'error404';
+    if (get_theme_mod('magpress_header_sticky', 1)) $clean[] = 'has-sticky-header';
     return $clean;
 }
 add_filter('body_class', 'magpress_body_classes');
