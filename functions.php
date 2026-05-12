@@ -422,6 +422,11 @@ function magpress_body_classes($classes) {
     if (is_search())     $clean[] = 'search';
     if (is_404())        $clean[] = 'error404';
     if (get_theme_mod('magpress_header_sticky', 1)) $clean[] = 'has-sticky-header';
+
+    // Pastram clase WP esentiale care influenteaza layout (admin-bar offset, logged-in, embed responsive)
+    foreach (['admin-bar', 'logged-in', 'wp-embed-responsive', 'rtl'] as $important) {
+        if (in_array($important, $classes, true)) $clean[] = $important;
+    }
     return $clean;
 }
 add_filter('body_class', 'magpress_body_classes');
