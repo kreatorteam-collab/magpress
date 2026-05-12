@@ -50,18 +50,21 @@ get_header();
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
       ]);
-      if (!$q->have_posts()) { wp_reset_postdata(); continue; }
 
       set_query_var('section_title', $cat->name);
       set_query_var('section_url', get_category_link($cat));
   ?>
     <section class="category-row">
       <?php get_template_part('template-parts/section-header'); ?>
-      <div class="card-grid">
-        <?php while ($q->have_posts()): $q->the_post();
-          get_template_part('template-parts/card');
-        endwhile; ?>
-      </div>
+      <?php if ($q->have_posts()): ?>
+        <div class="card-grid">
+          <?php while ($q->have_posts()): $q->the_post();
+            get_template_part('template-parts/card');
+          endwhile; ?>
+        </div>
+      <?php else: ?>
+        <p class="no-results-slot" style="padding:1rem;color:var(--c-text-muted);font-style:italic;">Categoria „<?php echo esc_html($cat->name); ?>" nu are articole publicate încă.</p>
+      <?php endif; ?>
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
 
