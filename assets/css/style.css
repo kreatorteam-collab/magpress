@@ -46,20 +46,32 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 /* ===================== HEADER — LAYOUT INLINE (default) ===================== */
 .site-header{background:var(--c-bg);border-bottom:1px solid var(--c-border)}
 
-/* Sticky header — doar pe desktop (≥ 768px), doar daca body are .has-sticky-header */
+/* ===================== STICKY HEADER ===================== */
+/* Bara de meniu separata (centered layout) — sibling al header-ului */
+.site-nav-bar{background:var(--c-bg);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border)}
+.site-nav-bar__inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1rem;padding:.4rem 0}
+.site-nav-bar__inner::before{content:""}
+.site-nav-bar__inner .primary-nav{justify-self:center}
+.site-nav-bar__inner .search-toggle{justify-self:end}
+.site-nav-bar .primary-nav .menu{justify-content:center}
+@media (max-width: 768px){
+  .site-nav-bar__inner{grid-template-columns:1fr auto}
+  .site-nav-bar__inner::before{display:none}
+}
+
+/* Sticky — doar pe desktop (≥ 768px), doar daca body are .has-sticky-header */
 @media (min-width: 768px) {
-  /* INLINE: tot header-ul ramane sticky (logo + meniu pe acelasi rand) */
+  /* INLINE: tot header-ul ramane sticky */
   .has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-bg);box-shadow:0 1px 0 var(--c-border)}
   .has-sticky-header.admin-bar .site-header--inline{top:32px}
 
-  /* CENTERED: logo dispare la scroll, doar bara cu meniu ramane sticky */
-  .has-sticky-header .site-header--centered{position:relative}
-  .has-sticky-header .site-header--centered .site-header__nav-wrap{position:sticky;top:0;z-index:100;background:var(--c-bg);box-shadow:0 1px 4px rgba(0,0,0,.06)}
-  .has-sticky-header.admin-bar .site-header--centered .site-header__nav-wrap{top:32px}
+  /* CENTERED: doar bara de meniu (sibling al header-ului) ramane sticky */
+  .has-sticky-header .site-nav-bar--centered{position:sticky;top:0;z-index:100;background:var(--c-bg);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .has-sticky-header.admin-bar .site-nav-bar--centered{top:32px}
 }
 @media (min-width: 768px) and (max-width: 782px) {
   .has-sticky-header.admin-bar .site-header--inline{top:46px}
-  .has-sticky-header.admin-bar .site-header--centered .site-header__nav-wrap{top:46px}
+  .has-sticky-header.admin-bar .site-nav-bar--centered{top:46px}
 }
 .site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-top:1rem;padding-bottom:1rem}
 
