@@ -33,29 +33,6 @@ get_header();
   <?php endif; wp_reset_postdata(); ?>
 
   <?php
-  /* === DEBUG TEMPORAR — vizibil doar pentru admin === */
-  if (current_user_can('manage_options')) {
-      echo "\n<!-- MAGPRESS DEBUG START -->\n";
-      echo "<!-- get_stylesheet() = " . esc_html(get_stylesheet()) . " -->\n";
-      echo "<!-- get_template() = " . esc_html(get_template()) . " -->\n";
-      for ($di = 1; $di <= 12; $di++) {
-          $dt = get_theme_mod("magpress_slot_{$di}_type", '__NULL__');
-          $dc = get_theme_mod("magpress_slot_{$di}_cat", '__NULL__');
-          $dn = get_theme_mod("magpress_slot_{$di}_count", '__NULL__');
-          echo "<!-- Slot {$di}: type=" . esc_html($dt) . " cat_id=" . esc_html($dc) . " count=" . esc_html($dn) . " -->\n";
-      }
-      $debug_slots = magpress_homepage_slots();
-      echo "<!-- magpress_homepage_slots() returned " . count($debug_slots) . " slots: -->\n";
-      foreach ($debug_slots as $idx => $ds) {
-          $info = "type=" . $ds['type'];
-          if (isset($ds['cat']))   $info .= " cat=" . $ds['cat']->name . " (id=" . $ds['cat']->term_id . ")";
-          if (isset($ds['count'])) $info .= " count=" . $ds['count'];
-          echo "<!--   [{$idx}] {$info} -->\n";
-      }
-      echo "<!-- MAGPRESS DEBUG END -->\n\n";
-  }
-  /* === END DEBUG === */
-
   // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
       if ($slot['type'] === 'ad'): ?>
