@@ -64,7 +64,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .featured-card:hover .featured-card__image img{transform:scale(1.04)}
 .featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.4) 50%, transparent 80%);z-index:2;pointer-events:none}
 .featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}
-.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.2;color:#fff;font-weight:800;letter-spacing:-.01em}
+.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .featured-card__title a{color:#fff}
 .featured-card__title a:hover{color:var(--c-accent)}
 
@@ -101,9 +101,13 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .card:hover .card-image img{transform:scale(1.05)}
 .card-image-placeholder{display:block;width:100%;height:100%;background:var(--c-surface)}
 .card-body{padding:1rem 1.1rem 1.25rem;flex:1;display:flex;flex-direction:column}
-.card-title{margin:0;font-size:1rem;line-height:1.4;font-weight:700;letter-spacing:-.01em}
+.card-title{margin:0;font-size:.95rem;line-height:1.4;font-weight:700;letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
 .card-title a{color:var(--c-text)}
 .card-title a:hover{color:var(--c-accent)}
+
+/* Egalizam inaltimea cardurilor in grid (toate la fel) */
+.card-grid{align-items:stretch}
+.card{height:100%}
 
 /* ===================== BREADCRUMBS ===================== */
 .breadcrumbs{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;font-size:.85rem;color:var(--c-text-muted);margin-bottom:1rem}
