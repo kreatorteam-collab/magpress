@@ -105,28 +105,77 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .site-branding .site-title{font-size:1.4rem;font-weight:800;color:var(--c-text);letter-spacing:-.02em}
 
 /* ===================== HAMBURGER MOBILE ===================== */
-.menu-toggle-checkbox{display:none}
-.menu-toggle{display:none;cursor:pointer;width:38px;height:38px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border-radius:50%;border:1px solid var(--c-border);background:var(--c-bg);transition:border-color .15s}
+.menu-toggle-checkbox{position:absolute;left:-9999px;width:0;height:0;opacity:0}
+.menu-toggle{display:none;cursor:pointer;width:38px;height:38px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border-radius:50%;border:1px solid var(--c-border);background:var(--c-bg);transition:border-color .15s;flex-shrink:0}
 .menu-toggle:hover{border-color:var(--c-accent)}
 .menu-toggle span{display:block;width:18px;height:2px;background:var(--c-text);transition:all .25s}
-/* Pe mobil: ascundem meniul, aratam hamburger */
+.mobile-menu{display:none}
+.header-spacer{display:none;width:38px;height:1px}
+
 @media (max-width: 768px) {
-  .menu-toggle{display:inline-flex}
-  .primary-nav{display:none}
-  /* Cand hamburger e bifat, meniul se deschide dropdown */
-  .menu-toggle-checkbox:checked ~ .primary-nav,
-  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav{display:block;position:absolute;top:100%;left:0;right:0;background:var(--c-bg);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border);padding:.5rem 0;z-index:90;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-  .menu-toggle-checkbox:checked ~ .primary-nav .menu,
-  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav .menu{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0}
-  .menu-toggle-checkbox:checked ~ .primary-nav .menu > li > a,
-  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav .menu > li > a{display:block;padding:.75rem 1.5rem;text-align:left;border-radius:0}
-  /* Hamburger animat -> X */
-  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(2){opacity:0}
-  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-  /* Container parent are nevoie de position:relative pentru dropdown absolute */
-  .site-nav-bar__inner,
-  .site-header__inner{position:relative}
+  /* === Centered layout pe mobil: [☰] [LOGO] [spacer] === */
+  .site-header--centered .site-header__top{
+    display:grid !important;
+    grid-template-columns:auto 1fr auto !important;
+    align-items:center !important;
+    padding:.85rem 0 !important;
+    gap:.75rem;
+    text-align:center !important
+  }
+  .site-header--centered .site-header__top .site-branding{
+    justify-self:center !important;
+    margin:0 !important
+  }
+  .site-header--centered .site-header__top .site-logo{
+    max-height:54px !important
+  }
+  .site-header--centered .site-header__top .site-title{
+    font-size:1.2rem !important
+  }
+  .site-header--centered .site-header__top .menu-toggle--mobile{
+    justify-self:start
+  }
+  .site-header--centered .header-spacer{display:block;justify-self:end}
+
+  /* === Inline layout pe mobil: [☰] [LOGO] (menu+search ascunse) === */
+  .site-header--inline .site-header__inner{
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    padding:.85rem clamp(1rem,3vw,2rem)
+  }
+  .site-header--inline .site-header__inner .site-branding{
+    flex:1;
+    display:flex;
+    justify-content:center
+  }
+  .site-header--inline .site-header__inner .primary-nav,
+  .site-header--inline .site-header__inner .header-tools{
+    display:none
+  }
+  .site-header--inline .site-header__inner .menu-toggle--mobile{order:-1}
+
+  /* === Hamburger button vizibil pe mobil === */
+  .menu-toggle--mobile{display:inline-flex}
+
+  /* === Bara nav (centered) ascunsa pe mobil === */
+  .site-nav-bar{display:none}
+
+  /* === Dropdown meniu mobil deschis cu hamburger === */
+  .mobile-menu{display:none;background:var(--c-menu-bg);border-bottom:1px solid var(--c-border);box-shadow:0 4px 12px rgba(0,0,0,.06);position:relative;z-index:90}
+  body:has(.menu-toggle-checkbox:checked) .mobile-menu{display:block}
+  .mobile-menu .menu{list-style:none;margin:0;padding:0;display:block}
+  .mobile-menu .menu li{display:block;border-bottom:1px solid var(--c-border)}
+  .mobile-menu .menu li:last-child{border-bottom:0}
+  .mobile-menu .menu > li > a{display:block;padding:.9rem 1.25rem;font-size:.95rem;font-weight:700;color:var(--c-menu-link);text-transform:uppercase;letter-spacing:.04em}
+  .mobile-menu .menu > li > a:hover{background:var(--c-surface);color:var(--c-menu-link-hover)}
+  .mobile-menu .sub-menu{list-style:none;padding:0 0 0 1rem;margin:0;background:var(--c-surface);border-top:1px solid var(--c-border)}
+  .mobile-menu .sub-menu a{display:block;padding:.6rem 1.25rem;font-size:.85rem;color:var(--c-menu-link);text-transform:none;font-weight:500}
+
+  /* === Hamburger animat -> X === */
+  body:has(.menu-toggle-checkbox:checked) .menu-toggle--mobile span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  body:has(.menu-toggle-checkbox:checked) .menu-toggle--mobile span:nth-child(2){opacity:0}
+  body:has(.menu-toggle-checkbox:checked) .menu-toggle--mobile span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 }
 
 /* ===================== PRIMARY NAV ===================== */
