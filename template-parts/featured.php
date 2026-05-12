@@ -8,7 +8,16 @@ $cats = get_the_category();
 <article class="featured-card">
   <a class="featured-card__image" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
     <?php if (has_post_thumbnail()):
-      the_post_thumbnail('magpress-feature', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']);
+      the_post_thumbnail('magpress-feature', [
+        'loading'       => 'eager',
+        'fetchpriority' => 'high',
+        'decoding'      => 'async',
+        // Pe mobil = 100vw; pe desktop sunt 2 featured side-by-side = ~50vw
+        'sizes'         => '(max-width: 768px) 100vw, 50vw',
+        // Exclude LiteSpeed lazy-load (LCP must load eager)
+        'class'         => 'litespeed-no-lazy skip-lazy',
+        'data-no-lazy'  => '1',
+      ]);
     endif; ?>
   </a>
   <div class="featured-card__content">
