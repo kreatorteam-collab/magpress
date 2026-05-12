@@ -33,9 +33,15 @@ get_header();
   <?php endif; wp_reset_postdata(); ?>
 
   <?php
-  // Category rows — sloturi configurate din Customizer
-  $slots = magpress_homepage_slots();
-  foreach ($slots as $slot):
+  // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
+  foreach (magpress_homepage_slots() as $slot):
+      if ($slot['type'] === 'ad'): ?>
+        <div class="ad-slot">
+          <?php echo $slot['html']; // intentional: cod AdSense/HTML salvat de admin ?>
+        </div>
+      <?php continue; endif;
+
+      // type === 'category'
       $cat   = $slot['cat'];
       $count = $slot['count'];
       $q = new WP_Query([
