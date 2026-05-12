@@ -47,6 +47,25 @@ $cats = get_the_category();
 
   <?php echo magpress_get_end_article_ad(); ?>
 
+  <?php /* Author box — vizibil daca autorul are bio in profil */
+  $author_id = get_the_author_meta('ID');
+  $author_bio = get_the_author_meta('description', $author_id);
+  if (!empty($author_bio)): ?>
+    <aside class="author-box">
+      <div class="author-box__avatar">
+        <?php echo get_avatar($author_id, 80, '', get_the_author_meta('display_name', $author_id)); ?>
+      </div>
+      <div class="author-box__body">
+        <span class="author-box__label">DESPRE AUTOR</span>
+        <h3 class="author-box__name"><a href="<?php echo esc_url(get_author_posts_url($author_id)); ?>"><?php echo esc_html(get_the_author_meta('display_name', $author_id)); ?></a></h3>
+        <?php $role = get_the_author_meta('user_url', $author_id);
+        $role_text = get_the_author_meta('nickname', $author_id) !== get_the_author_meta('display_name', $author_id) ? '' : '';
+        ?>
+        <p class="author-box__bio"><?php echo esc_html($author_bio); ?></p>
+      </div>
+    </aside>
+  <?php endif; ?>
+
   <?php
   // Related — 4 articole din aceeasi categorie, excluzand pe asta.
   if ($cats):
