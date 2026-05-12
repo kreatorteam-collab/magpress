@@ -40,8 +40,6 @@ get_header();
     <p class="no-results">Nu există articole în această categorie.</p>
   <?php endif; ?>
 
-  <?php get_template_part('template-parts/newsletter'); ?>
-
 </div>
 
 <?php get_footer();
