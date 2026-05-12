@@ -59,6 +59,25 @@ if (!defined('ABSPATH')) { exit; }
   </div>
 </footer>
 
+<?php /* Modal căutare — deschis prin .search-toggle (checkbox-driven) */ ?>
+<input type="checkbox" id="magpress-search-toggle" class="search-modal-checkbox" aria-hidden="true">
+<div class="search-modal" role="dialog" aria-modal="true" aria-label="Căutare">
+  <label for="magpress-search-toggle" class="search-modal__backdrop" aria-label="Închide căutarea"></label>
+  <div class="search-modal__panel">
+    <form action="<?php echo esc_url(home_url('/')); ?>" method="get" class="search-modal__form" role="search">
+      <svg class="search-modal__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" name="s" placeholder="Caută articole..." class="search-modal__input" aria-label="Caută articole">
+      <label for="magpress-search-toggle" class="search-modal__close">ESC</label>
+    </form>
+    <p class="search-modal__hint">Scrie minim 2 caractere pentru a căuta</p>
+  </div>
+</div>
+
+<?php /* Back-to-top */ ?>
+<a class="back-to-top" href="#main" aria-label="Înapoi sus" title="Înapoi sus">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+</a>
+
 <?php wp_footer(); ?>
 </body>
 </html>
