@@ -1,0 +1,22 @@
+# Per-site config (NU în git, diferit per site)
+/site-config.json
+/wp-content/themes/magpress-config/
+
+# Build artifacts
+/node_modules/
+/vendor/
+*.log
+*.lock
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*~
+
+# Backups
+*.bak
+*.orig
