@@ -2,19 +2,24 @@
    LiteSpeed se ocupa de minify/critical CSS — noi scriem CSS uman, lizibil. */
 
 :root{
-  --c-primary:    #1a1a1a;
-  --c-accent:     #6fa84a;
-  --c-bg:         #ffffff;
-  --c-text:       #1a1a1a;
-  --c-text-muted: #6b6b6b;
-  --c-border:     #e6e6e6;
-  --c-surface:    #f6f7f5;
-  --f-sans:       'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
-  --container:    1320px;
-  --content:      780px;
-  --radius:       8px;
-  --radius-lg:    12px;
-  --gap:          1.5rem;
+  --c-primary:     #1a1a1a;
+  --c-accent:      #6fa84a;
+  --c-bg:          #ffffff;
+  --c-text:        #1a1a1a;
+  --c-text-muted:  #6b6b6b;
+  --c-border:      #e6e6e6;
+  --c-surface:     #f6f7f5;
+  --c-heading-h1:  #1a1a1a;
+  --c-heading-h2:  #1a1a1a;
+  --c-heading-h3:  #1a1a1a;
+  --c-link:        #6fa84a;
+  --c-link-hover:  #1a1a1a;
+  --f-sans:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --container:     1320px;
+  --content:       780px;
+  --radius:        8px;
+  --radius-lg:     12px;
+  --gap:           1.5rem;
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -23,9 +28,12 @@ body{margin:0;font-family:var(--f-sans);font-size:16px;line-height:1.6;color:var
 
 img,svg,video{max-width:100%;height:auto;display:block}
 a{color:var(--c-text);text-decoration:none;transition:color .15s}
-a:hover{color:var(--c-accent)}
+a:hover{color:var(--c-link-hover)}
 
 h1,h2,h3,h4,h5,h6{margin:0 0 .75em;line-height:1.25;font-weight:800;letter-spacing:-.015em;color:var(--c-text)}
+h1{color:var(--c-heading-h1)}
+h2{color:var(--c-heading-h2)}
+h3{color:var(--c-heading-h3)}
 p{margin:0 0 1em}
 ul,ol{padding-left:1.25em;margin:0 0 1em}
 
@@ -169,8 +177,8 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .article-body .entry-content figure{margin:1.5rem auto;max-width:100%}
 .article-body .entry-content figcaption{font-size:.85rem;color:var(--c-text-muted);text-align:center;margin-top:.5rem}
 .article-body .entry-content blockquote{border-left:3px solid var(--c-accent);padding:.5rem 0 .5rem 1.5rem;margin:1.5rem 0;font-style:italic;color:var(--c-text-muted)}
-.article-body .entry-content a{color:var(--c-accent);text-decoration:underline;text-underline-offset:3px}
-.article-body .entry-content a:hover{color:var(--c-primary)}
+.article-body .entry-content a{color:var(--c-link);text-decoration:underline;text-underline-offset:3px}
+.article-body .entry-content a:hover{color:var(--c-link-hover)}
 .article-body .entry-content ul,
 .article-body .entry-content ol{margin-bottom:1.25em}
 .article-body .entry-content li{margin-bottom:.35em}
