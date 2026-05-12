@@ -45,9 +45,16 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .site-header--centered .site-header__top .site-logo{max-height:72px}
 .site-header--centered .site-header__top .site-title{font-size:1.75rem}
 .site-header--centered .site-header__nav-wrap{border-top:1px solid var(--c-border);background:var(--c-bg)}
-.site-header--centered .site-header__nav{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.5rem 0;position:relative}
-.site-header--centered .site-header__nav .primary-nav{flex:0 1 auto}
-.site-header--centered .site-header__nav .search-toggle{position:absolute;right:clamp(1rem,3vw,2rem)}
+/* Grid 3-col: stanga gol | meniu centrat | search dreapta */
+.site-header--centered .site-header__nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:.4rem 0;gap:1rem}
+.site-header--centered .site-header__nav::before{content:""}
+.site-header--centered .site-header__nav .primary-nav{justify-self:center}
+.site-header--centered .site-header__nav .search-toggle{justify-self:end}
+.site-header--centered .primary-nav .menu{justify-content:center}
+@media (max-width: 768px){
+  .site-header--centered .site-header__nav{grid-template-columns:1fr auto;gap:.5rem}
+  .site-header--centered .site-header__nav::before{display:none}
+}
 
 /* ===================== BRANDING ===================== */
 .site-branding{display:inline-flex;align-items:center;flex-shrink:0;text-decoration:none}
