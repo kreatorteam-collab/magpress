@@ -23,8 +23,8 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
-body{margin:0;font-family:var(--f-sans);font-size:16px;line-height:1.6;color:var(--c-text);background:var(--c-bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;overflow-x:hidden}
+body{margin:0;font-family:var(--f-sans);font-size:16px;line-height:1.6;color:var(--c-text);background:var(--c-bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;max-width:100vw}
 
 img,svg,video{max-width:100%;height:auto;display:block}
 a{color:var(--c-text);text-decoration:none;transition:color .15s}
@@ -97,6 +97,31 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .site-branding .site-logo{max-height:48px;width:auto}
 .site-branding .site-title{font-size:1.4rem;font-weight:800;color:var(--c-text);letter-spacing:-.02em}
 
+/* ===================== HAMBURGER MOBILE ===================== */
+.menu-toggle-checkbox{display:none}
+.menu-toggle{display:none;cursor:pointer;width:38px;height:38px;align-items:center;justify-content:center;flex-direction:column;gap:5px;border-radius:50%;border:1px solid var(--c-border);background:var(--c-bg);transition:border-color .15s}
+.menu-toggle:hover{border-color:var(--c-accent)}
+.menu-toggle span{display:block;width:18px;height:2px;background:var(--c-text);transition:all .25s}
+/* Pe mobil: ascundem meniul, aratam hamburger */
+@media (max-width: 768px) {
+  .menu-toggle{display:inline-flex}
+  .primary-nav{display:none}
+  /* Cand hamburger e bifat, meniul se deschide dropdown */
+  .menu-toggle-checkbox:checked ~ .primary-nav,
+  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav{display:block;position:absolute;top:100%;left:0;right:0;background:var(--c-bg);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border);padding:.5rem 0;z-index:90;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .menu-toggle-checkbox:checked ~ .primary-nav .menu,
+  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav .menu{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0}
+  .menu-toggle-checkbox:checked ~ .primary-nav .menu > li > a,
+  .menu-toggle-checkbox:checked + .menu-toggle + .primary-nav .menu > li > a{display:block;padding:.75rem 1.5rem;text-align:left;border-radius:0}
+  /* Hamburger animat -> X */
+  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(2){opacity:0}
+  .menu-toggle-checkbox:checked + .menu-toggle span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  /* Container parent are nevoie de position:relative pentru dropdown absolute */
+  .site-nav-bar__inner,
+  .site-header__inner{position:relative}
+}
+
 /* ===================== PRIMARY NAV ===================== */
 .primary-nav{flex:1;display:flex;justify-content:center}
 .primary-nav .menu{display:flex;gap:.25rem;list-style:none;margin:0;padding:0;flex-wrap:wrap;justify-content:center}
@@ -113,9 +138,11 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .search-toggle:hover{border-color:var(--c-accent);color:var(--c-accent)}
 
 /* ===================== FEATURED (homepage hero) ===================== */
-.featured-grid{display:grid;grid-template-columns:1fr;gap:var(--gap);margin:2rem 0 3rem}
+.featured-grid{display:grid;grid-template-columns:1fr;gap:var(--gap);margin:2rem 0 3rem;width:100%}
+.featured-grid > *{min-width:0;max-width:100%}
 @media (min-width:768px){.featured-grid{grid-template-columns:1fr 1fr}}
-.featured-card{position:relative;border-radius:var(--radius-lg);overflow:hidden;aspect-ratio:16/10;min-height:340px;background:var(--c-surface)}
+.featured-card{position:relative;border-radius:var(--radius-lg);overflow:hidden;aspect-ratio:16/10;min-height:280px;background:var(--c-surface);width:100%;max-width:100%}
+@media (min-width:768px){.featured-card{min-height:340px}}
 .featured-card__image{position:absolute;inset:0;display:block;z-index:1}
 .featured-card__image img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .featured-card:hover .featured-card__image img{transform:scale(1.04)}
