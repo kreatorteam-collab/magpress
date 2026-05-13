@@ -128,6 +128,20 @@ function magpress_preconnect_google_fonts($urls, $relation_type) {
 add_filter('wp_resource_hints', 'magpress_preconnect_google_fonts', 10, 2);
 
 /**
+ * Defer Google Fonts CSS: il facem non-blocking prin media="print" + onload swap.
+ * Astfel render-ul nu mai e blocat de download-ul CSS-ului de la fonts.googleapis.com.
+ */
+function magpress_defer_google_fonts($html, $handle) {
+    if ($handle === 'magpress-google-font') {
+        // Inlocuim <link rel="stylesheet"> cu o varianta non-blocking
+        $html = str_replace("rel='stylesheet'", "rel='stylesheet' media='print' onload=\"this.media='all'\"", $html);
+        $html = str_replace('rel="stylesheet"', 'rel="stylesheet" media="print" onload="this.media=\'all\'"', $html);
+    }
+    return $html;
+}
+add_filter('style_loader_tag', 'magpress_defer_google_fonts', 10, 2);
+
+/**
  * Preload imaginea LCP (cel mai mare element vizibil above-the-fold).
  * Homepage: prima imagine featured.
  * Single article: imaginea featured a articolului.
