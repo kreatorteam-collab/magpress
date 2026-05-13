@@ -306,6 +306,54 @@ body.page .article-body .entry-content{max-width:none}
 .article-body .entry-content ol{margin-bottom:1.25em}
 .article-body .entry-content li{margin-bottom:.35em}
 
+/* ===================== TABELE (responsive) ===================== */
+.article-body .entry-content table,
+.article-body .entry-content .wp-block-table table,
+.entry-content > table,
+.wp-block-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.95rem;background:var(--c-bg);overflow:hidden;border-radius:8px;border:1px solid var(--c-border)}
+.article-body .entry-content table th,
+.article-body .entry-content table td,
+.wp-block-table th,
+.wp-block-table td{padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--c-border);vertical-align:top}
+.article-body .entry-content table th,
+.wp-block-table th{background:var(--c-surface);color:var(--c-text);font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--c-border)}
+.article-body .entry-content table tbody tr:nth-child(even) td,
+.wp-block-table tbody tr:nth-child(even) td{background:var(--c-surface)}
+.article-body .entry-content table tbody tr:hover td,
+.wp-block-table tbody tr:hover td{background:rgba(111,168,74,.08)}
+.article-body .entry-content table tr:last-child td,
+.wp-block-table tr:last-child td{border-bottom:0}
+.article-body .entry-content table caption,
+.wp-block-table figcaption{caption-side:bottom;text-align:center;font-size:.85rem;color:var(--c-text-muted);padding:.5rem 0;font-style:italic}
+
+/* Tabelul ramane intreg pe desktop; pe mobile scroll orizontal cu indicator vizual */
+.article-body .entry-content figure.wp-block-table,
+.article-body .entry-content > table{max-width:100%}
+@media (max-width: 768px) {
+  .article-body .entry-content table,
+  .wp-block-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;font-size:.9rem;position:relative}
+  .article-body .entry-content table th,
+  .article-body .entry-content table td,
+  .wp-block-table th,
+  .wp-block-table td{padding:.6rem .85rem;white-space:nowrap}
+  /* Indicator vizual ca se poate scrolla orizontal */
+  .wp-block-table::after{content:"";position:sticky;right:0;top:0;width:1.5rem;height:100%;background:linear-gradient(to right,transparent,rgba(0,0,0,.08));pointer-events:none;display:block}
+}
+
+/* Variante stil Gutenberg pentru tabele */
+.wp-block-table.is-style-stripes table tbody tr:nth-child(odd) td,
+.wp-block-table.is-style-stripes tbody tr:nth-child(odd) td{background:var(--c-surface)}
+.wp-block-table.is-style-stripes table tbody tr:nth-child(even) td,
+.wp-block-table.is-style-stripes tbody tr:nth-child(even) td{background:transparent}
+
+/* Tabele in widget-uri sau alte zone */
+.site-sidebar table,
+.footer-col table{width:100%;font-size:.85rem;margin:.5rem 0}
+.site-sidebar table th,
+.site-sidebar table td,
+.footer-col table th,
+.footer-col table td{padding:.4rem .6rem;border-bottom:1px solid var(--c-border);text-align:left}
+
 /* ===================== RELATED / COMMENTS ===================== */
 .related-row{max-width:var(--container);margin:3rem auto 2rem}
 .article-comments{max-width:var(--content);margin:3rem auto 0;padding-top:2rem;border-top:1px solid var(--c-border)}
