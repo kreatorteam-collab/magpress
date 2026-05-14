@@ -65,7 +65,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 
 /* ===================== STICKY HEADER ===================== */
 /* Bara de meniu separata (centered layout) — sibling al header-ului */
-.site-nav-bar{background:var(--c-menu-bg);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border)}
+.site-nav-bar{background:var(--c-menu-bg);border-top:1px solid var(--c-header-border);border-bottom:1px solid var(--c-header-border)}
 .site-nav-bar__inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1rem;padding:.4rem 0}
 .site-nav-bar__inner::before{content:""}
 .site-nav-bar__inner .primary-nav{justify-self:center}
