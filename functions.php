@@ -264,6 +264,7 @@ function magpress_default_colors() {
         'footer_text'     => '#6b6b6b',
         'footer_link'     => '#1a1a1a',
         'footer_border'   => '#e6e6e6',
+        'footer_heading'  => '#1a1a1a',
     ];
 }
 
@@ -455,6 +456,7 @@ function magpress_customize_register($wp_customize) {
         'footer_text'     => ['Footer — text',                               '#6b6b6b'],
         'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
         'footer_border'   => ['Footer — culoare linii (deasupra + sub coloane)', '#e6e6e6'],
+        'footer_heading'  => ['Footer — titluri widget (REVISTA, INFO UTILE, etc.)', '#1a1a1a'],
     ];
 
     foreach ($colors as $key => $data) {
