@@ -12,25 +12,32 @@ get_header();
 <div class="container site-content">
 
   <?php
-  // Featured (sticky first; fallback la ultimele 2 articole).
-  $featured_args = [
-    'posts_per_page'      => 2,
-    'post__in'            => get_option('sticky_posts'),
-    'ignore_sticky_posts' => 1,
-    'post_status'         => 'publish',
-  ];
-  $featured = new WP_Query($featured_args);
-  if (!$featured->have_posts()) {
-      wp_reset_postdata();
-      $featured = new WP_Query(['posts_per_page' => 2, 'post_status' => 'publish']);
-  }
-  if ($featured->have_posts()): ?>
-    <section class="featured-grid">
-      <?php while ($featured->have_posts()): $featured->the_post();
-        get_template_part('template-parts/featured');
-      endwhile; ?>
-    </section>
-  <?php endif; wp_reset_postdata(); ?>
+  // Featured posts — layout din Customizer
+  $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
+  if ($featured_layout !== 'hidden'):
+    $counts = ['two' => 2, 'three' => 3, 'one_two' => 3];
+    $count = $counts[$featured_layout] ?? 2;
+
+    // Sticky first; fallback la ultimele articole
+    $featured = new WP_Query([
+      'posts_per_page'      => $count,
+      'post__in'            => get_option('sticky_posts'),
+      'ignore_sticky_posts' => 1,
+      'post_status'         => 'publish',
+    ]);
+    if (!$featured->have_posts()) {
+        wp_reset_postdata();
+        $featured = new WP_Query(['posts_per_page' => $count, 'post_status' => 'publish']);
+    }
+    if ($featured->have_posts()): ?>
+      <section class="featured-grid featured-grid--<?php echo esc_attr($featured_layout); ?>">
+        <?php $idx = 0; while ($featured->have_posts()): $featured->the_post(); $idx++;
+          set_query_var('magpress_featured_is_big', $featured_layout === 'one_two' && $idx === 1);
+          get_template_part('template-parts/featured');
+        endwhile; ?>
+      </section>
+    <?php endif; wp_reset_postdata();
+  endif; ?>
 
   <?php
   // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
