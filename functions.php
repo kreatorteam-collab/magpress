@@ -903,6 +903,75 @@ function magpress_admin_error_notice() {
 add_action('admin_notices', 'magpress_admin_error_notice');
 
 /**
+ * ============================================================
+ * PING CENTRAL — site-ul trimite zilnic status la app.targetseo.ro
+ * ============================================================
+ * Endpoint colector: https://app.targetseo.ro/api/magpress-ping.php
+ * Vezi: app.targetseo.ro/magpress-sites.php (dashboard centralizat)
+ */
+const MAGPRESS_PING_ENDPOINT = 'https://app.targetseo.ro/api/magpress-ping.php';
+const MAGPRESS_PING_SECRET   = 'magpress-monitor-b7f2e1a3c9d8'; // sincron cu api/magpress-ping.php pe targetseo.ro
+
+function magpress_send_ping() {
+    // Citește log-ul pentru recent_errors + counts
+    $recent = magpress_read_recent_errors(20);
+    $errors_count = magpress_count_errors();
+    $fatal_count = 0;
+    $log_content = file_exists(MAGPRESS_ERROR_LOG_FILE) ? @file_get_contents(MAGPRESS_ERROR_LOG_FILE) : '';
+    if ($log_content) {
+        $fatal_count = substr_count($log_content, '[FATAL]');
+    }
+
+    $data = [
+        'site_url'      => home_url('/'),
+        'site_name'     => get_bloginfo('name'),
+        'theme_version' => wp_get_theme()->get('Version'),
+        'wp_version'    => get_bloginfo('version'),
+        'php_version'   => PHP_VERSION,
+        'errors_count'  => $errors_count,
+        'fatal_count'   => $fatal_count,
+        'recent_errors' => implode("\n", $recent),
+    ];
+
+    $body = wp_json_encode($data);
+    $signature = hash_hmac('sha256', $body, MAGPRESS_PING_SECRET);
+
+    wp_remote_post(MAGPRESS_PING_ENDPOINT, [
+        'body'    => $body,
+        'headers' => [
+            'Content-Type'         => 'application/json',
+            'X-Magpress-Signature' => $signature,
+        ],
+        'timeout'  => 10,
+        'blocking' => false, // non-blocking — nu așteptăm răspunsul
+    ]);
+}
+
+// Schedule zilnic
+function magpress_schedule_ping() {
+    if (!wp_next_scheduled('magpress_daily_ping')) {
+        wp_schedule_event(time() + 600, 'daily', 'magpress_daily_ping');
+    }
+}
+add_action('after_switch_theme', 'magpress_schedule_ping');
+add_action('init', 'magpress_schedule_ping'); // re-schedule la fiecare load dacă lipsește
+add_action('magpress_daily_ping', 'magpress_send_ping');
+
+// Cleanup la dezactivare
+function magpress_unschedule_ping() {
+    wp_clear_scheduled_hook('magpress_daily_ping');
+}
+add_action('switch_theme', 'magpress_unschedule_ping');
+
+// Permite trigger manual din pagina Aspect → Magpress (vezi handle in render settings)
+function magpress_handle_manual_ping() {
+    if (!current_user_can('manage_options')) return;
+    if (!isset($_POST['magpress_send_ping']) || !check_admin_referer('magpress_send_ping_action')) return;
+    magpress_send_ping();
+}
+add_action('admin_init', 'magpress_handle_manual_ping');
+
+/**
  * Render iconițe social media (folosit in footer).
  * Returneaza HTML sau string gol daca nu exista URL-uri.
  */
@@ -1135,6 +1204,16 @@ function magpress_render_settings_page() {
                 <?php wp_nonce_field('magpress_check_update_action'); ?>
                 <button type="submit" name="magpress_check_update" class="button button-primary button-large">
                     🔄 Verifică update acum
+                </button>
+            </form>
+
+            <h2 style="margin-top:2rem">Trimite ping la monitor central</h2>
+            <p>Site-ul trimite automat zilnic status la <code>app.targetseo.ro/magpress-sites.php</code> (dashboard centralizat cu toate site-urile). Force-trigger acum:</p>
+
+            <form method="post">
+                <?php wp_nonce_field('magpress_send_ping_action'); ?>
+                <button type="submit" name="magpress_send_ping" class="button">
+                    📡 Trimite ping acum
                 </button>
             </form>
         </div>
