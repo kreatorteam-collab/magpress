@@ -747,6 +747,105 @@ function magpress_render_primary_menu() {
 }
 
 /**
+ * ============================================================
+ * AUTO-UPDATE THEME
+ * ============================================================
+ * Tema isi verifica singura update-urile, fara webhook per-site.
+ * Citeste .update-info.json din repo public si daca versiunea
+ * de pe GitHub > versiunea instalata, WP afiseaza "Update available"
+ * exact ca pentru orice tema oficiala WP repo.
+ */
+const MAGPRESS_UPDATE_INFO_URL = 'https://raw.githubusercontent.com/kreatorteam-collab/magpress/main/.update-info.json';
+
+function magpress_check_for_update($transient) {
+    if (empty($transient->checked)) return $transient;
+    $slug = get_stylesheet();
+    if (!isset($transient->checked[$slug])) return $transient;
+
+    $current_version = $transient->checked[$slug];
+
+    // Cache 6 ore — nu polluam GitHub la fiecare load
+    $info = get_transient('magpress_update_info');
+    if (false === $info) {
+        $response = wp_remote_get(MAGPRESS_UPDATE_INFO_URL, ['timeout' => 5]);
+        if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
+            set_transient('magpress_update_info', 'error', 30 * MINUTE_IN_SECONDS);
+            return $transient;
+        }
+        $info = json_decode(wp_remote_retrieve_body($response), true);
+        if (!$info || empty($info['version']) || empty($info['package'])) {
+            set_transient('magpress_update_info', 'error', 30 * MINUTE_IN_SECONDS);
+            return $transient;
+        }
+        set_transient('magpress_update_info', $info, 6 * HOUR_IN_SECONDS);
+    }
+    if ($info === 'error') return $transient;
+
+    if (version_compare($current_version, $info['version'], '<')) {
+        $transient->response[$slug] = [
+            'theme'        => $slug,
+            'new_version'  => $info['version'],
+            'url'          => $info['url']         ?? 'https://github.com/kreatorteam-collab/magpress',
+            'package'      => $info['package'],
+            'requires'     => $info['requires']     ?? '6.0',
+            'requires_php' => $info['requires_php'] ?? '8.0',
+        ];
+    }
+    return $transient;
+}
+add_filter('pre_set_site_transient_update_themes', 'magpress_check_for_update');
+
+/**
+ * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
+ * dar site-urile pot avea folderul "magpress" sau "magpress-main". Redenumim
+ * folderul extras ca sa match-uiasca tema activa, ca update-ul sa nu duplice.
+ */
+function magpress_fix_update_source($source, $remote_source, $upgrader, $hook_extra = []) {
+    if (empty($hook_extra['theme'])) return $source;
+    if (false === strpos(basename($source), 'magpress')) return $source;
+
+    $expected_folder = $hook_extra['theme'];
+    $actual_folder   = basename(rtrim($source, '/'));
+
+    if ($actual_folder === $expected_folder) return $source;
+
+    global $wp_filesystem;
+    $new_source = trailingslashit($remote_source) . $expected_folder;
+    if ($wp_filesystem && $wp_filesystem->move($source, $new_source)) {
+        return $new_source;
+    }
+    return $source;
+}
+add_filter('upgrader_source_selection', 'magpress_fix_update_source', 10, 4);
+
+/**
+ * Informatii suplimentare in pop-up-ul "View version X details" din admin.
+ */
+function magpress_theme_update_info($result, $action, $args) {
+    if ('theme_information' !== $action || empty($args->slug) || $args->slug !== get_stylesheet()) {
+        return $result;
+    }
+    $info = get_transient('magpress_update_info');
+    if (!is_array($info)) return $result;
+
+    return (object) [
+        'name'         => $info['name']    ?? 'Magpress',
+        'slug'         => get_stylesheet(),
+        'version'      => $info['version'] ?? '',
+        'author'       => '<a href="https://seodigital.ro">SEO Digital</a>',
+        'requires'     => $info['requires']     ?? '6.0',
+        'tested'       => $info['tested']       ?? '6.7',
+        'requires_php' => $info['requires_php'] ?? '8.0',
+        'download_link'=> $info['package']      ?? '',
+        'sections'     => [
+            'description' => 'Tema WordPress magazine ultra-performantă pentru rețeaua de site-uri SEO Digital.',
+            'changelog'   => '<p>Vezi <a href="' . esc_url($info['changelog_url'] ?? 'https://github.com/kreatorteam-collab/magpress/commits/main') . '" target="_blank">istoricul commit-urilor pe GitHub</a>.</p>',
+        ],
+    ];
+}
+add_filter('themes_api', 'magpress_theme_update_info', 10, 3);
+
+/**
  * Calculeaza timestamp-ul celui mai recent fisier modificat din temă
  * (cel mai bun indicator pentru "ultima actualizare via deploy automat").
  */
