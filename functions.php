@@ -258,6 +258,8 @@ function magpress_default_colors() {
         'menu_link_hover' => '#6fa84a',
         'menu_hover_bg'   => '#f6f7f5',
         'search_color'    => '#1a1a1a',
+        'badge_bg'        => '#6fa84a',
+        'badge_text'      => '#ffffff',
         'footer_bg'       => '#f6f7f5',
         'footer_text'     => '#6b6b6b',
         'footer_link'     => '#1a1a1a',
@@ -357,6 +359,27 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'checkbox',
     ]);
 
+    // Featured posts — layout selector
+    $wp_customize->add_setting('magpress_featured_layout', [
+        'default'           => 'two',
+        'sanitize_callback' => function($v) {
+            return in_array($v, ['two', 'three', 'one_two', 'hidden'], true) ? $v : 'two';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_featured_layout', [
+        'label'       => 'Featured posts (sus pe homepage) — Layout',
+        'description' => 'Stilul de afișare a articolelor featured din capul homepage-ului. Sticky posts (sau cele mai recente dacă nu există sticky).',
+        'section'     => 'magpress_layout',
+        'type'        => 'select',
+        'choices'     => [
+            'two'     => '2 carduri side-by-side (default)',
+            'three'   => '3 carduri egale',
+            'one_two' => 'Asimetric (1 mare + 2 mici stivuit)',
+            'hidden'  => '— Ascuns —',
+        ],
+    ]);
+
     // Padding header (separate top + bottom)
     $wp_customize->add_setting('magpress_header_padding_top', [
         'default'           => 32,
@@ -423,6 +446,8 @@ function magpress_customize_register($wp_customize) {
         'menu_link_hover' => ['Meniu — culoare link hover',                  '#6fa84a'],
         'menu_hover_bg'   => ['Meniu — background link hover',               '#f6f7f5'],
         'search_color'    => ['Search — culoare icon + border',               '#1a1a1a'],
+        'badge_bg'        => ['Badge categorie — background',                 '#6fa84a'],
+        'badge_text'      => ['Badge categorie — text',                       '#ffffff'],
         'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
         'footer_text'     => ['Footer — text',                               '#6b6b6b'],
         'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
