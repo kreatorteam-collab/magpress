@@ -251,12 +251,16 @@ function magpress_default_colors() {
         'heading_h3'      => '#1a1a1a',
         'link'            => '#6fa84a',
         'link_hover'      => '#1a1a1a',
+        'header_bg'       => '#ffffff',
+        'header_border'   => '#e6e6e6',
         'menu_bg'         => '#ffffff',
         'menu_link'       => '#1a1a1a',
         'menu_link_hover' => '#6fa84a',
+        'menu_hover_bg'   => '#f6f7f5',
         'footer_bg'       => '#f6f7f5',
         'footer_text'     => '#6b6b6b',
         'footer_link'     => '#1a1a1a',
+        'footer_border'   => '#e6e6e6',
     ];
 }
 
@@ -375,12 +379,16 @@ function magpress_customize_register($wp_customize) {
         'heading_h3'      => ['Titluri H3 (sub-sub-titluri, carduri)',       '#1a1a1a'],
         'link'            => ['Link (text articol)',                         '#6fa84a'],
         'link_hover'      => ['Link hover',                                   '#1a1a1a'],
+        'header_bg'       => ['Header — background (rândul cu logo)',         '#ffffff'],
+        'header_border'   => ['Header — border jos (linie sub header)',      '#e6e6e6'],
         'menu_bg'         => ['Meniu — background',                          '#ffffff'],
         'menu_link'       => ['Meniu — culoare link',                        '#1a1a1a'],
         'menu_link_hover' => ['Meniu — culoare link hover',                  '#6fa84a'],
+        'menu_hover_bg'   => ['Meniu — background link hover',               '#f6f7f5'],
         'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
         'footer_text'     => ['Footer — text',                               '#6b6b6b'],
         'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
+        'footer_border'   => ['Footer — border sus (linie deasupra footer)', '#e6e6e6'],
     ];
 
     foreach ($colors as $key => $data) {
