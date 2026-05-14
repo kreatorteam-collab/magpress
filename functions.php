@@ -977,14 +977,44 @@ function magpress_send_ping() {
     ]);
 }
 
-// Schedule zilnic
+// Înregistrăm schedule 'weekly' (nu există nativ în WP)
+function magpress_add_weekly_schedule($schedules) {
+    if (!isset($schedules['weekly'])) {
+        $schedules['weekly'] = [
+            'interval' => 7 * DAY_IN_SECONDS,
+            'display'  => 'Săptămânal',
+        ];
+    }
+    return $schedules;
+}
+add_filter('cron_schedules', 'magpress_add_weekly_schedule');
+
+// Schedule săptămânal (re-schedule dacă găsește vechea variantă 'daily')
 function magpress_schedule_ping() {
-    if (!wp_next_scheduled('magpress_daily_ping')) {
-        wp_schedule_event(time() + 600, 'daily', 'magpress_daily_ping');
+    // Detectează dacă există deja schedule cu interval != weekly și-l înlocuiește
+    $next = wp_next_scheduled('magpress_daily_ping');
+    if ($next) {
+        $cron = _get_cron_array();
+        if (is_array($cron)) {
+            foreach ($cron as $ts => $events) {
+                if (isset($events['magpress_daily_ping'])) {
+                    foreach ($events['magpress_daily_ping'] as $args) {
+                        if (($args['schedule'] ?? '') !== 'weekly') {
+                            wp_clear_scheduled_hook('magpress_daily_ping');
+                            $next = false;
+                        }
+                        break 2;
+                    }
+                }
+            }
+        }
+    }
+    if (!$next) {
+        wp_schedule_event(time() + 600, 'weekly', 'magpress_daily_ping');
     }
 }
 add_action('after_switch_theme', 'magpress_schedule_ping');
-add_action('init', 'magpress_schedule_ping'); // re-schedule la fiecare load dacă lipsește
+add_action('init', 'magpress_schedule_ping');
 add_action('magpress_daily_ping', 'magpress_send_ping');
 
 // Cleanup la dezactivare
