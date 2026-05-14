@@ -1,20 +1,19 @@
 <?php
 /**
- * Card featured (folosit pe homepage in sectiunea de 2 articole mari).
+ * Card featured (folosit pe homepage in sectiunea featured).
  */
 if (!defined('ABSPATH')) { exit; }
 $cats = get_the_category();
+$is_big = (bool) get_query_var('magpress_featured_is_big', false);
 ?>
-<article class="featured-card">
+<article class="featured-card<?php echo $is_big ? ' featured-card--big' : ''; ?>">
   <a class="featured-card__image" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
     <?php if (has_post_thumbnail()):
       the_post_thumbnail('magpress-feature', [
         'loading'       => 'eager',
         'fetchpriority' => 'high',
         'decoding'      => 'async',
-        // Pe mobil = 100vw; pe desktop sunt 2 featured side-by-side = ~50vw
         'sizes'         => '(max-width: 768px) 100vw, 50vw',
-        // Exclude LiteSpeed lazy-load (LCP must load eager)
         'class'         => 'litespeed-no-lazy skip-lazy',
         'data-no-lazy'  => '1',
       ]);
