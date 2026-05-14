@@ -747,6 +747,46 @@ function magpress_render_primary_menu() {
 }
 
 /**
+ * Calculeaza timestamp-ul celui mai recent fisier modificat din temă
+ * (cel mai bun indicator pentru "ultima actualizare via deploy automat").
+ */
+function magpress_last_modified_timestamp() {
+    static $latest = null;
+    if ($latest !== null) return $latest;
+
+    $files = array_merge(
+        glob(MAGPRESS_DIR . '/*.php')           ?: [],
+        glob(MAGPRESS_DIR . '/*.css')           ?: [],
+        glob(MAGPRESS_DIR . '/assets/css/*.css') ?: [],
+        glob(MAGPRESS_DIR . '/template-parts/*.php') ?: []
+    );
+    $latest = 0;
+    foreach ($files as $f) {
+        $m = @filemtime($f);
+        if ($m && $m > $latest) $latest = $m;
+    }
+    return $latest;
+}
+
+/**
+ * Adaugă în panoul de detalii temă (Aspect → Teme) o linie cu "Ultima actualizare: ..."
+ * Așa Eduard vede instant dacă deploy-ul automat a venit.
+ */
+function magpress_theme_details_last_update($themes) {
+    $slug = get_stylesheet();
+    if (!isset($themes[$slug])) return $themes;
+    $ts = magpress_last_modified_timestamp();
+    if (!$ts) return $themes;
+
+    $human_date = date_i18n('j F Y, H:i', $ts);
+    $relative   = human_time_diff($ts, current_time('U')) . ' în urmă';
+    $appendix = '<br><br><strong>Ultima actualizare:</strong> ' . esc_html($human_date) . ' <em>(' . esc_html($relative) . ')</em>';
+    $themes[$slug]['description'] .= $appendix;
+    return $themes;
+}
+add_filter('wp_prepare_themes_for_js', 'magpress_theme_details_last_update');
+
+/**
  * Stergem clase WP inutile de pe body (reduce HTML).
  */
 function magpress_body_classes($classes) {
