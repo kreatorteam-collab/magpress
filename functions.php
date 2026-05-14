@@ -306,11 +306,12 @@ function magpress_get_branding_css() {
     if ($font) $css .= '--f-sans:' . esc_attr($font) . ';';
     $css .= '}';
 
-    // Header padding (independent de root, target direct)
-    $padding = (int) get_theme_mod('magpress_header_padding', 32);
-    if ($padding !== 32 && $padding >= 0 && $padding <= 120) {
-        $css .= '.site-header--centered .site-header__top{padding-top:' . $padding . 'px !important;padding-bottom:' . max(8, (int)($padding * 0.6)) . 'px !important}';
-        $css .= '.site-header--inline .site-header__inner{padding-top:' . $padding . 'px !important;padding-bottom:' . $padding . 'px !important}';
+    // Header padding (separat sus + jos)
+    $pad_top    = max(0, min(120, (int) get_theme_mod('magpress_header_padding_top', 32)));
+    $pad_bottom = max(0, min(120, (int) get_theme_mod('magpress_header_padding_bottom', 20)));
+    if ($pad_top !== 32 || $pad_bottom !== 20) {
+        $css .= '.site-header--centered .site-header__top{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
+        $css .= '.site-header--inline .site-header__inner{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
     }
 
     return trim($css) === ':root{}' ? '' : $css;
@@ -356,18 +357,31 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'checkbox',
     ]);
 
-    // Padding header (in jurul logo-ului)
-    $wp_customize->add_setting('magpress_header_padding', [
+    // Padding header (separate top + bottom)
+    $wp_customize->add_setting('magpress_header_padding_top', [
         'default'           => 32,
         'sanitize_callback' => 'absint',
         'transport'         => 'refresh',
     ]);
-    $wp_customize->add_control('magpress_header_padding', [
-        'label'       => 'Padding header (sus + jos, px)',
-        'description' => 'Spațiul vertical din jurul logo-ului. Default 32px.',
+    $wp_customize->add_control('magpress_header_padding_top', [
+        'label'       => 'Padding header — SUS (px)',
+        'description' => 'Spațiul deasupra logo-ului. Default 32px.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
-        'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 4],
+        'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 2],
+    ]);
+
+    $wp_customize->add_setting('magpress_header_padding_bottom', [
+        'default'           => 20,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_header_padding_bottom', [
+        'label'       => 'Padding header — JOS (px)',
+        'description' => 'Spațiul sub logo (până la meniu / margine). Default 20px.',
+        'section'     => 'magpress_layout',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 2],
     ]);
 
     // Header sticky pe desktop
