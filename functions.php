@@ -467,12 +467,38 @@ function magpress_customize_register($wp_customize) {
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_count", [
             'label'           => "Slot {$i} — Articole",
-            'description'     => 'Recomandat: 4 sau 8. Min 2, max 20.',
+            'description'     => 'Recomandat: 4 sau 8. Min 2, max 20. (Layout-urile Asimetric/Hero/Listă forțează un număr fix.)',
             'section'         => 'magpress_homepage',
             'type'            => 'number',
             'input_attrs'     => ['min' => 2, 'max' => 20, 'step' => 1],
             'active_callback' => function() use ($i) {
-                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
+                $default_type = $i <= 4 ? 'category' : 'none';
+                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
+            },
+        ]);
+
+        // 3b. Layout slot (vizibila daca tip = category)
+        $wp_customize->add_setting("magpress_slot_{$i}_layout", [
+            'default'           => 'grid',
+            'sanitize_callback' => function($v) {
+                return in_array($v, ['grid', 'asymmetric', 'hero', 'list'], true) ? $v : 'grid';
+            },
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_layout", [
+            'label'           => "Slot {$i} — Layout",
+            'description'     => 'Stilul de afișare a cardurilor.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'select',
+            'choices'         => [
+                'grid'       => 'Grid 4 coloane (8 carduri egale)',
+                'asymmetric' => 'Asimetric (1 mare + 4 mici)',
+                'hero'       => 'Hero (4 carduri portret cu overlay)',
+                'list'       => 'Listă (imagine stânga + text dreapta)',
+            ],
+            'active_callback' => function() use ($i) {
+                $default_type = $i <= 4 ? 'category' : 'none';
+                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
             },
         ]);
 
@@ -630,7 +656,12 @@ function magpress_homepage_slots() {
             $cat = get_category($cat_id);
             if (!$cat || is_wp_error($cat)) continue;
             $count = (int) get_theme_mod("magpress_slot_{$i}_count", 8);
-            $slots[] = ['type' => 'category', 'cat' => $cat, 'count' => max(2, min(20, $count))];
+            $layout = get_theme_mod("magpress_slot_{$i}_layout", 'grid');
+            if (!in_array($layout, ['grid', 'asymmetric', 'hero', 'list'], true)) $layout = 'grid';
+            // Layout-urile fixe forteaza un numar de articole specific
+            $forced = ['asymmetric' => 5, 'hero' => 4, 'list' => 5];
+            if (isset($forced[$layout])) $count = $forced[$layout];
+            $slots[] = ['type' => 'category', 'cat' => $cat, 'count' => max(2, min(20, $count)), 'layout' => $layout];
         } elseif ($type === 'ad') {
             $html = trim((string) get_theme_mod("magpress_slot_{$i}_ad", ''));
             if ($html === '') continue;
