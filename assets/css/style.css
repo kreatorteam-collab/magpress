@@ -20,6 +20,7 @@
   --c-menu-link:       #1a1a1a;
   --c-menu-link-hover: #6fa84a;
   --c-menu-hover-bg:   #f6f7f5;
+  --c-search-color:    #1a1a1a;
   --c-footer-bg:       #f6f7f5;
   --c-footer-text:     #6b6b6b;
   --c-footer-link:     #1a1a1a;
@@ -197,7 +198,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .primary-nav .sub-menu a{display:block;padding:.5rem .75rem;font-size:.9rem;text-transform:none;font-weight:500;border-radius:4px}
 .primary-nav .sub-menu a:hover{background:var(--c-surface)}
 .header-tools{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
-.search-toggle{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;color:var(--c-text);border:1px solid var(--c-border);transition:all .15s}
+.search-toggle{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;color:var(--c-search-color);border:1px solid var(--c-search-color);background:transparent;transition:all .15s;cursor:pointer}
 .search-toggle:hover{border-color:var(--c-accent);color:var(--c-accent)}
 
 /* ===================== FEATURED (homepage hero) ===================== */
