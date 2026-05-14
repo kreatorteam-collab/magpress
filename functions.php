@@ -802,6 +802,107 @@ function magpress_get_end_article_ad() {
 }
 
 /**
+ * ============================================================
+ * ERROR LOGGER pentru fișierele temei
+ * ============================================================
+ * Captează automat erori PHP din fișierele Magpress și le scrie
+ * în /wp-content/magpress-errors.log. Vizibile in admin panel.
+ */
+const MAGPRESS_ERROR_LOG_FILE = WP_CONTENT_DIR . '/magpress-errors.log';
+const MAGPRESS_ERROR_LOG_MAX_BYTES = 524288; // 512 KB — rotim când depășește
+
+function magpress_log_error($severity, $message, $file, $line) {
+    // Doar erori din folderul temei (sau apelate din tema)
+    if (strpos($file, MAGPRESS_DIR) === false) return;
+
+    // Rotește log-ul dacă e prea mare
+    if (file_exists(MAGPRESS_ERROR_LOG_FILE) && filesize(MAGPRESS_ERROR_LOG_FILE) > MAGPRESS_ERROR_LOG_MAX_BYTES) {
+        @rename(MAGPRESS_ERROR_LOG_FILE, MAGPRESS_ERROR_LOG_FILE . '.old');
+    }
+
+    $rel_file = str_replace(ABSPATH, '', $file);
+    $entry = sprintf("[%s] [%s] %s in %s:%d\n",
+        date('Y-m-d H:i:s'),
+        $severity,
+        trim($message),
+        $rel_file,
+        $line
+    );
+    @file_put_contents(MAGPRESS_ERROR_LOG_FILE, $entry, FILE_APPEND | LOCK_EX);
+}
+
+function magpress_error_handler($errno, $errstr, $errfile, $errline) {
+    $severity_map = [
+        E_WARNING       => 'WARNING',
+        E_NOTICE        => 'NOTICE',
+        E_USER_WARNING  => 'USER_WARNING',
+        E_USER_NOTICE   => 'USER_NOTICE',
+        E_DEPRECATED    => 'DEPRECATED',
+        E_USER_DEPRECATED => 'USER_DEPRECATED',
+        E_STRICT        => 'STRICT',
+        E_RECOVERABLE_ERROR => 'RECOVERABLE_ERROR',
+    ];
+    $severity = $severity_map[$errno] ?? 'UNKNOWN(' . $errno . ')';
+    magpress_log_error($severity, $errstr, $errfile, $errline);
+    return false; // continuă handler-ul nativ
+}
+
+function magpress_fatal_handler() {
+    $error = error_get_last();
+    if (!$error) return;
+    $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($error['type'], $fatal_types, true)) return;
+    magpress_log_error('FATAL', $error['message'], $error['file'], $error['line']);
+}
+
+function magpress_register_error_handlers() {
+    // Doar pe frontend + admin (nu in cron sau cli)
+    if (defined('DOING_CRON') && DOING_CRON) return;
+    if (defined('WP_CLI') && WP_CLI) return;
+
+    set_error_handler('magpress_error_handler', E_ALL & ~E_STRICT);
+    register_shutdown_function('magpress_fatal_handler');
+}
+add_action('init', 'magpress_register_error_handlers');
+
+/**
+ * Citește ultimele N erori din log (pentru afișare în admin).
+ */
+function magpress_read_recent_errors($limit = 20) {
+    if (!file_exists(MAGPRESS_ERROR_LOG_FILE)) return [];
+    $content = @file_get_contents(MAGPRESS_ERROR_LOG_FILE);
+    if (!$content) return [];
+    $lines = array_filter(explode("\n", $content));
+    return array_slice(array_reverse($lines), 0, $limit);
+}
+
+/**
+ * Returnează numărul total de erori din log (pentru admin notice).
+ */
+function magpress_count_errors() {
+    if (!file_exists(MAGPRESS_ERROR_LOG_FILE)) return 0;
+    $content = @file_get_contents(MAGPRESS_ERROR_LOG_FILE);
+    if (!$content) return 0;
+    return substr_count($content, "\n");
+}
+
+/**
+ * Admin notice când există erori în log.
+ */
+function magpress_admin_error_notice() {
+    if (!current_user_can('manage_options')) return;
+    $count = magpress_count_errors();
+    if ($count === 0) return;
+    $url = admin_url('themes.php?page=magpress-settings');
+    ?>
+    <div class="notice notice-warning is-dismissible">
+        <p><strong>⚠️ Magpress:</strong> Tema a înregistrat <strong><?php echo $count; ?> erori</strong>. <a href="<?php echo esc_url($url); ?>">Vezi detalii →</a></p>
+    </div>
+    <?php
+}
+add_action('admin_notices', 'magpress_admin_error_notice');
+
+/**
  * Render iconițe social media (folosit in footer).
  * Returneaza HTML sau string gol daca nu exista URL-uri.
  */
@@ -977,8 +1078,18 @@ function magpress_render_settings_page() {
         }
     }
 
+    // Handle clear errors button
+    if (isset($_POST['magpress_clear_errors']) && check_admin_referer('magpress_clear_errors_action')) {
+        @unlink(MAGPRESS_ERROR_LOG_FILE);
+        @unlink(MAGPRESS_ERROR_LOG_FILE . '.old');
+        $message = '✓ Log-ul de erori a fost șters.';
+        $message_type = 'success';
+    }
+
     $current_version = wp_get_theme()->get('Version');
     $last_modified   = magpress_last_modified_timestamp();
+    $errors          = magpress_read_recent_errors(50);
+    $errors_count    = magpress_count_errors();
     ?>
     <div class="wrap">
         <h1>Magpress</h1>
@@ -1026,6 +1137,40 @@ function magpress_render_settings_page() {
                     🔄 Verifică update acum
                 </button>
             </form>
+        </div>
+
+        <div class="card" style="max-width:1100px;padding:1.5rem;margin-top:1rem">
+            <h2 style="margin-top:0">
+                <?php if ($errors_count > 0): ?>
+                    ⚠️ Erori temă (<?php echo $errors_count; ?>)
+                <?php else: ?>
+                    ✓ Erori temă (zero)
+                <?php endif; ?>
+            </h2>
+            <?php if ($errors_count > 0): ?>
+                <p>Mai jos vezi ultimele 50 de erori PHP din fișierele Magpress. Trimite-mi screenshot la suport pentru fix rapid.</p>
+                <pre style="background:#1e1e1e;color:#dcdcdc;padding:1rem;border-radius:6px;max-height:400px;overflow-y:auto;font-size:.8rem;line-height:1.5;font-family:'Consolas',monospace;white-space:pre-wrap;word-break:break-word"><?php
+                foreach ($errors as $line) {
+                    $color = '#dcdcdc';
+                    if (strpos($line, '[FATAL]') !== false)       $color = '#ff6b6b';
+                    elseif (strpos($line, '[WARNING]') !== false)  $color = '#ffd93d';
+                    elseif (strpos($line, '[NOTICE]') !== false)   $color = '#6bcb77';
+                    echo '<span style="color:' . $color . '">' . esc_html($line) . "</span>\n";
+                }
+                ?></pre>
+                <p style="margin-top:1rem">
+                    <strong>Fișier log:</strong> <code>/wp-content/magpress-errors.log</code>
+                </p>
+                <form method="post" style="margin-top:1rem">
+                    <?php wp_nonce_field('magpress_clear_errors_action'); ?>
+                    <button type="submit" name="magpress_clear_errors" class="button" onclick="return confirm('Ești sigur că vrei să ștergi log-ul de erori?')">
+                        🗑️ Șterge log erori
+                    </button>
+                </form>
+            <?php else: ?>
+                <p>Niciun fișier al temei nu a generat erori. Totul funcționează curat. 🎉</p>
+                <p><em>Log-ul se înregistrează automat când apar erori PHP din fișiere Magpress.</em></p>
+            <?php endif; ?>
         </div>
     </div>
     <?php
