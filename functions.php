@@ -317,6 +317,14 @@ function magpress_get_branding_css() {
         $css .= '.site-header--inline .site-header__inner{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
     }
 
+    // Logo max-height
+    $logo_h = max(20, min(200, (int) get_theme_mod('magpress_logo_max_height', 60)));
+    if ($logo_h !== 60) {
+        $css .= '.site-branding .site-logo{max-height:' . $logo_h . 'px !important}';
+        // Pe centered, default e 110 — daca user a setat ceva, folosim valoarea lui
+        $css .= '.site-header--centered .site-header__top .site-logo{max-height:' . $logo_h . 'px !important}';
+    }
+
     return trim($css) === ':root{}' ? '' : $css;
 }
 
@@ -409,6 +417,20 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 2],
+    ]);
+
+    // Logo max-height (înălțime maximă a logo-ului din header)
+    $wp_customize->add_setting('magpress_logo_max_height', [
+        'default'           => 60,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_logo_max_height', [
+        'label'       => 'Înălțime maximă logo (px)',
+        'description' => 'Limită superioară pentru logo. Default 60px. Pe centered layout default e 110px (override).',
+        'section'     => 'magpress_layout',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 20, 'max' => 200, 'step' => 2],
     ]);
 
     // Header sticky pe desktop
