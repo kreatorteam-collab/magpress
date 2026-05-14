@@ -39,6 +39,22 @@ function magpress_setup() {
 add_action('after_setup_theme', 'magpress_setup');
 
 /**
+ * Dezactivează New Relic Browser Agent (RUM script).
+ * Acel script trimite trafic spre bam.nr-data.net + adaugă 4+s latență la PageSpeed.
+ * Folosit doar dacă serverul are extension PHP New Relic activă.
+ */
+function magpress_disable_newrelic_browser() {
+    if (function_exists('newrelic_disable_autorum')) {
+        newrelic_disable_autorum();
+    }
+    if (function_exists('newrelic_ignore_apdex')) {
+        // Optional: nu trimite metrics deloc spre New Relic Server
+        // newrelic_ignore_transaction();
+    }
+}
+add_action('init', 'magpress_disable_newrelic_browser', 1);
+
+/**
  * Inlaturam bloat-ul WordPress default.
  */
 function magpress_remove_bloat() {
