@@ -1,0 +1,10 @@
+{
+  "name": "Magpress",
+  "version": "0.3.0",
+  "tested": "6.7",
+  "requires": "6.0",
+  "requires_php": "8.0",
+  "package": "https://github.com/kreatorteam-collab/magpress/archive/refs/heads/main.zip",
+  "url": "https://github.com/kreatorteam-collab/magpress",
+  "changelog_url": "https://github.com/kreatorteam-collab/magpress/commits/main"
+}
