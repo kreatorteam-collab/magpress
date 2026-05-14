@@ -15,8 +15,9 @@ get_header();
   // Featured posts — layout din Customizer
   $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
   if ($featured_layout !== 'hidden'):
-    $counts = ['two' => 2, 'three' => 3, 'one_two' => 3];
+    $counts = ['two' => 2, 'three' => 3, 'one_two' => 3, 'mosaic' => 5, 'hero_banner' => 1, 'big_list' => 6];
     $count = $counts[$featured_layout] ?? 2;
+    $big_first_layouts = ['one_two', 'mosaic', 'big_list'];
 
     // Sticky first; fallback la ultimele articole
     $featured = new WP_Query([
@@ -31,10 +32,42 @@ get_header();
     }
     if ($featured->have_posts()): ?>
       <section class="featured-grid featured-grid--<?php echo esc_attr($featured_layout); ?>">
-        <?php $idx = 0; while ($featured->have_posts()): $featured->the_post(); $idx++;
-          set_query_var('magpress_featured_is_big', $featured_layout === 'one_two' && $idx === 1);
-          get_template_part('template-parts/featured');
-        endwhile; ?>
+        <?php
+        // Layout 'big_list' = render special: primul ca card mare + restul ca listă text
+        if ($featured_layout === 'big_list'):
+          $idx = 0; while ($featured->have_posts()): $featured->the_post(); $idx++;
+            if ($idx === 1) {
+              // Primul = card mare
+              set_query_var('magpress_featured_is_big', true);
+              get_template_part('template-parts/featured');
+            } else {
+              if ($idx === 2) echo '<ol class="featured-list">';
+              $cats = get_the_category();
+              $cat_name = $cats ? $cats[0]->name : '';
+              ?>
+              <li class="featured-list__item">
+                <a href="<?php the_permalink(); ?>" class="featured-list__link">
+                  <span class="featured-list__num"><?php echo $idx - 1; ?></span>
+                  <div class="featured-list__body">
+                    <?php if ($cat_name): ?>
+                      <span class="featured-list__cat"><?php echo esc_html($cat_name); ?></span>
+                    <?php endif; ?>
+                    <h3 class="featured-list__title"><?php the_title(); ?></h3>
+                  </div>
+                </a>
+              </li>
+              <?php
+              if ($idx === $count) echo '</ol>';
+            }
+          endwhile;
+        else:
+          // Toate celelalte layouts → cardurile featured standard
+          $idx = 0; while ($featured->have_posts()): $featured->the_post(); $idx++;
+            set_query_var('magpress_featured_is_big', in_array($featured_layout, $big_first_layouts, true) && $idx === 1);
+            get_template_part('template-parts/featured');
+          endwhile;
+        endif;
+        ?>
       </section>
     <?php endif; wp_reset_postdata();
   endif; ?>
