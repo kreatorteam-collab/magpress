@@ -24,7 +24,7 @@ if (!$q || !$q->have_posts()) return;
           <?php if ($cat_name): ?>
             <span class="badge"><?php echo esc_html($cat_name); ?></span>
           <?php endif; ?>
-          <h3 class="card-overlay__title"><?php the_title(); ?></h3>
+          <h3 class="magpress-card-overlay__title"><?php the_title(); ?></h3>
         </div>
       </a>
     </article>
