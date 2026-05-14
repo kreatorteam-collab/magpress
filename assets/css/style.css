@@ -51,7 +51,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .skip-link:focus{position:fixed;top:1rem;left:1rem;background:var(--c-primary);color:#fff;padding:.5rem 1rem;z-index:9999;border-radius:6px}
 
 /* ===================== HEADER — LAYOUT INLINE (default) ===================== */
-.site-header{background:var(--c-bg);border-bottom:1px solid var(--c-border)}
+.site-header{background:var(--c-menu-bg);border-bottom:1px solid var(--c-border)}
 
 /* ===================== STICKY HEADER ===================== */
 /* Bara de meniu separata (centered layout) — sibling al header-ului */
@@ -69,11 +69,11 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 /* Sticky — doar pe desktop (≥ 768px), doar daca body are .has-sticky-header */
 @media (min-width: 768px) {
   /* INLINE: tot header-ul ramane sticky */
-  .has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-bg);box-shadow:0 1px 0 var(--c-border)}
+  .has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-menu-bg);box-shadow:0 1px 0 var(--c-border)}
   .has-sticky-header.admin-bar .site-header--inline{top:32px}
 
   /* CENTERED: doar bara de meniu (sibling al header-ului) ramane sticky */
-  .has-sticky-header .site-nav-bar--centered{position:sticky;top:0;z-index:100;background:var(--c-bg);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .has-sticky-header .site-nav-bar--centered{position:sticky;top:0;z-index:100;background:var(--c-menu-bg);box-shadow:0 1px 4px rgba(0,0,0,.06)}
   .has-sticky-header.admin-bar .site-nav-bar--centered{top:32px}
 }
 @media (min-width: 768px) and (max-width: 782px) {
