@@ -14,12 +14,16 @@
   --c-heading-h3:      #1a1a1a;
   --c-link:            #6fa84a;
   --c-link-hover:      #1a1a1a;
+  --c-header-bg:       #ffffff;
+  --c-header-border:   #e6e6e6;
   --c-menu-bg:         #ffffff;
   --c-menu-link:       #1a1a1a;
   --c-menu-link-hover: #6fa84a;
+  --c-menu-hover-bg:   #f6f7f5;
   --c-footer-bg:       #f6f7f5;
   --c-footer-text:     #6b6b6b;
   --c-footer-link:     #1a1a1a;
+  --c-footer-border:   #e6e6e6;
   --f-sans:            'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   --container:         1320px;
   --content:           780px;
@@ -51,7 +55,9 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .skip-link:focus{position:fixed;top:1rem;left:1rem;background:var(--c-primary);color:#fff;padding:.5rem 1rem;z-index:9999;border-radius:6px}
 
 /* ===================== HEADER — LAYOUT INLINE (default) ===================== */
-.site-header{background:var(--c-menu-bg);border-bottom:1px solid var(--c-border)}
+.site-header{background:var(--c-header-bg);border-bottom:1px solid var(--c-header-border)}
+/* Inline = logo+meniu pe acelasi rand → background-ul ține de header-bg */
+.site-header--inline{background:var(--c-menu-bg)}
 
 /* ===================== STICKY HEADER ===================== */
 /* Bara de meniu separata (centered layout) — sibling al header-ului */
@@ -83,6 +89,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-top:1rem;padding-bottom:1rem}
 
 /* ===================== HEADER — LAYOUT CENTERED (logo sus, meniu sub) ===================== */
+.site-header--centered{background:var(--c-header-bg)}
 .site-header--centered .site-header__top{display:flex !important;justify-content:center !important;align-items:center !important;padding:2rem 0 1.25rem !important;text-align:center !important}
 .site-header--centered .site-header__top .site-branding{display:flex !important;justify-content:center !important;align-items:center !important;margin:0 auto !important;flex-shrink:1}
 .site-header--centered .site-header__top .site-logo{max-height:110px !important;width:auto !important;display:block !important;margin:0 auto}
@@ -182,8 +189,8 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .primary-nav{flex:1;display:flex;justify-content:center}
 .primary-nav .menu{display:flex;gap:.25rem;list-style:none;margin:0;padding:0;flex-wrap:wrap;justify-content:center}
 .primary-nav .menu li{position:relative}
-.primary-nav .menu > li > a{display:inline-block;padding:.5rem .9rem;font-size:.9rem;font-weight:700;color:var(--c-menu-link);text-transform:uppercase;letter-spacing:.04em;border-radius:6px}
-.primary-nav .menu > li > a:hover{background:var(--c-surface);color:var(--c-menu-link-hover)}
+.primary-nav .menu > li > a{display:inline-block;padding:.5rem .9rem;font-size:.9rem;font-weight:700;color:var(--c-menu-link);text-transform:uppercase;letter-spacing:.04em;border-radius:6px;transition:background .15s, color .15s}
+.primary-nav .menu > li > a:hover{background:var(--c-menu-hover-bg);color:var(--c-menu-link-hover)}
 .primary-nav .sub-menu{position:absolute;top:100%;left:0;background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:.5rem;min-width:220px;list-style:none;margin:0;box-shadow:0 8px 24px rgba(0,0,0,.08);opacity:0;visibility:hidden;transform:translateY(4px);transition:all .15s;z-index:50}
 .primary-nav li:hover > .sub-menu,
 .primary-nav li:focus-within > .sub-menu{opacity:1;visibility:visible;transform:translateY(0)}
@@ -450,7 +457,7 @@ body.page .article-body .entry-content{max-width:none}
 .error-404 .btn:hover{color:#fff;opacity:.9}
 
 /* ===================== FOOTER ===================== */
-.site-footer{background:var(--c-footer-bg);border-top:1px solid var(--c-border);margin-top:0;padding:3rem 0 1.5rem;color:var(--c-footer-text);font-size:.92rem}
+.site-footer{background:var(--c-footer-bg);border-top:1px solid var(--c-footer-border);margin-top:0;padding:3rem 0 1.5rem;color:var(--c-footer-text);font-size:.92rem}
 .footer-cols{display:grid;grid-template-columns:1fr;gap:2rem;margin-bottom:2.5rem}
 @media (min-width:640px){.footer-cols{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:900px){.footer-cols{grid-template-columns:repeat(4,1fr)}}
