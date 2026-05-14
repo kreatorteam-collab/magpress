@@ -467,7 +467,7 @@ body.page .article-body .entry-content{max-width:none}
 .footer-col ul li{padding:.3rem 0}
 .footer-col a{color:var(--c-footer-link)}
 .footer-col a:hover{color:var(--c-accent)}
-.footer-bottom{border-top:1px solid var(--c-border);padding-top:1.25rem;text-align:center;font-size:.85rem;color:var(--c-footer-text)}
+.footer-bottom{border-top:1px solid var(--c-footer-border);padding-top:1.25rem;text-align:center;font-size:.85rem;color:var(--c-footer-text)}
 .footer-bottom p{margin:0}
 
 /* ===================== SEARCH MODAL ===================== */
