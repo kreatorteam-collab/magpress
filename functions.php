@@ -390,7 +390,7 @@ function magpress_customize_register($wp_customize) {
         'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
         'footer_text'     => ['Footer — text',                               '#6b6b6b'],
         'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
-        'footer_border'   => ['Footer — border sus (linie deasupra footer)', '#e6e6e6'],
+        'footer_border'   => ['Footer — culoare linii (deasupra + sub coloane)', '#e6e6e6'],
     ];
 
     foreach ($colors as $key => $data) {
