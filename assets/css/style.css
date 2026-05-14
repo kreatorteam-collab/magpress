@@ -27,6 +27,7 @@
   --c-footer-text:     #6b6b6b;
   --c-footer-link:     #1a1a1a;
   --c-footer-border:   #e6e6e6;
+  --c-footer-heading:  #1a1a1a;
   --f-sans:            'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   --container:         1320px;
   --content:           780px;
@@ -587,7 +588,7 @@ body.page .article-body .entry-content{max-width:none}
 .footer-cols{display:grid;grid-template-columns:1fr;gap:2rem;margin-bottom:2.5rem}
 @media (min-width:640px){.footer-cols{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:900px){.footer-cols{grid-template-columns:repeat(4,1fr)}}
-.footer-col .widget-title{font-size:.95rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-footer-text);margin-bottom:1rem;font-weight:700}
+.footer-col .widget-title{font-size:.95rem;text-transform:uppercase;letter-spacing:.08em;color:var(--c-footer-heading);margin-bottom:1rem;font-weight:700}
 .footer-col ul{list-style:none;padding:0;margin:0}
 .footer-col ul li{padding:.3rem 0}
 .footer-col a{color:var(--c-footer-link)}
