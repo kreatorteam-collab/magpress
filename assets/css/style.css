@@ -264,11 +264,11 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 /* ===================== LAYOUT: HERO (4 carduri portret) ===================== */
 .layout-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
 .layout-hero .magpress-card-overlay--hero{aspect-ratio:3/4}
-/* Gradient mult mai blând — imaginea se vede ~75% din card */
-.layout-hero .magpress-card-overlay--hero::after{background:linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.45) 18%, rgba(0,0,0,.1) 32%, transparent 45%)}
-.layout-hero .magpress-card-overlay--hero .card-overlay{padding:.85rem 1rem 1rem;gap:.5rem}
-.layout-hero .magpress-card-overlay--hero .badge{align-self:flex-start;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.layout-hero .magpress-card-overlay--hero .magpress-card-overlay__title{font-size:1.05rem;line-height:1.3;-webkit-line-clamp:3;font-weight:800}
+/* Gradient mai puternic in jumatatea de jos pentru lizibilitate */
+.layout-hero .magpress-card-overlay--hero::after{background:linear-gradient(to top, rgba(0,0,0,.95) 0%, rgba(0,0,0,.75) 18%, rgba(0,0,0,.35) 35%, rgba(0,0,0,.05) 55%, transparent 70%)}
+.layout-hero .magpress-card-overlay--hero .card-overlay{padding:.9rem 1.1rem 1.15rem;gap:.55rem}
+.layout-hero .magpress-card-overlay--hero .badge{align-self:flex-start;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.layout-hero .magpress-card-overlay--hero .magpress-card-overlay__title{font-size:1.05rem;line-height:1.3;-webkit-line-clamp:3;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.85), 0 1px 2px rgba(0,0,0,1)}
 @media (max-width: 900px){.layout-hero{grid-template-columns:repeat(2,1fr)}}
 @media (max-width: 480px){.layout-hero{grid-template-columns:1fr}.layout-hero .magpress-card-overlay--hero{aspect-ratio:16/10}}
 
@@ -371,6 +371,48 @@ body.page .article-body .entry-content{max-width:none}
 .article-body .entry-content h3{font-size:1.2rem;margin-top:2rem;margin-bottom:.75rem;font-weight:700}
 .article-body .entry-content img{margin:1.5rem auto;border-radius:var(--radius);height:auto}
 .article-body .entry-content figure{margin:1.5rem auto;max-width:100%}
+
+/* ===================== GALERIE (clasica + Gutenberg) ===================== */
+.entry-content .gallery,
+.entry-content .wp-block-gallery{display:grid !important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;margin:1.5rem 0;list-style:none;padding:0}
+.entry-content .wp-block-gallery.has-nested-images{display:grid !important;flex-wrap:initial}
+.entry-content .gallery-item,
+.entry-content .wp-block-gallery .wp-block-image,
+.entry-content .wp-block-gallery figure{margin:0 !important;width:auto !important}
+.entry-content .gallery-item img,
+.entry-content .wp-block-gallery img,
+.entry-content .wp-block-gallery .wp-block-image img{width:100%;height:auto;object-fit:cover;border-radius:6px;display:block;aspect-ratio:1/1}
+.entry-content .gallery-icon{margin:0}
+.entry-content .gallery-caption,
+.entry-content .wp-block-image figcaption{font-size:.8rem;color:var(--c-text-muted);text-align:center;margin-top:.4rem}
+/* Coloane fixe pentru galeria clasica */
+.entry-content .gallery.gallery-columns-2{grid-template-columns:repeat(2,1fr)}
+.entry-content .gallery.gallery-columns-3{grid-template-columns:repeat(3,1fr)}
+.entry-content .gallery.gallery-columns-4{grid-template-columns:repeat(4,1fr)}
+.entry-content .gallery.gallery-columns-5{grid-template-columns:repeat(5,1fr)}
+.entry-content .gallery.gallery-columns-6{grid-template-columns:repeat(6,1fr)}
+/* Coloane fixe pentru Gutenberg */
+.entry-content .wp-block-gallery.columns-2{grid-template-columns:repeat(2,1fr)}
+.entry-content .wp-block-gallery.columns-3{grid-template-columns:repeat(3,1fr)}
+.entry-content .wp-block-gallery.columns-4{grid-template-columns:repeat(4,1fr)}
+.entry-content .wp-block-gallery.columns-5{grid-template-columns:repeat(5,1fr)}
+.entry-content .wp-block-gallery.columns-6{grid-template-columns:repeat(6,1fr)}
+@media (max-width: 900px){
+  .entry-content .gallery.gallery-columns-4,
+  .entry-content .gallery.gallery-columns-5,
+  .entry-content .gallery.gallery-columns-6,
+  .entry-content .wp-block-gallery.columns-4,
+  .entry-content .wp-block-gallery.columns-5,
+  .entry-content .wp-block-gallery.columns-6{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width: 640px){
+  .entry-content .gallery,
+  .entry-content .wp-block-gallery{grid-template-columns:repeat(2,1fr) !important}
+}
+@media (max-width: 400px){
+  .entry-content .gallery,
+  .entry-content .wp-block-gallery{grid-template-columns:1fr !important}
+}
 .article-body .entry-content figcaption{font-size:.85rem;color:var(--c-text-muted);text-align:center;margin-top:.5rem}
 .article-body .entry-content blockquote{border-left:3px solid var(--c-accent);padding:.5rem 0 .5rem 1.5rem;margin:1.5rem 0;font-style:italic;color:var(--c-text-muted)}
 .article-body .entry-content a{color:var(--c-link);text-decoration:underline;text-underline-offset:3px}
@@ -479,6 +521,12 @@ body.page .article-body .entry-content{max-width:none}
 .footer-col a{color:var(--c-footer-link)}
 .footer-col a:hover{color:var(--c-accent)}
 .footer-bottom{border-top:1px solid var(--c-footer-border);padding-top:1.25rem;text-align:center;font-size:.85rem;color:var(--c-footer-text)}
+
+/* Social media icons - sub coloane, deasupra copyright */
+.footer-socials{display:flex;justify-content:center;align-items:center;gap:.75rem;padding:1.25rem 0;margin:0}
+.footer-social{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--c-footer-text);border:1px solid var(--c-footer-border);transition:all .2s;background:transparent}
+.footer-social:hover{color:var(--c-accent);border-color:var(--c-accent);transform:translateY(-2px)}
+.footer-social svg{width:18px;height:18px}
 .footer-bottom p{margin:0}
 
 /* ===================== SEARCH MODAL ===================== */
