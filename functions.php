@@ -819,6 +819,117 @@ function magpress_fix_update_source($source, $remote_source, $upgrader, $hook_ex
 add_filter('upgrader_source_selection', 'magpress_fix_update_source', 10, 4);
 
 /**
+ * AUTO-UPDATE TEMĂ activat by default.
+ * Site-ul instalează update-urile automat când le detectează — fără click.
+ * Admin-ul poate dezactiva via filter sau din Aspect → Teme → click pe temă → Disable auto-updates.
+ */
+function magpress_enable_auto_update($update, $item) {
+    if (isset($item->theme) && $item->theme === get_stylesheet()) {
+        return true;
+    }
+    return $update;
+}
+add_filter('auto_update_theme', 'magpress_enable_auto_update', 10, 2);
+
+/**
+ * Pagină admin "Magpress" cu buton "Verifică update acum".
+ * Aspect → Magpress.
+ */
+function magpress_admin_menu_page() {
+    add_theme_page(
+        'Magpress',
+        'Magpress',
+        'manage_options',
+        'magpress-settings',
+        'magpress_render_settings_page'
+    );
+}
+add_action('admin_menu', 'magpress_admin_menu_page');
+
+function magpress_render_settings_page() {
+    if (!current_user_can('manage_options')) return;
+
+    $message = '';
+    $message_type = 'info';
+
+    if (isset($_POST['magpress_check_update']) && check_admin_referer('magpress_check_update_action')) {
+        // Force re-check: stergem cache-ul + transient-ul WP de update themes
+        delete_transient('magpress_update_info');
+        delete_site_transient('update_themes');
+        wp_update_themes(); // declanseaza re-check
+
+        $info = get_transient('magpress_update_info');
+        $current = wp_get_theme()->get('Version');
+
+        if (is_array($info) && !empty($info['version'])) {
+            if (version_compare($current, $info['version'], '<')) {
+                $message = '✅ <strong>Update disponibil:</strong> versiunea ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Tema se va instala automat în câteva minute. Sau mergi la <a href="' . admin_url('themes.php') . '">Aspect → Teme</a> și instalează manual.';
+                $message_type = 'success';
+            } else {
+                $message = '✓ Tema e la zi. Versiune curentă: <strong>' . esc_html($current) . '</strong> (GitHub are tot ' . esc_html($info['version']) . ').';
+                $message_type = 'success';
+            }
+        } else {
+            $message = '⚠️ Nu am putut contacta GitHub. Reîncearcă în câteva minute.';
+            $message_type = 'warning';
+        }
+    }
+
+    $current_version = wp_get_theme()->get('Version');
+    $last_modified   = magpress_last_modified_timestamp();
+    ?>
+    <div class="wrap">
+        <h1>Magpress</h1>
+
+        <?php if ($message): ?>
+            <div class="notice notice-<?php echo esc_attr($message_type); ?> is-dismissible">
+                <p><?php echo wp_kses_post($message); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <div class="card" style="max-width:720px;padding:1.5rem;margin-top:1rem">
+            <h2 style="margin-top:0">Status temă</h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Versiune instalată</th>
+                    <td><code><?php echo esc_html($current_version); ?></code></td>
+                </tr>
+                <tr>
+                    <th scope="row">Ultima actualizare</th>
+                    <td>
+                        <?php if ($last_modified): ?>
+                            <?php echo esc_html(date_i18n('j F Y, H:i', $last_modified)); ?>
+                            <em>(<?php echo esc_html(human_time_diff($last_modified, current_time('U'))); ?> în urmă)</em>
+                        <?php else: ?>
+                            <em>—</em>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Auto-update</th>
+                    <td>✓ Activat (default). Update-urile se aplică automat când sunt detectate.</td>
+                </tr>
+                <tr>
+                    <th scope="row">Repo</th>
+                    <td><a href="https://github.com/kreatorteam-collab/magpress" target="_blank">github.com/kreatorteam-collab/magpress</a></td>
+                </tr>
+            </table>
+
+            <h2>Verifică update manual</h2>
+            <p>În mod normal, WordPress verifică update-uri la fiecare 12 ore automat. Click aici dacă vrei să forțezi o verificare instant:</p>
+
+            <form method="post">
+                <?php wp_nonce_field('magpress_check_update_action'); ?>
+                <button type="submit" name="magpress_check_update" class="button button-primary button-large">
+                    🔄 Verifică update acum
+                </button>
+            </form>
+        </div>
+    </div>
+    <?php
+}
+
+/**
  * Informatii suplimentare in pop-up-ul "View version X details" din admin.
  */
 function magpress_theme_update_info($result, $action, $args) {
