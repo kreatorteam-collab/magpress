@@ -363,7 +363,7 @@ function magpress_customize_register($wp_customize) {
     $wp_customize->add_setting('magpress_featured_layout', [
         'default'           => 'two',
         'sanitize_callback' => function($v) {
-            return in_array($v, ['two', 'three', 'one_two', 'hidden'], true) ? $v : 'two';
+            return in_array($v, ['two', 'three', 'one_two', 'mosaic', 'hero_banner', 'big_list', 'hidden'], true) ? $v : 'two';
         },
         'transport'         => 'refresh',
     ]);
@@ -373,10 +373,13 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_layout',
         'type'        => 'select',
         'choices'     => [
-            'two'     => '2 carduri side-by-side (default)',
-            'three'   => '3 carduri egale',
-            'one_two' => 'Asimetric (1 mare + 2 mici stivuit)',
-            'hidden'  => '— Ascuns —',
+            'two'         => '2 carduri side-by-side (default)',
+            'three'       => '3 carduri egale',
+            'one_two'     => 'Asimetric (1 mare + 2 mici stivuit)',
+            'mosaic'      => 'Mosaic 1+4 (1 mare + 4 mici grid 2×2)',
+            'hero_banner' => 'Hero banner full-width (1 articol mare)',
+            'big_list'    => 'Big + List (1 mare stânga + 5 articole listă dreapta)',
+            'hidden'      => '— Ascuns —',
         ],
     ]);
 
