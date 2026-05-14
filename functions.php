@@ -447,10 +447,11 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_type", [
-            'label'   => "━━━ Slot {$i} ━━━",
-            'section' => 'magpress_homepage',
-            'type'    => 'select',
-            'choices' => $slot_types,
+            'label'       => "▶ Slot {$i} — Tip",
+            'description' => 'Ce afișează acest slot pe homepage.',
+            'section'     => 'magpress_homepage',
+            'type'        => 'select',
+            'choices'     => $slot_types,
         ]);
 
         // 2. Categorie (vizibila daca tip = category)
