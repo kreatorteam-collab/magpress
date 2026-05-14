@@ -52,6 +52,8 @@ if (!defined('ABSPATH')) { exit; }
 
     </div>
 
+    <?php echo magpress_render_socials(); ?>
+
     <div class="footer-bottom">
       <p>&copy; <?php echo esc_html(date('Y')); ?> <?php bloginfo('name'); ?>. Toate drepturile rezervate.</p>
     </div>
