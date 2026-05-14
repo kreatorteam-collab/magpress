@@ -42,8 +42,9 @@ get_header();
       <?php continue; endif;
 
       // type === 'category'
-      $cat   = $slot['cat'];
-      $count = $slot['count'];
+      $cat    = $slot['cat'];
+      $count  = $slot['count'];
+      $layout = $slot['layout'] ?? 'grid';
       $q = new WP_Query([
           'posts_per_page'      => $count,
           'cat'                 => $cat->term_id,
@@ -53,16 +54,25 @@ get_header();
 
       set_query_var('section_title', $cat->name);
       set_query_var('section_url', get_category_link($cat));
+      set_query_var('magpress_section_query', $q);
   ?>
-    <section class="category-row">
+    <section class="category-row category-row--<?php echo esc_attr($layout); ?>">
       <?php get_template_part('template-parts/section-header'); ?>
-      <?php if ($q->have_posts()): ?>
-        <div class="card-grid">
-          <?php while ($q->have_posts()): $q->the_post();
-            get_template_part('template-parts/card');
-          endwhile; ?>
-        </div>
-      <?php else: ?>
+      <?php if ($q->have_posts()):
+        if ($layout === 'asymmetric'):
+          get_template_part('template-parts/layout-asymmetric');
+        elseif ($layout === 'hero'):
+          get_template_part('template-parts/layout-hero');
+        elseif ($layout === 'list'):
+          get_template_part('template-parts/layout-list');
+        else: ?>
+          <div class="card-grid">
+            <?php while ($q->have_posts()): $q->the_post();
+              get_template_part('template-parts/card');
+            endwhile; ?>
+          </div>
+        <?php endif;
+      else: ?>
         <p class="no-results-slot" style="padding:1rem;color:var(--c-text-muted);font-style:italic;">Categoria „<?php echo esc_html($cat->name); ?>" nu are articole publicate încă.</p>
       <?php endif; ?>
     </section>
