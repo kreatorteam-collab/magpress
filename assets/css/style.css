@@ -286,7 +286,11 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .magpress-card-overlay::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.95) 0%, rgba(0,0,0,.7) 30%, rgba(0,0,0,.3) 55%, rgba(0,0,0,.1) 75%, transparent 100%);z-index:1;pointer-events:none}
 .magpress-card-overlay .card-overlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:1rem 1.1rem 1.1rem;color:#fff;display:flex;flex-direction:column;gap:.5rem;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .magpress-card-overlay .badge{align-self:flex-start;background:var(--c-accent);color:#fff;padding:.25rem .65rem;font-size:.65rem;border-radius:3px;line-height:1;letter-spacing:.06em;text-shadow:none}
-.magpress-card-overlay__title{font-size:1rem;line-height:1.25;font-weight:800;color:#fff;margin:0;letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.magpress-card-overlay__title,
+.magpress-card-overlay h3,
+.magpress-card-overlay h2{font-size:1rem;line-height:1.25;font-weight:800;color:#fff !important;margin:0;letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.magpress-card-overlay a,
+.magpress-card-overlay__title a{color:#fff !important;text-decoration:none}
 .magpress-card-overlay--big .magpress-card-overlay__title,
 .magpress-card-overlay--hero .magpress-card-overlay__title{font-size:1.25rem;-webkit-line-clamp:4}
 .magpress-card-overlay--big .card-overlay{padding:1.5rem 1.75rem}
