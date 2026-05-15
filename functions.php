@@ -408,6 +408,19 @@ function magpress_customize_register($wp_customize) {
         ],
     ]);
 
+    // Featured posts — categorii excluse (slug-uri, una pe rând sau separate prin virgulă)
+    $wp_customize->add_setting('magpress_featured_excluded_cats', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_featured_excluded_cats', [
+        'label'       => 'Featured posts — Categorii excluse',
+        'description' => 'Slug-uri de categorii care NU trebuie să apară în zona featured de sus (sticky sau fallback). Una pe rând sau separate prin virgulă. Ex: articole-promovate, advertorial. Vezi slug-urile în Articole → Categorii.',
+        'section'     => 'magpress_layout',
+        'type'        => 'textarea',
+    ]);
+
     // Padding header (separate top + bottom)
     $wp_customize->add_setting('magpress_header_padding_top', [
         'default'           => 32,
@@ -1423,6 +1436,127 @@ add_filter('wp_prepare_themes_for_js', 'magpress_theme_details_last_update');
 /**
  * Stergem clase WP inutile de pe body (reduce HTML).
  */
+/**
+ * Parseaza textarea-ul cu slug-uri categorii excluse din featured si returneaza ID-uri.
+ */
+function magpress_featured_excluded_cat_ids() {
+    $raw = get_theme_mod('magpress_featured_excluded_cats', '');
+    if (!$raw) return [];
+    $slugs = preg_split('/[\s,]+/', trim($raw), -1, PREG_SPLIT_NO_EMPTY);
+    $ids = [];
+    foreach ($slugs as $slug) {
+        $t = get_term_by('slug', sanitize_title($slug), 'category');
+        if ($t && !is_wp_error($t)) $ids[] = (int) $t->term_id;
+    }
+    return $ids;
+}
+
+/**
+ * Avatar custom per utilizator — upload din profilul user (admin → Utilizatori).
+ * Inlocuieste Gravatar-ul cu poza locala daca exista.
+ */
+function magpress_user_profile_avatar_field($user) {
+    if (!current_user_can('upload_files', $user->ID)) return;
+    $attachment_id = (int) get_user_meta($user->ID, 'magpress_avatar_id', true);
+    $img_url = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'thumbnail') : '';
+    wp_enqueue_media();
+    ?>
+    <h2>Avatar (Magpress)</h2>
+    <table class="form-table" role="presentation">
+        <tr>
+            <th><label for="magpress_avatar_id">Avatar custom</label></th>
+            <td>
+                <div id="magpress-avatar-preview" style="margin-bottom:10px;">
+                    <?php if ($img_url): ?>
+                        <img src="<?php echo esc_url($img_url); ?>" alt="" style="max-width:96px;height:auto;border-radius:50%;display:block;" />
+                    <?php endif; ?>
+                </div>
+                <input type="hidden" name="magpress_avatar_id" id="magpress_avatar_id" value="<?php echo esc_attr($attachment_id); ?>" />
+                <button type="button" class="button" id="magpress-avatar-upload">Alege imagine</button>
+                <button type="button" class="button" id="magpress-avatar-remove" style="<?php echo $attachment_id ? '' : 'display:none;'; ?>">Șterge</button>
+                <p class="description">Imaginea înlocuiește Gravatar-ul în tot site-ul (author box, comentarii etc.). Recomandat: pătrată, minim 200×200 px.</p>
+                <script>
+                (function(){
+                    var frame;
+                    var btnUpload = document.getElementById('magpress-avatar-upload');
+                    var btnRemove = document.getElementById('magpress-avatar-remove');
+                    var input     = document.getElementById('magpress_avatar_id');
+                    var preview   = document.getElementById('magpress-avatar-preview');
+                    btnUpload.addEventListener('click', function(e){
+                        e.preventDefault();
+                        if (frame) { frame.open(); return; }
+                        frame = wp.media({ title: 'Alege avatar', button: { text: 'Folosește această imagine' }, multiple: false, library: { type: 'image' } });
+                        frame.on('select', function(){
+                            var att = frame.state().get('selection').first().toJSON();
+                            input.value = att.id;
+                            var url = (att.sizes && att.sizes.thumbnail) ? att.sizes.thumbnail.url : att.url;
+                            preview.innerHTML = '<img src="' + url + '" alt="" style="max-width:96px;height:auto;border-radius:50%;display:block;" />';
+                            btnRemove.style.display = '';
+                        });
+                        frame.open();
+                    });
+                    btnRemove.addEventListener('click', function(e){
+                        e.preventDefault();
+                        input.value = '';
+                        preview.innerHTML = '';
+                        btnRemove.style.display = 'none';
+                    });
+                })();
+                </script>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+add_action('show_user_profile', 'magpress_user_profile_avatar_field');
+add_action('edit_user_profile', 'magpress_user_profile_avatar_field');
+
+function magpress_user_profile_avatar_save($user_id) {
+    if (!current_user_can('edit_user', $user_id)) return;
+    if (!isset($_POST['magpress_avatar_id'])) return;
+    $att_id = (int) $_POST['magpress_avatar_id'];
+    if ($att_id > 0) {
+        update_user_meta($user_id, 'magpress_avatar_id', $att_id);
+    } else {
+        delete_user_meta($user_id, 'magpress_avatar_id');
+    }
+}
+add_action('personal_options_update', 'magpress_user_profile_avatar_save');
+add_action('edit_user_profile_update', 'magpress_user_profile_avatar_save');
+
+/**
+ * Inlocuieste Gravatar cu avatar-ul custom in toate locurile (author box, comentarii, admin).
+ */
+function magpress_filter_avatar_data($args, $id_or_email) {
+    $user_id = 0;
+    if (is_numeric($id_or_email)) {
+        $user_id = (int) $id_or_email;
+    } elseif (is_object($id_or_email)) {
+        if (!empty($id_or_email->user_id)) {
+            $user_id = (int) $id_or_email->user_id;
+        } elseif (!empty($id_or_email->comment_author_email)) {
+            $u = get_user_by('email', $id_or_email->comment_author_email);
+            if ($u) $user_id = $u->ID;
+        }
+    } elseif (is_string($id_or_email) && is_email($id_or_email)) {
+        $u = get_user_by('email', $id_or_email);
+        if ($u) $user_id = $u->ID;
+    } elseif ($id_or_email instanceof WP_Post) {
+        $user_id = (int) $id_or_email->post_author;
+    }
+    if (!$user_id) return $args;
+    $att_id = (int) get_user_meta($user_id, 'magpress_avatar_id', true);
+    if (!$att_id) return $args;
+    $size = isset($args['size']) ? (int) $args['size'] : 96;
+    $url = wp_get_attachment_image_url($att_id, [$size, $size]);
+    if ($url) {
+        $args['url'] = $url;
+        $args['found_avatar'] = true;
+    }
+    return $args;
+}
+add_filter('pre_get_avatar_data', 'magpress_filter_avatar_data', 10, 2);
+
 function magpress_body_classes($classes) {
     $clean = ['magpress'];
     if (is_front_page()) $clean[] = 'home';

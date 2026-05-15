@@ -19,16 +19,27 @@ get_header();
     $count = $counts[$featured_layout] ?? 2;
     $big_first_layouts = ['one_two', 'mosaic', 'big_list'];
 
+    // Categorii excluse din featured (slug-uri configurate în Customizer)
+    $excluded_cat_ids = magpress_featured_excluded_cat_ids();
+
     // Sticky first; fallback la ultimele articole
-    $featured = new WP_Query([
+    $featured_args = [
       'posts_per_page'      => $count,
       'post__in'            => get_option('sticky_posts'),
       'ignore_sticky_posts' => 1,
       'post_status'         => 'publish',
-    ]);
+    ];
+    if (!empty($excluded_cat_ids)) {
+        $featured_args['category__not_in'] = $excluded_cat_ids;
+    }
+    $featured = new WP_Query($featured_args);
     if (!$featured->have_posts()) {
         wp_reset_postdata();
-        $featured = new WP_Query(['posts_per_page' => $count, 'post_status' => 'publish']);
+        $fallback_args = ['posts_per_page' => $count, 'post_status' => 'publish'];
+        if (!empty($excluded_cat_ids)) {
+            $fallback_args['category__not_in'] = $excluded_cat_ids;
+        }
+        $featured = new WP_Query($fallback_args);
     }
     if ($featured->have_posts()): ?>
       <section class="featured-grid featured-grid--<?php echo esc_attr($featured_layout); ?>">
