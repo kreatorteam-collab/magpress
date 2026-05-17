@@ -1075,6 +1075,22 @@ function magpress_adsense_lazy_script() {
     ?>
 <script id="magpress-adsense-lazy">
 (function(){
+  // Auto-inject loader adsbygoogle.js dacă nu există deja (când sloturile vin din plugin extern).
+  // Detectează publisher ID din data-ad-client al primului <ins> și încarcă scriptul în <head>.
+  function ensureAdsenseLoader(){
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja încărcat
+    var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"]');
+    if (!firstIns) return;
+    var client = firstIns.getAttribute('data-ad-client');
+    if (!/^ca-pub-\d+$/.test(client)) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(client);
+    document.head.appendChild(s);
+  }
+  ensureAdsenseLoader();
+
   function executeScripts(container, html){
     container.insertAdjacentHTML('beforeend', html);
     container.querySelectorAll('script:not([data-magpress-executed])').forEach(function(oldS){
