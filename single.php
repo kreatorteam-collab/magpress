@@ -38,6 +38,8 @@ $cats = get_the_category();
     </figure>
   <?php endif; ?>
 
+  <?php get_template_part('template-parts/google-discover'); ?>
+
   <article class="article-body">
     <div class="entry-content">
       <?php the_content(); ?>
@@ -93,8 +95,6 @@ $cats = get_the_category();
     <?php endif; wp_reset_postdata();
   endif;
   ?>
-
-  <?php get_template_part('template-parts/google-discover'); ?>
 
   <?php if (comments_open() || get_comments_number()): ?>
     <section class="article-comments">

@@ -83,6 +83,8 @@ get_header();
     <?php endif; wp_reset_postdata();
   endif; ?>
 
+  <?php get_template_part('template-parts/google-discover'); ?>
+
   <?php
   // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
@@ -127,8 +129,6 @@ get_header();
       <?php endif; ?>
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
-
-  <?php get_template_part('template-parts/google-discover'); ?>
 
 </div>
 
