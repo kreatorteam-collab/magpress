@@ -1041,6 +1041,30 @@ function magpress_enqueue_adsense_loader() {
     // Customizer override are prioritate
     $custom = trim((string) get_theme_mod('magpress_adsense_publisher_id', ''));
     $pub = $custom !== '' ? $custom : (string) get_option('magpress_adsense_publisher_id', '');
+
+    // Fallback: scanează toate input-urile Customizer pentru AdSense code (în caz că render-ul body
+    // nu a apucat să cache-ze încă, sau cache-ul e gol post-deploy).
+    if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) {
+        $candidates = [
+            (string) get_theme_mod('magpress_article_ad_mid', ''),
+            (string) get_theme_mod('magpress_article_ad_end', ''),
+        ];
+        for ($i = 1; $i <= 12; $i++) {
+            $candidates[] = (string) get_theme_mod("magpress_slot_{$i}_ad", '');
+        }
+        $all = implode("\n", $candidates);
+        $found = '';
+        if (preg_match('/data-ad-client=["\'](ca-pub-\d+)["\']/', $all, $pm)) {
+            $found = $pm[1];
+        } elseif (preg_match('/adsbygoogle\.js\?client=(ca-pub-\d+)/', $all, $pm)) {
+            $found = $pm[1];
+        }
+        if ($found) {
+            $pub = $found;
+            update_option('magpress_adsense_publisher_id', $found, false);
+        }
+    }
+
     if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) return;
     echo '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . esc_attr($pub) . '" crossorigin="anonymous"></script>' . "\n";
 }
