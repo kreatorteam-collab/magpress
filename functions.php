@@ -1004,7 +1004,20 @@ function magpress_render_ad_html($html, $context = 'homepage') {
         return '<div class="ad-slot ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
     }
 
-    return '<div class="ad-slot ad-slot--lazy ad-slot--' . esc_attr($context) . '" data-ad-html="' . esc_attr($html) . '">'
+    // Smart lazy: dacă găsim <ins class="adsbygoogle">, lasăm <ins> în DOM (AdSense să-l vadă)
+    // și amânăm doar push()-ul din <script>. Altfel fallback la lazy total.
+    if (preg_match('/(<ins\b[^>]*\badsbygoogle\b[^>]*(?:\/>|>.*?<\/ins>))/is', $html, $m)) {
+        $ins_tag = $m[1];
+        $rest = trim(str_replace($ins_tag, '', $html));
+        // Adaugăm data-magpress-lazy pe <ins> ca să-l identificăm
+        $ins_lazy = preg_replace('/<ins\b/', '<ins data-magpress-lazy="1"', $ins_tag, 1);
+        return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '" data-ad-script="' . esc_attr($rest) . '">'
+             . $ins_lazy
+             . '</div>';
+    }
+
+    // Fallback: cod custom (banner image, etc.) — lazy total prin data-ad-html
+    return '<div class="ad-slot ad-slot--lazy-full ad-slot--' . esc_attr($context) . '" data-ad-html="' . esc_attr($html) . '">'
          . '<div class="ad-slot__placeholder" aria-hidden="true"></div>'
          . '</div>';
 }
@@ -1014,34 +1027,58 @@ function magpress_adsense_lazy_script() {
     ?>
 <script id="magpress-adsense-lazy">
 (function(){
-  if(!('IntersectionObserver' in window)){
-    document.querySelectorAll('.ad-slot--lazy').forEach(function(s){
-      injectAdHtml(s, s.dataset.adHtml || '');
-    });
-    return;
-  }
-  function injectAdHtml(slot, html){
-    slot.innerHTML = html;
-    slot.classList.remove('ad-slot--lazy');
-    slot.classList.add('ad-slot--loaded');
-    // Re-execută script-urile inline (innerHTML nu execută <script>)
-    slot.querySelectorAll('script').forEach(function(oldS){
+  function executeScripts(container, html){
+    container.insertAdjacentHTML('beforeend', html);
+    container.querySelectorAll('script:not([data-magpress-executed])').forEach(function(oldS){
       var newS = document.createElement('script');
       Array.from(oldS.attributes).forEach(function(a){ newS.setAttribute(a.name, a.value); });
       newS.textContent = oldS.textContent;
+      newS.setAttribute('data-magpress-executed', '1');
       oldS.parentNode.replaceChild(newS, oldS);
     });
   }
+
+  function activatePushSlot(slot){
+    // Slot care are <ins class="adsbygoogle"> în DOM dar fără push.
+    // Rulăm push()-ul din data-ad-script (sau direct dacă lipsește).
+    var scriptHtml = slot.dataset.adScript || '<script>(adsbygoogle = window.adsbygoogle || []).push({});<\/script>';
+    executeScripts(slot, scriptHtml);
+    slot.classList.remove('ad-slot--lazy-push');
+    slot.classList.add('ad-slot--loaded');
+  }
+
+  function activateFullSlot(slot){
+    // Slot fără <ins> (banner custom HTML/img) — inject totul
+    var html = slot.dataset.adHtml || '';
+    var ph = slot.querySelector('.ad-slot__placeholder');
+    if (ph) ph.remove();
+    executeScripts(slot, html);
+    slot.classList.remove('ad-slot--lazy-full');
+    slot.classList.add('ad-slot--loaded');
+  }
+
+  function activate(slot){
+    if (slot.classList.contains('ad-slot--lazy-push')) activatePushSlot(slot);
+    else if (slot.classList.contains('ad-slot--lazy-full')) activateFullSlot(slot);
+  }
+
+  var selectors = '.ad-slot--lazy-push, .ad-slot--lazy-full';
+
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll(selectors).forEach(activate);
+    return;
+  }
+
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
-        var s = e.target;
-        injectAdHtml(s, s.dataset.adHtml || '');
-        io.unobserve(s);
+        activate(e.target);
+        io.unobserve(e.target);
       }
     });
   },{rootMargin:'400px 0px',threshold:0.01});
-  document.querySelectorAll('.ad-slot--lazy').forEach(function(s){ io.observe(s); });
+
+  document.querySelectorAll(selectors).forEach(function(s){ io.observe(s); });
 })();
 </script>
     <?php
