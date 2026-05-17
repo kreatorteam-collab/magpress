@@ -1356,12 +1356,29 @@ function magpress_render_settings_page() {
     $message_type = 'info';
 
     if (isset($_POST['magpress_check_update']) && check_admin_referer('magpress_check_update_action')) {
-        // Force re-check: stergem cache-ul + transient-ul WP de update themes
+        // Force re-check: bypass GitHub raw CDN cache (max-age=300) cu cache-buster query string
         delete_transient('magpress_update_info');
         delete_site_transient('update_themes');
-        wp_update_themes(); // declanseaza re-check
+        // Sterge si cache-ul LiteSpeed Object dacă există
+        if (function_exists('wp_cache_delete')) {
+            wp_cache_delete('magpress_update_info', 'transient');
+            wp_cache_delete('update_themes', 'site-transient');
+        }
 
-        $info = get_transient('magpress_update_info');
+        // Fetch DIRECT din GitHub cu cache-buster ?_=timestamp ca să sărim peste CDN cache
+        $bust_url = MAGPRESS_UPDATE_INFO_URL . '?_=' . time();
+        $response = wp_remote_get($bust_url, [
+            'timeout' => 8,
+            'headers' => ['Cache-Control' => 'no-cache', 'Pragma' => 'no-cache'],
+        ]);
+        $info = false;
+        if (!is_wp_error($response) && 200 === wp_remote_retrieve_response_code($response)) {
+            $info = json_decode(wp_remote_retrieve_body($response), true);
+            if ($info && !empty($info['version'])) {
+                set_transient('magpress_update_info', $info, 6 * HOUR_IN_SECONDS);
+            }
+        }
+        wp_update_themes(); // declanseaza re-check WP cu noua data
         $current = wp_get_theme()->get('Version');
 
         if (is_array($info) && !empty($info['version'])) {
