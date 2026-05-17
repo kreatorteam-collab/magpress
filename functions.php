@@ -1112,6 +1112,7 @@ add_action('customize_register', 'magpress_register_adsense_lazy_setting');
  */
 const MAGPRESS_PING_ENDPOINT = 'https://app.targetseo.ro/api/magpress-ping.php';
 const MAGPRESS_PING_SECRET   = 'magpress-monitor-b7f2e1a3c9d8'; // sincron cu api/magpress-ping.php pe targetseo.ro
+const MAGPRESS_DEPLOY_SECRET = 'magpress-deploy-7c4a1e9f2b8d6053'; // pentru endpoint REST /magpress/v1/deploy (sincron cu push.ps1)
 
 function magpress_send_ping() {
     // Citește log-ul pentru recent_errors + counts
@@ -1693,6 +1694,211 @@ function magpress_filter_avatar_data($args, $id_or_email) {
     return $args;
 }
 add_filter('pre_get_avatar_data', 'magpress_filter_avatar_data', 10, 2);
+
+/**
+ * REST endpoint pentru deploy instant la push.
+ *
+ * URL: POST {site}/wp-json/magpress/v1/deploy
+ * Auth: header X-Magpress-Signature = hash_hmac('sha256', body, MAGPRESS_DEPLOY_SECRET)
+ * Body: JSON cu {ref: "main", sha: "..."} (informativ, nu obligatoriu)
+ *
+ * Flux: validare HMAC → descarcă zipball GitHub → backup → înlocuiește tema → purge LiteSpeed.
+ * Rate limit: 1 deploy / 60 sec (transient).
+ *
+ * Apelat de PowerShell-ul de push după ce împinge commit-ul pe GitHub. Lista site-urilor o
+ * citește din magpress_sites pe targetseo.ro.
+ */
+add_action('rest_api_init', function () {
+    register_rest_route('magpress/v1', '/deploy', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_deploy',
+        'permission_callback' => '__return_true', // validăm HMAC manual
+    ]);
+    register_rest_route('magpress/v1', '/version', [
+        'methods'             => 'GET',
+        'callback'            => function () {
+            $t = wp_get_theme();
+            return [
+                'version' => $t->get('Version'),
+                'name'    => $t->get('Name'),
+                'slug'    => get_stylesheet(),
+            ];
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+function magpress_rest_deploy(WP_REST_Request $request) {
+    // 1. Rate limit (1/min)
+    if (get_transient('magpress_deploy_lock')) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'rate_limited'], 429);
+    }
+
+    // 2. HMAC validation
+    $body = $request->get_body();
+    $sig_received = $request->get_header('x_magpress_signature');
+    if (!$sig_received) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'missing_signature'], 403);
+    }
+    $sig_expected = hash_hmac('sha256', $body, MAGPRESS_DEPLOY_SECRET);
+    if (!hash_equals($sig_expected, $sig_received)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
+    }
+
+    set_transient('magpress_deploy_lock', time(), 120);
+    @ignore_user_abort(true);
+    @set_time_limit(180);
+
+    $result = magpress_perform_deploy();
+
+    delete_transient('magpress_deploy_lock');
+    // Bust update-info cache ca să nu mai propună update vechi după deploy
+    delete_transient('magpress_update_info');
+
+    $status = !empty($result['ok']) ? 200 : 500;
+    return new WP_REST_Response($result, $status);
+}
+
+function magpress_perform_deploy() {
+    $log = [];
+    $log_msg = function ($m) use (&$log) { $log[] = '[' . date('H:i:s') . '] ' . $m; };
+
+    $themes_dir   = get_theme_root();
+    $current_slug = get_stylesheet();
+    $target_dir   = $themes_dir . '/' . $current_slug;
+    $backups_dir  = WP_CONTENT_DIR . '/magpress-backups';
+    @mkdir($backups_dir, 0755, true);
+    $backup_dir   = $backups_dir . '/' . $current_slug . '-bak-' . date('YmdHis');
+
+    $tmp_zip     = wp_tempnam('magpress-deploy.zip');
+    $tmp_extract = $backups_dir . '/_tmp-extract-' . uniqid();
+
+    // 1. Descarcă zipball
+    $url = 'https://api.github.com/repos/kreatorteam-collab/magpress/zipball/main';
+    $log_msg("Download: {$url}");
+    $resp = wp_remote_get($url, [
+        'timeout' => 90,
+        'headers' => [
+            'Accept'     => 'application/vnd.github+json',
+            'User-Agent' => 'magpress-deploy/' . $current_slug,
+        ],
+    ]);
+    if (is_wp_error($resp)) {
+        return ['ok' => false, 'error' => 'download_failed', 'detail' => $resp->get_error_message(), 'log' => $log];
+    }
+    $code = wp_remote_retrieve_response_code($resp);
+    if ($code !== 200) {
+        return ['ok' => false, 'error' => 'download_http_' . $code, 'log' => $log];
+    }
+    file_put_contents($tmp_zip, wp_remote_retrieve_body($resp));
+    $log_msg('Downloaded ' . filesize($tmp_zip) . ' bytes');
+
+    // 2. Extract
+    if (!class_exists('ZipArchive')) {
+        @unlink($tmp_zip);
+        return ['ok' => false, 'error' => 'no_ziparchive', 'log' => $log];
+    }
+    $zip = new ZipArchive();
+    if ($zip->open($tmp_zip) !== true) {
+        @unlink($tmp_zip);
+        return ['ok' => false, 'error' => 'zip_open_failed', 'log' => $log];
+    }
+    @mkdir($tmp_extract, 0755, true);
+    $zip->extractTo($tmp_extract);
+    $zip->close();
+    @unlink($tmp_zip);
+
+    $dirs = glob($tmp_extract . '/*', GLOB_ONLYDIR);
+    if (!$dirs) {
+        _magpress_rrmdir($tmp_extract);
+        return ['ok' => false, 'error' => 'extract_empty', 'log' => $log];
+    }
+    $extracted = $dirs[0];
+    $log_msg("Extracted to: " . basename($extracted));
+
+    // 3. Backup tema existentă
+    if (is_dir($target_dir)) {
+        if (!_magpress_rcopy($target_dir, $backup_dir)) {
+            _magpress_rrmdir($tmp_extract);
+            return ['ok' => false, 'error' => 'backup_failed', 'log' => $log];
+        }
+        _magpress_rrmdir($target_dir);
+        $log_msg('Backup: ' . basename($backup_dir));
+    }
+
+    // 4. Move new theme into place
+    if (!_magpress_rcopy($extracted, $target_dir)) {
+        // Rollback
+        if (is_dir($backup_dir)) {
+            _magpress_rrmdir($target_dir);
+            _magpress_rcopy($backup_dir, $target_dir);
+            $log_msg('ROLLBACK din backup');
+        }
+        _magpress_rrmdir($tmp_extract);
+        return ['ok' => false, 'error' => 'copy_failed', 'log' => $log];
+    }
+    _magpress_rrmdir($tmp_extract);
+    $log_msg('Theme deployed: ' . $current_slug);
+
+    // 5. Păstrăm ultimele 3 backup-uri
+    $old = glob($backups_dir . '/' . $current_slug . '-bak-*', GLOB_ONLYDIR);
+    if ($old && count($old) > 3) {
+        sort($old);
+        foreach (array_slice($old, 0, count($old) - 3) as $b) {
+            _magpress_rrmdir($b);
+            $log_msg('Removed old backup: ' . basename($b));
+        }
+    }
+
+    // 6. Purge LiteSpeed cache (dacă există)
+    if (has_action('litespeed_purge_all')) {
+        do_action('litespeed_purge_all');
+        $log_msg('LiteSpeed cache purged');
+    }
+
+    // 7. Citim noua versiune (din style.css proaspăt copiat)
+    $new_version = '?';
+    $style_path = $target_dir . '/style.css';
+    if (is_readable($style_path)) {
+        $head = file_get_contents($style_path, false, null, 0, 1024);
+        if (preg_match('/Version:\s*([0-9.]+)/i', $head, $m)) {
+            $new_version = $m[1];
+        }
+    }
+
+    return ['ok' => true, 'version' => $new_version, 'backup' => basename($backup_dir), 'log' => $log];
+}
+
+function _magpress_rrmdir($dir) {
+    if (!is_dir($dir)) return;
+    $items = @scandir($dir);
+    if (!$items) { @rmdir($dir); return; }
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $p = $dir . '/' . $item;
+        if (is_dir($p)) _magpress_rrmdir($p);
+        else @unlink($p);
+    }
+    @rmdir($dir);
+}
+
+function _magpress_rcopy($src, $dst) {
+    if (!is_dir($src)) return false;
+    if (!is_dir($dst) && !@mkdir($dst, 0755, true)) return false;
+    $items = @scandir($src);
+    if (!$items) return true;
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $s = $src . '/' . $item;
+        $d = $dst . '/' . $item;
+        if (is_dir($s)) {
+            if (!_magpress_rcopy($s, $d)) return false;
+        } else {
+            if (!@copy($s, $d)) return false;
+        }
+    }
+    return true;
+}
 
 function magpress_body_classes($classes) {
     $clean = ['magpress'];
