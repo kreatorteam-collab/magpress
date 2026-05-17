@@ -1824,7 +1824,9 @@ function magpress_perform_deploy() {
     $current_slug = get_stylesheet();
     $target_dir   = $themes_dir . '/' . $current_slug;
     $backups_dir  = WP_CONTENT_DIR . '/magpress-backups';
-    @mkdir($backups_dir, 0755, true);
+    if (!is_dir($backups_dir)) {
+        @mkdir($backups_dir, 0755, true);
+    }
     $backup_dir   = $backups_dir . '/' . $current_slug . '-bak-' . date('YmdHis');
 
     $tmp_zip     = wp_tempnam('magpress-deploy.zip');
@@ -1860,7 +1862,9 @@ function magpress_perform_deploy() {
         @unlink($tmp_zip);
         return ['ok' => false, 'error' => 'zip_open_failed', 'log' => $log];
     }
-    @mkdir($tmp_extract, 0755, true);
+    if (!is_dir($tmp_extract)) {
+        @mkdir($tmp_extract, 0755, true);
+    }
     $zip->extractTo($tmp_extract);
     $zip->close();
     @unlink($tmp_zip);
