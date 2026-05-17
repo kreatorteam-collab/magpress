@@ -1129,7 +1129,7 @@ function magpress_get_deploy_secret() {
 // Asigură generarea la activare temă (nu așteptăm primul request REST)
 add_action('after_switch_theme', 'magpress_get_deploy_secret');
 
-function magpress_send_ping() {
+function magpress_send_ping($blocking = false) {
     // Citește log-ul pentru recent_errors + counts
     $recent = magpress_read_recent_errors(20);
     $errors_count = magpress_count_errors();
@@ -1160,8 +1160,8 @@ function magpress_send_ping() {
             'Content-Type'         => 'application/json',
             'X-Magpress-Signature' => $signature,
         ],
-        'timeout'  => 10,
-        'blocking' => false, // non-blocking — nu așteptăm răspunsul
+        'timeout'  => $blocking ? 15 : 10,
+        'blocking' => (bool) $blocking,
     ]);
 }
 
@@ -1757,7 +1757,28 @@ add_action('rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ]);
+    // Force ping — apelat din dashboard-ul de pe targetseo.ro ("Ping now")
+    register_rest_route('magpress/v1', '/send-ping', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_send_ping',
+        'permission_callback' => '__return_true',
+    ]);
 });
+
+function magpress_rest_send_ping(WP_REST_Request $request) {
+    $body = $request->get_body();
+    $sig_received = $request->get_header('x_magpress_signature');
+    if (!$sig_received) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'missing_signature'], 403);
+    }
+    $sig_expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
+    if (!hash_equals($sig_expected, $sig_received)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
+    }
+    // Trimite ping sincron (blocking) ca să returnăm rezultatul
+    magpress_send_ping(true);
+    return new WP_REST_Response(['ok' => true, 'sent' => true, 'version' => wp_get_theme()->get('Version')], 200);
+}
 
 function magpress_rest_deploy(WP_REST_Request $request) {
     // 1. Rate limit (1/min)
