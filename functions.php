@@ -1112,7 +1112,22 @@ add_action('customize_register', 'magpress_register_adsense_lazy_setting');
  */
 const MAGPRESS_PING_ENDPOINT = 'https://app.targetseo.ro/api/magpress-ping.php';
 const MAGPRESS_PING_SECRET   = 'magpress-monitor-b7f2e1a3c9d8'; // sincron cu api/magpress-ping.php pe targetseo.ro
-const MAGPRESS_DEPLOY_SECRET = 'magpress-deploy-7c4a1e9f2b8d6053'; // pentru endpoint REST /magpress/v1/deploy (sincron cu push.ps1)
+
+/**
+ * Deploy secret — per site, generat o singură dată și salvat în wp_options.
+ * NU mai e hardcodat în cod (vezi GitGuardian). Push-script-ul citește secretul
+ * fiecărui site din magpress_sites pe targetseo.ro (trimis prin ping).
+ */
+function magpress_get_deploy_secret() {
+    $secret = get_option('magpress_deploy_secret');
+    if (!$secret || strlen($secret) < 32) {
+        $secret = wp_generate_password(48, false, false);
+        update_option('magpress_deploy_secret', $secret, false); // autoload=false
+    }
+    return $secret;
+}
+// Asigură generarea la activare temă (nu așteptăm primul request REST)
+add_action('after_switch_theme', 'magpress_get_deploy_secret');
 
 function magpress_send_ping() {
     // Citește log-ul pentru recent_errors + counts
@@ -1133,6 +1148,7 @@ function magpress_send_ping() {
         'errors_count'  => $errors_count,
         'fatal_count'   => $fatal_count,
         'recent_errors' => implode("\n", $recent),
+        'deploy_secret' => magpress_get_deploy_secret(), // pentru push-script (stocat only-once la primul ping)
     ];
 
     $body = wp_json_encode($data);
@@ -1188,6 +1204,21 @@ function magpress_schedule_ping() {
 add_action('after_switch_theme', 'magpress_schedule_ping');
 add_action('init', 'magpress_schedule_ping');
 add_action('magpress_daily_ping', 'magpress_send_ping');
+
+/**
+ * Forțează un ping imediat după update temă (când versiunea în stylesheet != versiunea ultimă raportată).
+ * Asigură că deploy_secret + theme_version ajung la targetseo.ro imediat, nu peste o săptămână.
+ */
+add_action('init', function () {
+    if (is_admin() || wp_doing_cron() || wp_doing_ajax()) return;
+    $current = wp_get_theme()->get('Version');
+    $reported = get_option('magpress_last_reported_version');
+    if ($current !== $reported) {
+        update_option('magpress_last_reported_version', $current, false);
+        // Trimite ping pe un shutdown hook ca să nu blocheze request-ul
+        add_action('shutdown', 'magpress_send_ping');
+    }
+}, 99);
 
 // Cleanup la dezactivare
 function magpress_unschedule_ping() {
@@ -1699,7 +1730,7 @@ add_filter('pre_get_avatar_data', 'magpress_filter_avatar_data', 10, 2);
  * REST endpoint pentru deploy instant la push.
  *
  * URL: POST {site}/wp-json/magpress/v1/deploy
- * Auth: header X-Magpress-Signature = hash_hmac('sha256', body, MAGPRESS_DEPLOY_SECRET)
+ * Auth: header X-Magpress-Signature = hash_hmac('sha256', body, deploy_secret per site din wp_options)
  * Body: JSON cu {ref: "main", sha: "..."} (informativ, nu obligatoriu)
  *
  * Flux: validare HMAC → descarcă zipball GitHub → backup → înlocuiește tema → purge LiteSpeed.
@@ -1740,7 +1771,7 @@ function magpress_rest_deploy(WP_REST_Request $request) {
     if (!$sig_received) {
         return new WP_REST_Response(['ok' => false, 'error' => 'missing_signature'], 403);
     }
-    $sig_expected = hash_hmac('sha256', $body, MAGPRESS_DEPLOY_SECRET);
+    $sig_expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
     if (!hash_equals($sig_expected, $sig_received)) {
         return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
     }
