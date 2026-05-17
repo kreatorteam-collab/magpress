@@ -750,7 +750,14 @@ function magpress_inline_critical_css() {
          . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
-         . '.skip-link{position:absolute;left:-9999px}';
+         . '.skip-link{position:absolute;left:-9999px}'
+         // Sticky header — inline ca să reziste la UCSS/Critical CSS removal de la LiteSpeed
+         . '@media(min-width:768px){'
+         . '.has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-header-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
+         . '.has-sticky-header .site-nav-bar--centered{position:sticky;top:0;z-index:100;background:var(--c-menu-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
+         . '.has-sticky-header.admin-bar .site-header--inline,.has-sticky-header.admin-bar .site-nav-bar--centered{top:32px}'
+         . '}'
+         . '@media(min-width:601px) and (max-width:782px){.has-sticky-header.admin-bar .site-header--inline,.has-sticky-header.admin-bar .site-nav-bar--centered{top:46px}}';
     echo "<style id='magpress-critical'>{$css}</style>\n";
 }
 add_action('wp_head', 'magpress_inline_critical_css', 1);
