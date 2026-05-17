@@ -86,11 +86,10 @@ get_header();
   <?php
   // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
-      if ($slot['type'] === 'ad'): ?>
-        <div class="ad-slot">
-          <?php echo $slot['html']; // intentional: cod AdSense/HTML salvat de admin ?>
-        </div>
-      <?php continue; endif;
+      if ($slot['type'] === 'ad'):
+        echo magpress_render_ad_html($slot['html'], 'homepage');
+        continue;
+      endif;
 
       // type === 'category'
       $cat    = $slot['cat'];
