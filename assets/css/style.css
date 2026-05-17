@@ -387,6 +387,15 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .ad-slot--mid-article{margin:2rem auto;clear:both}
 .ad-slot--end-article{margin:2rem auto 3rem;clear:both}
 
+/* Lazy load — placeholder care rezerva spatiu (zero CLS) */
+.ad-slot--lazy{min-height:120px;display:flex;align-items:center;justify-content:center}
+.ad-slot--lazy .ad-slot__placeholder{width:100%;height:120px;background:linear-gradient(90deg, var(--c-surface) 25%, var(--c-bg) 50%, var(--c-surface) 75%);background-size:200% 100%;animation:adShimmer 1.8s infinite;border-radius:6px;opacity:.6}
+.ad-slot--loaded{min-height:0}
+@keyframes adShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){
+  .ad-slot--lazy .ad-slot__placeholder{animation:none}
+}
+
 /* ===================== CARD ===================== */
 .card{position:relative;display:flex;flex-direction:column;background:var(--c-bg);border-radius:var(--radius);overflow:hidden;border:1px solid var(--c-border);transition:box-shadow .2s, transform .2s, border-color .2s}
 .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-2px);border-color:var(--c-border)}
