@@ -1000,13 +1000,16 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     $html = trim((string) $html);
     if ($html === '') return '';
 
-    // Detect & cache Publisher ID din scriptul async (apare în orice AdSense block standard).
+    // Detect & cache Publisher ID — caută în scriptul async loader SAU în data-ad-client pe <ins>.
     // Îl emitem o singură dată în <head> ca să evităm race conditions per-slot.
+    $pub_found = '';
     if (preg_match('/adsbygoogle\.js\?client=(ca-pub-\d+)/', $html, $pm)) {
-        $pub = $pm[1];
-        if (get_option('magpress_adsense_publisher_id') !== $pub) {
-            update_option('magpress_adsense_publisher_id', $pub, false);
-        }
+        $pub_found = $pm[1];
+    } elseif (preg_match('/data-ad-client=["\'](ca-pub-\d+)["\']/', $html, $pm)) {
+        $pub_found = $pm[1];
+    }
+    if ($pub_found && get_option('magpress_adsense_publisher_id') !== $pub_found) {
+        update_option('magpress_adsense_publisher_id', $pub_found, false);
     }
 
     if (!magpress_is_adsense_lazy_enabled()) {
