@@ -1429,8 +1429,8 @@ function magpress_render_settings_page() {
 
     // Handle clear errors button
     if (isset($_POST['magpress_clear_errors']) && check_admin_referer('magpress_clear_errors_action')) {
-        @unlink(MAGPRESS_ERROR_LOG_FILE);
-        @unlink(MAGPRESS_ERROR_LOG_FILE . '.old');
+        if (file_exists(MAGPRESS_ERROR_LOG_FILE))        { @unlink(MAGPRESS_ERROR_LOG_FILE); }
+        if (file_exists(MAGPRESS_ERROR_LOG_FILE . '.old')) { @unlink(MAGPRESS_ERROR_LOG_FILE . '.old'); }
         $message = '✓ Log-ul de erori a fost șters.';
         $message_type = 'success';
     }
