@@ -1000,27 +1000,48 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     $html = trim((string) $html);
     if ($html === '') return '';
 
+    // Detect & cache Publisher ID din scriptul async (apare în orice AdSense block standard).
+    // Îl emitem o singură dată în <head> ca să evităm race conditions per-slot.
+    if (preg_match('/adsbygoogle\.js\?client=(ca-pub-\d+)/', $html, $pm)) {
+        $pub = $pm[1];
+        if (get_option('magpress_adsense_publisher_id') !== $pub) {
+            update_option('magpress_adsense_publisher_id', $pub, false);
+        }
+    }
+
     if (!magpress_is_adsense_lazy_enabled()) {
+        // Non-lazy: păstrăm comportament vechi (include scriptul + push() inline)
         return '<div class="ad-slot ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
     }
 
-    // Smart lazy: dacă găsim <ins class="adsbygoogle">, lasăm <ins> în DOM (AdSense să-l vadă)
-    // și amânăm doar push()-ul din <script>. Altfel fallback la lazy total.
+    // Smart lazy: dacă găsim <ins class="adsbygoogle">, păstrăm DOAR <ins>-ul (curățat de scripturi).
+    // Scriptul loader e emis global în <head>; push() se face din IO callback cu safety checks.
     if (preg_match('/(<ins\b[^>]*\badsbygoogle\b[^>]*(?:\/>|>.*?<\/ins>))/is', $html, $m)) {
         $ins_tag = $m[1];
-        $rest = trim(str_replace($ins_tag, '', $html));
-        // Adaugăm data-magpress-lazy pe <ins> ca să-l identificăm
-        $ins_lazy = preg_replace('/<ins\b/', '<ins data-magpress-lazy="1"', $ins_tag, 1);
-        return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '" data-ad-script="' . esc_attr($rest) . '">'
-             . $ins_lazy
+        return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '">'
+             . $ins_tag
              . '</div>';
     }
 
-    // Fallback: cod custom (banner image, etc.) — lazy total prin data-ad-html
+    // Fallback: cod custom (banner image, etc.) — lazy total prin data-ad-html (păstrat din versiunea veche)
     return '<div class="ad-slot ad-slot--lazy-full ad-slot--' . esc_attr($context) . '" data-ad-html="' . esc_attr($html) . '">'
          . '<div class="ad-slot__placeholder" aria-hidden="true"></div>'
          . '</div>';
 }
+
+/**
+ * Emite scriptul oficial adsbygoogle.js în <head> O SINGURĂ DATĂ.
+ * Detectat automat la primul render de ad (cached în wp_options), sau setat manual din Customizer.
+ * Evită race condition: push() din IO callback poate executa imediat fără să aștepte loading-ul scriptului.
+ */
+function magpress_enqueue_adsense_loader() {
+    // Customizer override are prioritate
+    $custom = trim((string) get_theme_mod('magpress_adsense_publisher_id', ''));
+    $pub = $custom !== '' ? $custom : (string) get_option('magpress_adsense_publisher_id', '');
+    if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) return;
+    echo '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . esc_attr($pub) . '" crossorigin="anonymous"></script>' . "\n";
+}
+add_action('wp_head', 'magpress_enqueue_adsense_loader', 5);
 
 function magpress_adsense_lazy_script() {
     if (!magpress_is_adsense_lazy_enabled()) return;
@@ -1038,11 +1059,23 @@ function magpress_adsense_lazy_script() {
     });
   }
 
+  // AdSense push() cu safety:
+  //  - verifică data-adsbygoogle-status (previne TagError "ins already have ads")
+  //  - try/catch (orice eroare nu blochează alte slots)
+  //  - scriptul loader e deja în <head> (emis de magpress_enqueue_adsense_loader), deci push-ul
+  //    se queue-uiește în window.adsbygoogle array și execută când loader-ul e gata
+  function pushAdsense(ins){
+    if (!ins || ins.dataset.adsbygoogleStatus) return;
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch(e) {
+      if (window.console && console.warn) console.warn('Magpress AdSense push failed', e);
+    }
+  }
+
   function activatePushSlot(slot){
-    // Slot care are <ins class="adsbygoogle"> în DOM dar fără push.
-    // Rulăm push()-ul din data-ad-script (sau direct dacă lipsește).
-    var scriptHtml = slot.dataset.adScript || '<script>(adsbygoogle = window.adsbygoogle || []).push({});<\/script>';
-    executeScripts(slot, scriptHtml);
+    var ins = slot.querySelector('ins.adsbygoogle');
+    if (ins) pushAdsense(ins);
     slot.classList.remove('ad-slot--lazy-push');
     slot.classList.add('ad-slot--loaded');
   }
@@ -1069,6 +1102,9 @@ function magpress_adsense_lazy_script() {
     return;
   }
 
+  // rootMargin redus de la 400px la 200px — recomandarea Google:
+  // declanșează push() înainte ca slot-ul să fie vizibil, dar nu prea devreme
+  // (slot-uri unfilled because ad nu e încă "in viewable position")
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
@@ -1076,7 +1112,7 @@ function magpress_adsense_lazy_script() {
         io.unobserve(e.target);
       }
     });
-  },{rootMargin:'400px 0px',threshold:0.01});
+  },{rootMargin:'200px 0px',threshold:0.01});
 
   document.querySelectorAll(selectors).forEach(function(s){ io.observe(s); });
 })();
@@ -1096,9 +1132,26 @@ function magpress_register_adsense_lazy_setting($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_adsense_lazy', [
         'label'       => 'AdSense lazy load (recomandat)',
-        'description' => 'Încarcă reclamele DOAR când userul scrolează aproape de ele (~400px). Reduce TBT/LCP cu 200-1000ms. Dezactivează doar dacă observi că ads nu se mai afișează deloc.',
+        'description' => 'Încarcă reclamele DOAR când userul scrolează aproape de ele (~200px). Reduce TBT/LCP cu 200-1000ms. Dezactivează doar dacă observi că ads nu se mai afișează deloc.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
+    ]);
+
+    // Publisher ID override (manual fallback dacă detecția auto din cod nu funcționează)
+    $wp_customize->add_setting('magpress_adsense_publisher_id', [
+        'default'           => '',
+        'sanitize_callback' => function ($v) {
+            $v = trim((string) $v);
+            return preg_match('/^ca-pub-\d+$/', $v) ? $v : '';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_adsense_publisher_id', [
+        'label'       => 'AdSense Publisher ID (opțional)',
+        'description' => 'Format: ca-pub-1234567890123456. Lasă gol — tema detectează automat din primul cod AdSense salvat. Setează manual doar dacă nu detectează corect.',
+        'section'     => 'magpress_layout',
+        'type'        => 'text',
+        'input_attrs' => ['placeholder' => 'ca-pub-...'],
     ]);
 }
 add_action('customize_register', 'magpress_register_adsense_lazy_setting');

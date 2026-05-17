@@ -1,6 +1,6 @@
 {
   "name": "Magpress",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "tested": "6.7",
   "requires": "6.0",
   "requires_php": "8.0",
