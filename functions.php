@@ -1760,6 +1760,11 @@ function magpress_rest_deploy(WP_REST_Request $request) {
 }
 
 function magpress_perform_deploy() {
+    // wp_tempnam() trăiește în wp-admin/includes/file.php — REST nu îl încarcă by default
+    if (!function_exists('wp_tempnam')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+
     $log = [];
     $log_msg = function ($m) use (&$log) { $log[] = '[' . date('H:i:s') . '] ' . $m; };
 
