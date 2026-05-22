@@ -891,19 +891,37 @@ function magpress_inject_mid_article_ad($content) {
 add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
 
 /**
- * WPeMatico: șterge atribuirea "Articolul X apare prima dată în Y." din conținutul postării
- * importate ÎNAINTE de inserare în DB. Hook-ul vine de la pluginul WPeMatico (RSS importer).
+ * Strip atribuirea "Articolul X apare prima dată în Y." din conținut.
+ * Aplicat în 3 locuri pentru a acoperi toate căile:
+ *   1. wpeMatico_pre_insert_post — la import RSS (curăță înainte de DB insert; postări NOI)
+ *   2. wpematico_pre_insert_post — variant lowercase (PHP filter names sunt case-sensitive)
+ *   3. the_content — la afișare (curăță postările deja importate, fără modificare DB)
  */
+function magpress_strip_source_attribution($content) {
+    if (!is_string($content) || $content === '') return $content;
+    // Linia "Articolul %POSTLINK% apare prima dată în %BLOGLINK%." (sau cu link-uri reale)
+    $content = preg_replace('/Articolul.*?apare prima dat[ăa] în.*?\./isu', '', $content);
+    // Curăță și paragrafele goale rămase
+    $content = preg_replace('/<p[^>]*>\s*<\/p>/i', '', $content);
+    return $content;
+}
+
+// 1. La import WPeMatico (varianta camelCase din docs)
 add_filter('wpeMatico_pre_insert_post', function ($post_data) {
-    if (!empty($post_data['post_content']) && is_string($post_data['post_content'])) {
-        $post_data['post_content'] = preg_replace(
-            '/Articolul.*?apare prima dat[ăa] în.*?\./s',
-            '',
-            $post_data['post_content']
-        );
+    if (!empty($post_data['post_content'])) {
+        $post_data['post_content'] = magpress_strip_source_attribution($post_data['post_content']);
     }
     return $post_data;
 });
+// 2. Variant lowercase (PHP filter names sunt case-sensitive)
+add_filter('wpematico_pre_insert_post', function ($post_data) {
+    if (!empty($post_data['post_content'])) {
+        $post_data['post_content'] = magpress_strip_source_attribution($post_data['post_content']);
+    }
+    return $post_data;
+});
+// 3. La afișare (acoperă postările deja importate)
+add_filter('the_content', 'magpress_strip_source_attribution', 5);
 
 /**
  * Returneaza HTML-ul reclamei de la sfarsitul articolului (apelat din single.php).
