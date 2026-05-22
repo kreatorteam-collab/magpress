@@ -23,13 +23,7 @@ $cats = get_the_category();
       <p class="article-excerpt"><?php echo esc_html(get_the_excerpt()); ?></p>
     <?php endif; ?>
 
-    <div class="article-meta">
-      <span>De <strong><?php the_author(); ?></strong></span>
-      <span class="sep">|</span>
-      <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
-      <span class="sep">|</span>
-      <span><?php echo (int) magpress_reading_time(); ?> min citire</span>
-    </div>
+    <?php echo magpress_render_article_meta(); // plain default; rich news byline dacă toggle ON ?>
   </header>
 
   <?php if (has_post_thumbnail()): ?>

@@ -83,6 +83,8 @@ get_header();
     <?php endif; wp_reset_postdata();
   endif; ?>
 
+  <?php echo magpress_render_web_stories_carousel(8); // News feature toggle ?>
+
   <?php get_template_part('template-parts/google-discover'); ?>
 
   <?php echo magpress_render_most_read(5); // News feature toggle ?>

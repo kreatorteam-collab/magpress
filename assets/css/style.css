@@ -705,6 +705,37 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 /* --- Category color classes (.badge--cat-{slug}) — color-value setat inline din wp_head --- */
 /* Doar dacă feature-ul e activ și user-ul a definit map. Nu există fallback (slug fără culoare = badge default). */
 
+/* --- Article meta rich (byline E-E-A-T pentru news) --- */
+.article-meta--rich{padding:1rem 0;border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border);margin:1rem 0 1.5rem}
+.article-meta--rich .article-meta__author{display:flex;align-items:center;gap:.85rem}
+.article-meta--rich .article-meta__avatar img{width:44px;height:44px;border-radius:50%;display:block;object-fit:cover}
+.article-meta--rich .article-meta__author-body{display:flex;flex-direction:column;gap:.15rem;min-width:0;flex:1}
+.article-meta--rich .article-meta__author-name{font-weight:700;color:var(--c-text);text-decoration:none;font-size:1rem}
+.article-meta--rich .article-meta__author-name:hover{color:var(--c-accent)}
+.article-meta--rich .article-meta__dates{font-size:.85rem;color:var(--c-text-muted);display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;line-height:1.4}
+.article-meta--rich .article-meta__updated{color:var(--c-accent);font-weight:600}
+.article-meta--rich .sep{opacity:.5}
+@media (max-width: 640px){
+  .article-meta--rich .article-meta__dates{font-size:.78rem}
+}
+
+/* --- Web Stories carousel (horizontal scroll) --- */
+.web-stories-carousel{max-width:1320px;margin:2rem auto;padding:0 1rem}
+.web-stories-carousel__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem}
+.web-stories-carousel__title{margin:0;font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:.5rem}
+.web-stories-carousel__icon{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;background:var(--c-accent);color:#fff;border-radius:50%;font-size:.75rem;padding-left:2px}
+.web-stories-carousel__track{display:flex;gap:.85rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.5rem;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.web-stories-carousel__card{flex:0 0 150px;scroll-snap-align:start;position:relative;height:240px;border-radius:14px;overflow:hidden;display:block;text-decoration:none;color:#fff;background:var(--c-surface);box-shadow:0 2px 8px rgba(0,0,0,.08);transition:transform .15s}
+.web-stories-carousel__card:hover{transform:translateY(-2px);color:#fff}
+.web-stories-carousel__img{position:absolute;inset:0;background-size:cover;background-position:center;background-color:var(--c-surface)}
+.web-stories-carousel__img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.75) 100%)}
+.web-stories-carousel__img--empty{background:linear-gradient(135deg,var(--c-accent),var(--c-primary))}
+.web-stories-carousel__title-text{position:absolute;left:.75rem;right:.75rem;bottom:.75rem;font-size:.85rem;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;z-index:1}
+@media (max-width: 640px){
+  .web-stories-carousel__card{flex-basis:130px;height:210px}
+  .web-stories-carousel__title{font-size:1.1rem}
+}
+
 /* ===================== AUTHOR BOX ===================== */
 .author-box{max-width:1000px;margin:2.5rem auto;padding:1.5rem;background:var(--c-surface);border-radius:12px;display:grid;grid-template-columns:auto 1fr;gap:1.25rem;align-items:start}
 .author-box__avatar img{border-radius:50%;width:80px;height:80px;object-fit:cover;display:block}

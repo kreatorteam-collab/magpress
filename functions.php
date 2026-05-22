@@ -2136,6 +2136,74 @@ function magpress_register_news_features($wp_customize) {
         'section'     => 'magpress_news',
         'type'        => 'textarea',
     ]);
+
+    // 5. Author byline rich
+    $wp_customize->add_setting('magpress_news_author_byline', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_author_byline', [
+        'label'       => 'Author byline puternic (E-E-A-T)',
+        'description' => 'Înlocuiește meta-ul simplu de pe single cu byline rich: avatar + autor link + data publicării + „Actualizat acum X" dacă postul e modificat ulterior + reading time.',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+
+    // 6. OneSignal push notifications
+    $wp_customize->add_setting('magpress_news_push_enabled', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_push_enabled', [
+        'label'       => 'Push notifications (OneSignal)',
+        'description' => 'Activează SDK OneSignal pentru notificări browser. Necesită cont gratuit la <a href="https://onesignal.com" target="_blank">onesignal.com</a> + App ID configurat mai jos.',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_news_onesignal_app_id', [
+        'default'           => '',
+        'sanitize_callback' => function ($v) {
+            $v = trim((string) $v);
+            return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $v) ? strtolower($v) : '';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_onesignal_app_id', [
+        'label'       => 'OneSignal App ID (UUID)',
+        'description' => 'Format UUID (ex: 12345678-abcd-1234-abcd-1234567890ab). Îl găsești în Settings → Keys & IDs din OneSignal Dashboard.',
+        'section'     => 'magpress_news',
+        'type'        => 'text',
+        'input_attrs' => ['placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'],
+    ]);
+    $wp_customize->add_setting('magpress_news_onesignal_safari_id', [
+        'default'           => '',
+        'sanitize_callback' => function ($v) {
+            $v = trim((string) $v);
+            return preg_match('/^web\.onesignal\.auto\.[a-z0-9-]+$/i', $v) ? $v : '';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_onesignal_safari_id', [
+        'label'       => 'OneSignal Safari Web ID (opțional)',
+        'description' => 'Format: <code>web.onesignal.auto.xxxxxxxx</code>. Doar dacă vrei suport Safari pe macOS.',
+        'section'     => 'magpress_news',
+        'type'        => 'text',
+    ]);
+
+    // 7. Web Stories carousel pe homepage
+    $wp_customize->add_setting('magpress_news_web_stories', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_web_stories', [
+        'label'       => 'Web Stories carousel pe homepage',
+        'description' => 'Afișează carousel cu ultimele Web Stories pe homepage (sub featured grid). Necesită plugin <a href="https://wordpress.org/plugins/web-stories/" target="_blank">Web Stories de la Google</a> instalat.',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
 }
 add_action('customize_register', 'magpress_register_news_features');
 
@@ -2354,6 +2422,136 @@ function magpress_category_color_class($cat) {
     if (!$cat || empty($cat->slug)) return '';
     if (!get_theme_mod('magpress_news_category_colors', 0)) return '';
     return 'badge--cat-' . sanitize_html_class($cat->slug);
+}
+
+
+// =========================================================================
+// AUTHOR BYLINE RICH (D)
+// =========================================================================
+function magpress_render_article_meta() {
+    if (!is_singular('post')) return '';
+    $rich = (bool) get_theme_mod('magpress_news_author_byline', 0);
+
+    if (!$rich) {
+        // Comportament default (identic cu varianta veche): plain meta
+        ob_start();
+        ?>
+        <div class="article-meta">
+            <span>De <strong><?php the_author(); ?></strong></span>
+            <span class="sep">|</span>
+            <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
+            <span class="sep">|</span>
+            <span><?php echo (int) magpress_reading_time(); ?> min citire</span>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    // News byline rich
+    $author_id = (int) get_the_author_meta('ID');
+    $name = get_the_author_meta('display_name', $author_id);
+    $url = get_author_posts_url($author_id);
+    $published_ts = get_post_time('U', true);
+    $modified_ts = get_post_modified_time('U', true);
+    $was_modified = $modified_ts && ($modified_ts - $published_ts) > 6 * HOUR_IN_SECONDS; // afișăm Updated doar dacă >6h diferență
+    $reading = (int) magpress_reading_time();
+
+    ob_start();
+    ?>
+    <div class="article-meta article-meta--rich">
+        <div class="article-meta__author">
+            <a href="<?php echo esc_url($url); ?>" class="article-meta__avatar" aria-hidden="true" tabindex="-1">
+                <?php echo get_avatar($author_id, 44); ?>
+            </a>
+            <div class="article-meta__author-body">
+                <a href="<?php echo esc_url($url); ?>" class="article-meta__author-name"><?php echo esc_html($name); ?></a>
+                <div class="article-meta__dates">
+                    <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y, H:i')); ?></time>
+                    <?php if ($was_modified): ?>
+                        <span class="sep">·</span>
+                        <span class="article-meta__updated">Actualizat <time datetime="<?php echo esc_attr(get_the_modified_date('c')); ?>"><?php echo esc_html(human_time_diff($modified_ts, current_time('timestamp', true))); ?> în urmă</time></span>
+                    <?php endif; ?>
+                    <span class="sep">·</span>
+                    <span class="article-meta__reading"><?php echo $reading; ?> min citire</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+
+// =========================================================================
+// ONESIGNAL PUSH NOTIFICATIONS (E)
+// =========================================================================
+function magpress_news_onesignal_init() {
+    if (!get_theme_mod('magpress_news_push_enabled', 0)) return;
+    $app_id = trim((string) get_theme_mod('magpress_news_onesignal_app_id', ''));
+    if (!$app_id || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $app_id)) return;
+    $safari_id = trim((string) get_theme_mod('magpress_news_onesignal_safari_id', ''));
+
+    $cfg = ['appId' => $app_id];
+    if ($safari_id && preg_match('/^web\.onesignal\.auto\.[a-z0-9-]+$/i', $safari_id)) {
+        $cfg['safari_web_id'] = $safari_id;
+    }
+    $cfg_json = wp_json_encode($cfg);
+    ?>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script id="magpress-onesignal-init">
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init(<?php echo $cfg_json; ?>);
+});
+</script>
+    <?php
+}
+add_action('wp_head', 'magpress_news_onesignal_init', 8);
+
+
+// =========================================================================
+// WEB STORIES CAROUSEL (F)
+// =========================================================================
+function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') {
+    if (!get_theme_mod('magpress_news_web_stories', 0)) return '';
+    // Verificăm dacă plugin-ul Web Stories de la Google e activ (înregistrează post type 'web-story')
+    if (!post_type_exists('web-story')) return '';
+
+    $q = new WP_Query([
+        'post_type'           => 'web-story',
+        'posts_per_page'      => max(3, min(20, (int) $limit)),
+        'post_status'         => 'publish',
+        'ignore_sticky_posts' => 1,
+    ]);
+    if (!$q->have_posts()) { wp_reset_postdata(); return ''; }
+
+    ob_start();
+    ?>
+    <section class="web-stories-carousel">
+        <div class="web-stories-carousel__head">
+            <h2 class="web-stories-carousel__title">
+                <span class="web-stories-carousel__icon" aria-hidden="true">▶</span>
+                <?php echo esc_html($heading); ?>
+            </h2>
+        </div>
+        <div class="web-stories-carousel__track">
+            <?php while ($q->have_posts()): $q->the_post();
+                $thumb = get_the_post_thumbnail_url(get_the_ID(), 'magpress-card');
+            ?>
+                <a href="<?php the_permalink(); ?>" class="web-stories-carousel__card" aria-label="<?php echo esc_attr(get_the_title()); ?>">
+                    <?php if ($thumb): ?>
+                        <span class="web-stories-carousel__img" style="background-image:url('<?php echo esc_url($thumb); ?>')"></span>
+                    <?php else: ?>
+                        <span class="web-stories-carousel__img web-stories-carousel__img--empty"></span>
+                    <?php endif; ?>
+                    <span class="web-stories-carousel__title-text"><?php the_title(); ?></span>
+                </a>
+            <?php endwhile; ?>
+        </div>
+    </section>
+    <?php
+    wp_reset_postdata();
+    return ob_get_clean();
 }
 
 
