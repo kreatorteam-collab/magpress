@@ -747,6 +747,16 @@ function magpress_inline_critical_css() {
          . '.featured-card{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/10;min-height:280px;background:#f6f7f5}'
          . '.featured-card__image{position:absolute;inset:0;display:block;z-index:1}'
          . '.featured-card__image img{width:100%;height:100%;object-fit:cover}'
+         // Cards normale (category rows) — aspect-ratio 3/2 ca să rezerve spațiu corect de la primul paint (anti-CLS)
+         . '.card{display:flex;flex-direction:column;background:#fff;border-radius:8px;overflow:hidden}'
+         . '.card-image{display:block;aspect-ratio:3/2;overflow:hidden;background:#f6f7f5;position:relative}'
+         . '.card-image img{width:100%;height:100%;object-fit:cover;display:block}'
+         . '.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem}'
+         // Site logo dimensiuni explicit ca să nu shifteze layoutul header când imaginea încarcă
+         . '.site-logo{display:block;max-height:48px;width:auto;height:auto}'
+         . '.site-logo img{display:block;max-height:100%;width:auto;height:auto}'
+         // Ad slot înălțime rezervată (anti-CLS la încărcare AdSense)
+         . '.ad-slot{display:block;min-height:280px;margin:2rem auto;text-align:center}'
          . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
