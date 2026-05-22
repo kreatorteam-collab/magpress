@@ -891,6 +891,21 @@ function magpress_inject_mid_article_ad($content) {
 add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
 
 /**
+ * WPeMatico: șterge atribuirea "Articolul X apare prima dată în Y." din conținutul postării
+ * importate ÎNAINTE de inserare în DB. Hook-ul vine de la pluginul WPeMatico (RSS importer).
+ */
+add_filter('wpeMatico_pre_insert_post', function ($post_data) {
+    if (!empty($post_data['post_content']) && is_string($post_data['post_content'])) {
+        $post_data['post_content'] = preg_replace(
+            '/Articolul.*?apare prima dat[ăa] în.*?\./s',
+            '',
+            $post_data['post_content']
+        );
+    }
+    return $post_data;
+});
+
+/**
  * Returneaza HTML-ul reclamei de la sfarsitul articolului (apelat din single.php).
  */
 function magpress_get_end_article_ad() {
