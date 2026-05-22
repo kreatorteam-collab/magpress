@@ -24,7 +24,7 @@ if (!$q || !$q->have_posts()) return;
       </a>
       <div class="card-list__body">
         <?php if ($cat_name): ?>
-          <a class="card-list__category" href="<?php echo esc_url($cat_link); ?>"><?php echo esc_html($cat_name); ?></a>
+          <a class="card-list__category <?php echo esc_attr(magpress_category_color_class($cats[0])); ?>" href="<?php echo esc_url($cat_link); ?>"><?php echo esc_html($cat_name); ?></a>
         <?php endif; ?>
         <h3 class="card-list__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
         <div class="card-list__meta">

@@ -22,7 +22,7 @@ if (!$q || !$q->have_posts()) return;
         endif; ?>
         <div class="card-overlay">
           <?php if ($cat_name): ?>
-            <span class="badge"><?php echo esc_html($cat_name); ?></span>
+            <span class="badge <?php echo esc_attr(magpress_category_color_class($cats[0])); ?>"><?php echo esc_html($cat_name); ?></span>
           <?php endif; ?>
           <h3 class="magpress-card-overlay__title"><?php the_title(); ?></h3>
         </div>

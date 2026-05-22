@@ -14,7 +14,7 @@ $cats = get_the_category();
     <?php magpress_breadcrumbs(); ?>
 
     <?php if ($cats): ?>
-      <a class="badge badge--pill" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
+      <a class="badge badge--pill <?php echo esc_attr(magpress_category_color_class($cats[0])); ?>" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
     <?php endif; ?>
 
     <h1 class="article-title"><?php the_title(); ?></h1>
@@ -68,6 +68,8 @@ $cats = get_the_category();
     </aside>
   <?php endif; ?>
 
+  <?php echo magpress_render_post_tags(); // News feature toggle ?>
+
   <?php
   // Related — 4 articole din aceeasi categorie, excluzand pe asta.
   if ($cats):
@@ -95,6 +97,8 @@ $cats = get_the_category();
     <?php endif; wp_reset_postdata();
   endif;
   ?>
+
+  <?php echo magpress_render_most_read(5); // News feature toggle ?>
 
   <?php if (comments_open() || get_comments_number()): ?>
     <section class="article-comments">

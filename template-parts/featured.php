@@ -21,7 +21,7 @@ $is_big = (bool) get_query_var('magpress_featured_is_big', false);
   </a>
   <div class="featured-card__content">
     <?php if ($cats): ?>
-      <a class="badge" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
+      <a class="badge <?php echo esc_attr(magpress_category_color_class($cats[0])); ?>" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
     <?php endif; ?>
     <h2 class="featured-card__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
   </div>

@@ -2064,6 +2064,299 @@ function _magpress_rcopy($src, $dst) {
     return true;
 }
 
+/**
+ * ============================================================
+ * NEWS FEATURES — opționale, toate default OFF
+ * ============================================================
+ * Setări specifice pentru site-uri de știri:
+ *   - Most Read widget (top 5 articole în ultimele 48h)
+ *   - Tags vizibile sub articol
+ *   - Color-coded categories pe badges
+ *
+ * Toate funcțiile fac early return dacă toggle-ul respectiv e OFF.
+ * Pe site-urile non-news, zero overhead în HTML/JS/CSS output.
+ */
+
+// --- Customizer section ---
+function magpress_register_news_features($wp_customize) {
+    $wp_customize->add_section('magpress_news', [
+        'title'       => 'Magpress: News features',
+        'description' => 'Setări specifice pentru site-uri de știri. TOATE default OFF — activează doar pe site-uri de news. Pe site-urile non-news (toggle OFF), zero overhead în pagină.',
+        'priority'    => 40,
+    ]);
+
+    // 1. Most Read widget
+    $wp_customize->add_setting('magpress_news_most_read', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_most_read', [
+        'label'       => 'Widget „Cele mai citite" (sub articol + sub featured pe homepage)',
+        'description' => 'Afișează top 5 articole vizualizate în ultimele 48h. Counter prin REST endpoint (bypass LiteSpeed cache).',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+
+    // 2. Tags display
+    $wp_customize->add_setting('magpress_news_post_tags', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_post_tags', [
+        'label'       => 'Tags vizibile sub articol',
+        'description' => 'Listează tags-urile postului ca pill-uri cu link la pagina de tag.',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+
+    // 3. Color-coded categories — toggle
+    $wp_customize->add_setting('magpress_news_category_colors', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_category_colors', [
+        'label'       => 'Color-coded categories pe badges',
+        'description' => 'Aplică culori distincte pe badge-urile categoriei (Politică = roșu, Sport = verde, etc.).',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+
+    // 4. Color map (textarea)
+    $wp_customize->add_setting('magpress_news_category_colors_map', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_category_colors_map', [
+        'label'       => 'Mapare culori categorii',
+        'description' => 'Una pe rând în formatul: <code>slug-categorie:#HEX</code>. Exemplu: <code>politica:#d32f2f</code>. Slug-urile le găsești în Articole → Categorii.',
+        'section'     => 'magpress_news',
+        'type'        => 'textarea',
+    ]);
+}
+add_action('customize_register', 'magpress_register_news_features');
+
+
+// =========================================================================
+// MOST READ — counter views + getter + widget
+// =========================================================================
+
+// REST endpoint pentru tracking views (bypass LiteSpeed cache)
+add_action('rest_api_init', function () {
+    register_rest_route('magpress/v1', '/view/(?P<id>\d+)', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_news_record_view',
+        'permission_callback' => '__return_true',
+        'args' => [
+            'id' => ['validate_callback' => function ($p) { return is_numeric($p) && (int) $p > 0; }],
+        ],
+    ]);
+});
+
+function magpress_news_record_view(WP_REST_Request $request) {
+    if (!get_theme_mod('magpress_news_most_read', 0)) {
+        return new WP_REST_Response(['ok' => false, 'reason' => 'disabled'], 200);
+    }
+    $id = (int) $request->get_param('id');
+    $post = get_post($id);
+    if (!$post || $post->post_status !== 'publish' || $post->post_type !== 'post') {
+        return new WP_REST_Response(['ok' => false, 'reason' => 'invalid'], 200);
+    }
+    // Anti-spam basic: 1 view / IP / post / oră (transient)
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if ($ip) {
+        $key = 'magv_' . md5($ip . '_' . $id);
+        if (get_transient($key)) {
+            return new WP_REST_Response(['ok' => true, 'cached' => true], 200);
+        }
+        set_transient($key, 1, HOUR_IN_SECONDS);
+    }
+    $current = (int) get_post_meta($id, '_magpress_v_today', true);
+    update_post_meta($id, '_magpress_v_today', $current + 1);
+    return new WP_REST_Response(['ok' => true], 200);
+}
+
+// JS tracker (sendBeacon → REST endpoint) — emis doar pe single, când toggle ON
+function magpress_news_track_view_script() {
+    if (!is_singular('post')) return;
+    if (!get_theme_mod('magpress_news_most_read', 0)) return;
+    $id = (int) get_queried_object_id();
+    if (!$id) return;
+    $url = rest_url('magpress/v1/view/' . $id);
+    ?>
+<script id="magpress-news-view-tracker">
+(function(){
+    var url = <?php echo wp_json_encode($url); ?>;
+    if (navigator.sendBeacon) {
+        try { navigator.sendBeacon(url, ''); } catch(e){}
+    } else if (window.fetch) {
+        fetch(url, { method: 'POST', keepalive: true, credentials: 'same-origin' }).catch(function(){});
+    }
+})();
+</script>
+    <?php
+}
+add_action('wp_footer', 'magpress_news_track_view_script', 50);
+
+// Cron daily: mută counter-ul today → yesterday, reset today
+add_action('init', function () {
+    if (!wp_next_scheduled('magpress_news_views_rotate')) {
+        wp_schedule_event(strtotime('tomorrow 00:00'), 'daily', 'magpress_news_views_rotate');
+    }
+});
+add_action('magpress_news_views_rotate', function () {
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_magpress_v_yesterday'");
+    $wpdb->query("UPDATE {$wpdb->postmeta} SET meta_key = '_magpress_v_yesterday' WHERE meta_key = '_magpress_v_today'");
+    delete_transient('magpress_news_most_read_5');
+    delete_transient('magpress_news_most_read_10');
+});
+
+// Cleanup la dezactivare temă
+add_action('switch_theme', function () {
+    wp_clear_scheduled_hook('magpress_news_views_rotate');
+});
+
+// Getter: top N articole în ultimele 48h (today + yesterday meta), cached 5 min
+function magpress_get_most_read($limit = 5) {
+    if (!get_theme_mod('magpress_news_most_read', 0)) return [];
+    $limit = max(1, min(20, (int) $limit));
+    $cache_key = 'magpress_news_most_read_' . $limit;
+    $cached = get_transient($cache_key);
+    if (is_array($cached)) return $cached;
+
+    global $wpdb;
+    $sql = "
+        SELECT p.ID, (COALESCE(t.meta_value+0,0) + COALESCE(y.meta_value+0,0)) AS views_48h
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->postmeta} t ON t.post_id = p.ID AND t.meta_key = '_magpress_v_today'
+        LEFT JOIN {$wpdb->postmeta} y ON y.post_id = p.ID AND y.meta_key = '_magpress_v_yesterday'
+        WHERE p.post_type = 'post' AND p.post_status = 'publish'
+        HAVING views_48h > 0
+        ORDER BY views_48h DESC
+        LIMIT %d
+    ";
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $limit));
+    $out = [];
+    foreach ($rows as $r) {
+        $out[] = ['id' => (int) $r->ID, 'views' => (int) $r->views_48h];
+    }
+    set_transient($cache_key, $out, 5 * MINUTE_IN_SECONDS);
+    return $out;
+}
+
+// Widget HTML
+function magpress_render_most_read($limit = 5, $heading = 'Cele mai citite') {
+    if (!get_theme_mod('magpress_news_most_read', 0)) return '';
+    $items = magpress_get_most_read($limit);
+    if (empty($items)) return '';
+
+    ob_start();
+    ?>
+    <aside class="most-read-widget">
+        <h3 class="most-read-widget__title"><?php echo esc_html($heading); ?></h3>
+        <ol class="most-read-widget__list">
+            <?php $rank = 0; foreach ($items as $item):
+                $p = get_post($item['id']);
+                if (!$p) continue;
+                $rank++;
+                $cat = get_the_category($p->ID);
+                $cat_name = $cat ? $cat[0]->name : '';
+            ?>
+                <li class="most-read-widget__item">
+                    <span class="most-read-widget__rank"><?php echo $rank; ?></span>
+                    <div class="most-read-widget__body">
+                        <?php if ($cat_name): ?>
+                            <span class="most-read-widget__cat"><?php echo esc_html($cat_name); ?></span>
+                        <?php endif; ?>
+                        <a class="most-read-widget__link" href="<?php echo esc_url(get_permalink($p)); ?>">
+                            <?php echo esc_html(get_the_title($p)); ?>
+                        </a>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ol>
+    </aside>
+    <?php
+    return ob_get_clean();
+}
+
+
+// =========================================================================
+// TAGS VIZIBILE SUB ARTICOL
+// =========================================================================
+function magpress_render_post_tags() {
+    if (!get_theme_mod('magpress_news_post_tags', 0)) return '';
+    if (!is_singular('post')) return '';
+    $tags = get_the_tags();
+    if (empty($tags) || is_wp_error($tags)) return '';
+
+    ob_start();
+    ?>
+    <div class="post-tags">
+        <span class="post-tags__label">Etichete</span>
+        <ul class="post-tags__list">
+            <?php foreach ($tags as $tag): ?>
+                <li><a class="post-tags__pill" href="<?php echo esc_url(get_tag_link($tag)); ?>">#<?php echo esc_html($tag->name); ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+
+// =========================================================================
+// COLOR-CODED CATEGORIES
+// =========================================================================
+function magpress_get_category_colors_map() {
+    if (!get_theme_mod('magpress_news_category_colors', 0)) return [];
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    $raw = (string) get_theme_mod('magpress_news_category_colors_map', '');
+    $cache = [];
+    if (!$raw) return $cache;
+    foreach (preg_split('/\r?\n/', $raw) as $line) {
+        $line = trim($line);
+        if (!$line || strpos($line, ':') === false) continue;
+        list($slug, $color) = array_map('trim', explode(':', $line, 2));
+        $slug = sanitize_title($slug);
+        if (!$slug) continue;
+        if (preg_match('/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $color, $m)) {
+            $cache[$slug] = '#' . $m[1];
+        }
+    }
+    return $cache;
+}
+
+// CSS inline per categorie (în <head>)
+function magpress_news_inline_category_colors() {
+    $map = magpress_get_category_colors_map();
+    if (empty($map)) return;
+    $css = '';
+    foreach ($map as $slug => $color) {
+        $slug_safe = sanitize_html_class($slug);
+        $color_safe = esc_attr($color);
+        $css .= ".badge--cat-{$slug_safe}{background-color:{$color_safe};color:#fff;border-color:{$color_safe}}";
+    }
+    if ($css) {
+        echo "<style id='magpress-news-cat-colors'>{$css}</style>\n";
+    }
+}
+add_action('wp_head', 'magpress_news_inline_category_colors', 20);
+
+// Helper: returnează clasa CSS pentru o categorie (folosită în card.php, single.php)
+function magpress_category_color_class($cat) {
+    if (!$cat || empty($cat->slug)) return '';
+    if (!get_theme_mod('magpress_news_category_colors', 0)) return '';
+    return 'badge--cat-' . sanitize_html_class($cat->slug);
+}
+
+
 function magpress_body_classes($classes) {
     $clean = ['magpress'];
     if (is_front_page()) $clean[] = 'home';

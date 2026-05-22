@@ -675,6 +675,36 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
   .gdiscover__btn{justify-self:center;padding:.55rem 1.2rem;font-size:.8rem;margin-top:.15rem}
 }
 
+/* ===================== NEWS FEATURES (toate condiționate de Customizer toggle) ===================== */
+
+/* --- Most Read widget --- */
+.most-read-widget{max-width:1000px;margin:2.5rem auto;padding:1.5rem;background:var(--c-surface);border-radius:12px;border:1px solid var(--c-border)}
+.most-read-widget__title{margin:0 0 1rem;font-size:1.2rem;font-weight:800;color:var(--c-text);position:relative;padding-left:1rem}
+.most-read-widget__title::before{content:"";position:absolute;left:0;top:.15em;bottom:.15em;width:4px;background:var(--c-accent);border-radius:2px}
+.most-read-widget__list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.85rem}
+.most-read-widget__item{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;padding-bottom:.85rem;border-bottom:1px solid var(--c-border)}
+.most-read-widget__item:last-child{border-bottom:0;padding-bottom:0}
+.most-read-widget__rank{font-size:2rem;font-weight:800;color:var(--c-accent);line-height:1;font-variant-numeric:tabular-nums;min-width:1.5em;text-align:center}
+.most-read-widget__body{display:flex;flex-direction:column;gap:.25rem}
+.most-read-widget__cat{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-muted)}
+.most-read-widget__link{font-size:1rem;font-weight:600;line-height:1.4;color:var(--c-text);text-decoration:none}
+.most-read-widget__link:hover{color:var(--c-accent)}
+@media (max-width: 640px){
+  .most-read-widget{padding:1.1rem .9rem;margin:1.5rem auto}
+  .most-read-widget__rank{font-size:1.5rem}
+  .most-read-widget__link{font-size:.95rem}
+}
+
+/* --- Post tags pill list --- */
+.post-tags{max-width:1000px;margin:1.5rem auto;padding:1rem 0;border-top:1px solid var(--c-border);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.post-tags__label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted)}
+.post-tags__list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:.4rem}
+.post-tags__pill{display:inline-block;padding:.3rem .75rem;background:var(--c-surface);color:var(--c-text);font-size:.85rem;border-radius:30px;text-decoration:none;border:1px solid var(--c-border);transition:background .15s, color .15s, border-color .15s}
+.post-tags__pill:hover{background:var(--c-accent);color:#fff;border-color:var(--c-accent)}
+
+/* --- Category color classes (.badge--cat-{slug}) — color-value setat inline din wp_head --- */
+/* Doar dacă feature-ul e activ și user-ul a definit map. Nu există fallback (slug fără culoare = badge default). */
+
 /* ===================== AUTHOR BOX ===================== */
 .author-box{max-width:1000px;margin:2.5rem auto;padding:1.5rem;background:var(--c-surface);border-radius:12px;display:grid;grid-template-columns:auto 1fr;gap:1.25rem;align-items:start}
 .author-box__avatar img{border-radius:50%;width:80px;height:80px;object-fit:cover;display:block}

@@ -85,6 +85,8 @@ get_header();
 
   <?php get_template_part('template-parts/google-discover'); ?>
 
+  <?php echo magpress_render_most_read(5); // News feature toggle ?>
+
   <?php
   // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
