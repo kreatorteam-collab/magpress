@@ -565,10 +565,10 @@ function magpress_customize_register($wp_customize) {
         ]);
     }
 
-    // ---------- Sectiune: Homepage (12 sloturi flexibile) ----------
+    // ---------- Sectiune: Homepage (24 sloturi flexibile) ----------
     $wp_customize->add_section('magpress_homepage', [
         'title'       => 'Magpress: Homepage',
-        'description' => '12 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă).',
+        'description' => '24 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă). Default: doar primele 4 sunt active (categorii); restul sunt „Gol".',
         'priority'    => 27,
     ]);
 
@@ -583,7 +583,7 @@ function magpress_customize_register($wp_customize) {
         $cat_choices[(string) $c->term_id] = $c->name;
     }
 
-    for ($i = 1; $i <= 12; $i++) {
+    for ($i = 1; $i <= 24; $i++) {
         // 1. Tip slot
         $wp_customize->add_setting("magpress_slot_{$i}_type", [
             'default'           => $i <= 4 ? 'category' : 'none',
@@ -803,13 +803,13 @@ function magpress_breadcrumbs() {
 }
 
 /**
- * Sloturi homepage configurate in Customizer (12 sloturi).
+ * Sloturi homepage configurate in Customizer (24 sloturi).
  * Fiecare slot poate fi: 'category' (rand articole) sau 'ad' (HTML/AdSense).
  * Returns: array de ['type' => 'category'|'ad', ...payload...]
  */
 function magpress_homepage_slots() {
     $slots = [];
-    for ($i = 1; $i <= 12; $i++) {
+    for ($i = 1; $i <= 24; $i++) {
         // IMPORTANT: default identic cu cel din customize_register, altfel WP returneaza 'none'
         // pentru sloturile pe care user-ul le-a lasat pe default (nu-l salveaza in DB).
         $default_type = $i <= 4 ? 'category' : 'none';
@@ -1056,7 +1056,7 @@ function magpress_enqueue_adsense_loader() {
             (string) get_theme_mod('magpress_article_ad_mid', ''),
             (string) get_theme_mod('magpress_article_ad_end', ''),
         ];
-        for ($i = 1; $i <= 12; $i++) {
+        for ($i = 1; $i <= 24; $i++) {
             $candidates[] = (string) get_theme_mod("magpress_slot_{$i}_ad", '');
         }
         $all = implode("\n", $candidates);

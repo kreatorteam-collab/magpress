@@ -90,7 +90,7 @@ get_header();
   <?php echo magpress_render_most_read(5); // News feature toggle ?>
 
   <?php
-  // Sloturi homepage — configurate in Customizer (12 max, mix category + ad)
+  // Sloturi homepage — configurate in Customizer (24 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
       if ($slot['type'] === 'ad'):
         echo magpress_render_ad_html($slot['html'], 'homepage');
