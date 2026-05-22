@@ -75,6 +75,7 @@ get_header();
           // Toate celelalte layouts → cardurile featured standard
           $idx = 0; while ($featured->have_posts()): $featured->the_post(); $idx++;
             set_query_var('magpress_featured_is_big', in_array($featured_layout, $big_first_layouts, true) && $idx === 1);
+            set_query_var('magpress_featured_idx', $idx);
             get_template_part('template-parts/featured');
           endwhile;
         endif;

@@ -5,18 +5,28 @@
 if (!defined('ABSPATH')) { exit; }
 $cats = get_the_category();
 $is_big = (bool) get_query_var('magpress_featured_is_big', false);
+$idx = (int) get_query_var('magpress_featured_idx', 1);
+
+// Doar PRIMUL card primește prioritate maximă (LCP). Restul se încarcă lazy normal.
+// Multiple imagini eager+fetchpriority=high concurează pentru bandwidth și întârzie LCP-ul real.
+$is_first = ($idx === 1);
+$img_args = [
+    'decoding' => 'async',
+    'sizes'    => '(max-width: 768px) 100vw, 50vw',
+];
+if ($is_first) {
+    $img_args['loading']       = 'eager';
+    $img_args['fetchpriority'] = 'high';
+    $img_args['class']         = 'litespeed-no-lazy skip-lazy';
+    $img_args['data-no-lazy']  = '1';
+} else {
+    $img_args['loading'] = 'lazy';
+}
 ?>
 <article class="featured-card<?php echo $is_big ? ' featured-card--big' : ''; ?>">
   <a class="featured-card__image" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
     <?php if (has_post_thumbnail()):
-      the_post_thumbnail('magpress-feature', [
-        'loading'       => 'eager',
-        'fetchpriority' => 'high',
-        'decoding'      => 'async',
-        'sizes'         => '(max-width: 768px) 100vw, 50vw',
-        'class'         => 'litespeed-no-lazy skip-lazy',
-        'data-no-lazy'  => '1',
-      ]);
+      the_post_thumbnail('magpress-feature', $img_args);
     endif; ?>
   </a>
   <div class="featured-card__content">
