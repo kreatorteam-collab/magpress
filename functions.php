@@ -2030,6 +2030,21 @@ function magpress_perform_deploy() {
         }
     }
 
+    // 8. Update transient cu versiunea proaspăt-deployată ca să eliminăm discrepanța
+    //    "Versiune locală 0.9.8, GitHub are 0.9.7" cauzată de GitHub raw CDN cache (max 5 min).
+    if ($new_version !== '?') {
+        $update_info = [
+            'name'         => 'Magpress',
+            'version'      => $new_version,
+            'tested'       => '6.7',
+            'requires'     => '6.0',
+            'requires_php' => '8.0',
+            'package'      => 'https://github.com/kreatorteam-collab/magpress/archive/refs/heads/main.zip',
+            'url'          => 'https://github.com/kreatorteam-collab/magpress',
+        ];
+        set_transient('magpress_update_info', $update_info, 6 * HOUR_IN_SECONDS);
+    }
+
     return ['ok' => true, 'version' => $new_version, 'backup' => basename($backup_dir), 'log' => $log];
 }
 
