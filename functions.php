@@ -2021,16 +2021,20 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
     // Sanitize content (păstrăm HTML safe pentru paginile editate)
     $content = wp_kses_post($content);
 
-    // Update-only: NU creăm pagini noi. Dacă slug-ul nu există → skip (admin trebuie să creeze pagina mai întâi).
-    $existing = get_page_by_path($slug, OBJECT, 'page');
+    // Update-only cu fuzzy matching: găsim pagina existentă (chiar dacă are alt slug)
+    // și o schimbăm la slug-ul canonic. WP păstrează automat _wp_old_slug → redirect 301 vechi → nou.
+    $existing = magpress_find_legal_page($slug);
     if (!$existing) {
         return new WP_REST_Response([
             'ok'      => false,
             'error'   => 'page_not_found',
-            'message' => 'Pagina cu slug-ul „' . $slug . '" nu există pe acest site. Creați mai întâi pagina manual din WP-Admin → Pagini → Adaugă, apoi reluați sync-ul.',
+            'message' => 'Nu am găsit pagina pentru „' . $slug . '" pe acest site (nici cu slug variants, nici după titlu). Creați manual din WP-Admin → Pagini → Adaugă.',
             'slug'    => $slug,
         ], 404);
     }
+
+    $old_slug = $existing->post_name;
+    $needs_slug_change = ($old_slug !== $slug);
 
     $page_args = [
         'ID'           => $existing->ID,
@@ -2038,11 +2042,14 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
         'post_content' => $content,
         'post_type'    => 'page',
         // NU schimbăm post_status (lăsăm cum a fost setat de admin: publish/draft/private)
-        // NU schimbăm post_name/slug (deja există cu slug-ul corect)
         'meta_input'   => [
             '_magpress_managed' => '1',
         ],
     ];
+    if ($needs_slug_change) {
+        $page_args['post_name'] = $slug;
+        // WP va salva automat _wp_old_slug = $old_slug → redirect 301 funcționează
+    }
 
     $result = wp_update_post($page_args, true);
 
@@ -2055,12 +2062,70 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
     }
 
     return new WP_REST_Response([
-        'ok'      => true,
-        'action'  => 'updated',
-        'page_id' => (int) $result,
-        'slug'    => $slug,
-        'url'     => get_permalink((int) $result),
+        'ok'           => true,
+        'action'       => $needs_slug_change ? 'updated_with_slug_change' : 'updated',
+        'page_id'      => (int) $result,
+        'slug'         => $slug,
+        'old_slug'     => $needs_slug_change ? $old_slug : null,
+        'url'          => get_permalink((int) $result),
     ], 200);
+}
+
+/**
+ * Fuzzy find pentru pagini legale: caută prin slug exact, slug-uri alternative comune,
+ * apoi prin title LIKE. Returnează prima pagină publish găsită sau null.
+ */
+function magpress_find_legal_page($target_slug) {
+    // 1. Slug exact
+    $page = get_page_by_path($target_slug, OBJECT, 'page');
+    if ($page && $page->post_status === 'publish') return $page;
+
+    // 2. Slug-uri alternative comune
+    $alternatives = [
+        'termeni-si-conditii' => [
+            'termeni', 'terms', 'terms-and-conditions', 't-c', 'termeni-conditii',
+            'conditii-utilizare', 'termeni-si-conditii-de-utilizare', 'termeni-de-utilizare',
+        ],
+        'politica-cookies' => [
+            'cookies', 'politica-de-cookies', 'cookie-policy', 'cookie', 'cookies-policy',
+            'politica-cookie', 'politica-de-cookie',
+        ],
+        'politica-confidentialitate' => [
+            'confidentialitate', 'politica-de-confidentialitate', 'privacy', 'privacy-policy',
+            'gdpr', 'politica-de-confidentialitate-gdpr', 'politica-confidentialitate-gdpr',
+            'confidential',
+        ],
+    ];
+    if (isset($alternatives[$target_slug])) {
+        foreach ($alternatives[$target_slug] as $alt) {
+            $page = get_page_by_path($alt, OBJECT, 'page');
+            if ($page && $page->post_status === 'publish') return $page;
+        }
+    }
+
+    // 3. Title LIKE (fallback final)
+    $title_patterns = [
+        'termeni-si-conditii'         => ['%termeni%', '%conditi%'],
+        'politica-cookies'            => ['%cookie%'],
+        'politica-confidentialitate'  => ['%confidential%', '%privacy%', '%gdpr%'],
+    ];
+    if (isset($title_patterns[$target_slug])) {
+        global $wpdb;
+        foreach ($title_patterns[$target_slug] as $pattern) {
+            $id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts}
+                 WHERE post_type = 'page' AND post_status = 'publish' AND post_title LIKE %s
+                 ORDER BY ID ASC LIMIT 1",
+                $pattern
+            ));
+            if ($id > 0) {
+                $page = get_post($id);
+                if ($page) return $page;
+            }
+        }
+    }
+
+    return null;
 }
 
 function magpress_rest_deploy(WP_REST_Request $request) {
