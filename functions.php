@@ -1962,6 +1962,12 @@ add_action('rest_api_init', function () {
         'callback'            => 'magpress_rest_send_ping',
         'permission_callback' => '__return_true',
     ]);
+    // Upsert pagini legale (terms / cookies / privacy) — apelat din magpress-legal.php pe targetseo.ro
+    register_rest_route('magpress/v1', '/pages/upsert', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_pages_upsert',
+        'permission_callback' => '__return_true',
+    ]);
 });
 
 function magpress_rest_send_ping(WP_REST_Request $request) {
@@ -1977,6 +1983,81 @@ function magpress_rest_send_ping(WP_REST_Request $request) {
     // Trimite ping sincron (blocking) ca să returnăm rezultatul
     magpress_send_ping(true);
     return new WP_REST_Response(['ok' => true, 'sent' => true, 'version' => wp_get_theme()->get('Version')], 200);
+}
+
+/**
+ * Upsert pagină legală (terms / cookies / privacy) — apelat de targetseo.ro la sync.
+ * Validare HMAC cu deploy_secret per site (același mecanism ca /deploy).
+ * Slug-uri permise: termeni-si-conditii, politica-cookies, politica-confidentialitate.
+ */
+function magpress_rest_pages_upsert(WP_REST_Request $request) {
+    $body = $request->get_body();
+    $sig_received = $request->get_header('x_magpress_signature');
+    if (!$sig_received) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'missing_signature'], 403);
+    }
+    $sig_expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
+    if (!hash_equals($sig_expected, $sig_received)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
+    }
+
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_json'], 400);
+    }
+
+    $slug = isset($data['slug']) ? sanitize_title((string) $data['slug']) : '';
+    $title = isset($data['title']) ? wp_strip_all_tags((string) $data['title']) : '';
+    $content = isset($data['content']) ? (string) $data['content'] : '';
+
+    $allowed_slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
+    if (!in_array($slug, $allowed_slugs, true)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_slug'], 400);
+    }
+    if ($title === '' || $content === '') {
+        return new WP_REST_Response(['ok' => false, 'error' => 'empty_title_or_content'], 400);
+    }
+
+    // Sanitize content (păstrăm HTML safe pentru paginile editate)
+    $content = wp_kses_post($content);
+
+    // Verifică dacă pagina există (după slug)
+    $existing = get_page_by_path($slug, OBJECT, 'page');
+    $page_args = [
+        'post_title'   => $title,
+        'post_content' => $content,
+        'post_status'  => 'publish',
+        'post_type'    => 'page',
+        'post_name'    => $slug,
+        'meta_input'   => [
+            '_magpress_managed' => '1', // marker pentru a identifica pagini gestionate central
+        ],
+    ];
+
+    if ($existing) {
+        $page_args['ID'] = $existing->ID;
+        $result = wp_update_post($page_args, true);
+        $action = 'updated';
+    } else {
+        $result = wp_insert_post($page_args, true);
+        $action = 'created';
+    }
+
+    if (is_wp_error($result)) {
+        return new WP_REST_Response([
+            'ok'    => false,
+            'error' => 'wp_post_error',
+            'msg'   => $result->get_error_message(),
+        ], 500);
+    }
+
+    return new WP_REST_Response([
+        'ok'      => true,
+        'action'  => $action,
+        'page_id' => (int) $result,
+        'slug'    => $slug,
+        'url'     => get_permalink((int) $result),
+    ], 200);
 }
 
 function magpress_rest_deploy(WP_REST_Request $request) {
@@ -2687,6 +2768,28 @@ function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') 
     return ob_get_clean();
 }
 
+
+/**
+ * Returnează cele 3 pagini legale (terms / cookies / privacy) DACĂ există (gestionate central de targetseo.ro).
+ * Folosit în footer.php. Returnează gol dacă paginile nu sunt încă sync-uite — zero impact pe site-uri.
+ */
+function magpress_get_legal_page_links() {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cache = [];
+    $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
+    foreach ($slugs as $slug) {
+        $page = get_page_by_path($slug, OBJECT, 'page');
+        if (!$page) continue;
+        if ($page->post_status !== 'publish') continue;
+        $cache[] = [
+            'title' => get_the_title($page),
+            'url'   => get_permalink($page),
+            'slug'  => $slug,
+        ];
+    }
+    return $cache;
+}
 
 function magpress_body_classes($classes) {
     $clean = ['magpress'];

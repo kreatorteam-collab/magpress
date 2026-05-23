@@ -54,6 +54,17 @@ if (!defined('ABSPATH')) { exit; }
 
     <?php echo magpress_render_socials(); ?>
 
+    <?php /* Pagini legale — afișate automat dacă există (gestionate centralizat de targetseo.ro) */
+    $legal_links = magpress_get_legal_page_links();
+    if (!empty($legal_links)): ?>
+      <nav class="footer-legal" aria-label="Pagini legale">
+        <?php foreach ($legal_links as $idx => $link): ?>
+          <?php if ($idx > 0): ?><span class="sep" aria-hidden="true">·</span><?php endif; ?>
+          <a href="<?php echo esc_url($link['url']); ?>"><?php echo esc_html($link['title']); ?></a>
+        <?php endforeach; ?>
+      </nav>
+    <?php endif; ?>
+
     <div class="footer-bottom">
       <p>&copy; <?php echo esc_html(date('Y')); ?> <?php bloginfo('name'); ?>. Toate drepturile rezervate.</p>
     </div>

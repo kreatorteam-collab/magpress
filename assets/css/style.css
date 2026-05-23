@@ -619,6 +619,10 @@ body.page .article-body .entry-content{max-width:none}
 .footer-col a{color:var(--c-footer-link)}
 .footer-col a:hover{color:var(--c-accent)}
 .footer-bottom{border-top:1px solid var(--c-footer-border);padding-top:1.25rem;text-align:center;font-size:.85rem;color:var(--c-footer-text)}
+.footer-legal{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;align-items:center;padding:1rem 0 .5rem;font-size:.85rem}
+.footer-legal a{color:var(--c-footer-link);text-decoration:none;transition:color .15s}
+.footer-legal a:hover{color:var(--c-accent);text-decoration:underline}
+.footer-legal .sep{color:var(--c-footer-text);opacity:.5}
 
 /* Social media icons - sub coloane, deasupra copyright */
 .footer-socials{display:flex;justify-content:center;align-items:center;gap:.75rem;padding:1.25rem 0;margin:0}
