@@ -535,7 +535,7 @@ function magpress_customize_register($wp_customize) {
     ]);
 
     $colors = [
-        'accent'          => ['Accent (highlight, butoane, badge-uri)',     '#6fa84a'],
+        'accent'          => ['Accent (highlight, butoane)',                '#6fa84a'],
         'primary'         => ['Primary (text închis, header bar)',          '#1a1a1a'],
         'text'            => ['Text principal',                              '#1a1a1a'],
         'text_muted'      => ['Text secundar (meta, sub-titluri)',           '#6b6b6b'],
