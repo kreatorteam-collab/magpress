@@ -704,6 +704,17 @@ function magpress_customize_register($wp_customize) {
         $cat_choices[(string) $c->term_id] = $c->name;
     }
 
+    // Map: cat_id => primul slot care folosește categoria (pentru marker „(folosit la slot N)")
+    $used_in_slots = [];
+    for ($k = 1; $k <= 24; $k++) {
+        $k_type = get_theme_mod("magpress_slot_{$k}_type", $k <= 4 ? 'category' : 'none');
+        if ($k_type !== 'category') continue;
+        $k_cat = (int) get_theme_mod("magpress_slot_{$k}_cat", 0);
+        if ($k_cat > 0 && !isset($used_in_slots[$k_cat])) {
+            $used_in_slots[$k_cat] = $k;
+        }
+    }
+
     for ($i = 1; $i <= 24; $i++) {
         // 1. Tip slot
         $wp_customize->add_setting("magpress_slot_{$i}_type", [
@@ -727,11 +738,21 @@ function magpress_customize_register($wp_customize) {
             'sanitize_callback' => 'absint',
             'transport'         => 'refresh',
         ]);
+        // Choices per slot: marcăm categoriile deja folosite în alt slot
+        $choices_for_slot = [];
+        foreach ($cat_choices as $cid => $cname) {
+            $cid_int = (int) $cid;
+            if ($cid_int > 0 && isset($used_in_slots[$cid_int]) && $used_in_slots[$cid_int] !== $i) {
+                $choices_for_slot[(string) $cid] = $cname . ' — folosit la slot ' . $used_in_slots[$cid_int];
+            } else {
+                $choices_for_slot[(string) $cid] = $cname;
+            }
+        }
         $wp_customize->add_control("magpress_slot_{$i}_cat", [
             'label'           => "Slot {$i} — Categorie",
             'section'         => 'magpress_homepage',
             'type'            => 'select',
-            'choices'         => $cat_choices,
+            'choices'         => $choices_for_slot,
             'active_callback' => function() use ($i) {
                 return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
             },
