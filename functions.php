@@ -2122,7 +2122,33 @@ add_action('rest_api_init', function () {
         'callback'            => 'magpress_rest_pages_upsert',
         'permission_callback' => '__return_true',
     ]);
+    // Status pagini legale (public, doar verificare existență — info nesensibilă, paginile sunt publice oricum)
+    register_rest_route('magpress/v1', '/legal-status', [
+        'methods'             => 'GET',
+        'callback'            => 'magpress_rest_legal_status',
+        'permission_callback' => '__return_true',
+    ]);
 });
+
+function magpress_rest_legal_status() {
+    $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
+    $result = [];
+    foreach ($slugs as $slug) {
+        $page = magpress_find_legal_page($slug);
+        if ($page) {
+            $result[$slug] = [
+                'exists'  => true,
+                'title'   => get_the_title($page),
+                'url'     => get_permalink($page),
+                'slug'    => $page->post_name, // poate fi diferit de canonic (fuzzy)
+                'managed' => (bool) get_post_meta($page->ID, '_magpress_managed', true),
+            ];
+        } else {
+            $result[$slug] = ['exists' => false];
+        }
+    }
+    return new WP_REST_Response($result, 200);
+}
 
 function magpress_rest_send_ping(WP_REST_Request $request) {
     $body = $request->get_body();
