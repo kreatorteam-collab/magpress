@@ -106,17 +106,25 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
  * Enqueue CSS tema.
  */
 function magpress_enqueue_assets() {
-    // Google Fonts — Open Sans (400, 600, 700, 800) cu display=swap
-    // Configurabil via Customizer (magpress_google_font); gol = nu se incarca
-    $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
-    if ($google_font !== '') {
-        $url = 'https://fonts.googleapis.com/css2?' . http_build_query([
-            'family'  => $google_font,
-            'display' => 'swap',
-        ], '', '&', PHP_QUERY_RFC3986);
-        // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
-        $url = str_replace('%3A', ':', $url);
+    // News font preset — dacă e setat (≠ default), override-uiește magpress_google_font + adaugă CSS pentru h1-h3/body
+    $preset = magpress_news_font_preset_config();
+
+    if ($preset) {
+        // Preset preia controlul
+        $url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
         wp_enqueue_style('magpress-google-font', $url, [], null);
+    } else {
+        // Comportament default: Open Sans (sau ce e setat în Customizer)
+        $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
+        if ($google_font !== '') {
+            $url = 'https://fonts.googleapis.com/css2?' . http_build_query([
+                'family'  => $google_font,
+                'display' => 'swap',
+            ], '', '&', PHP_QUERY_RFC3986);
+            // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
+            $url = str_replace('%3A', ':', $url);
+            wp_enqueue_style('magpress-google-font', $url, [], null);
+        }
     }
 
     $css_path = MAGPRESS_DIR . '/assets/css/style.css';
@@ -128,13 +136,58 @@ function magpress_enqueue_assets() {
     if ($branding) {
         wp_add_inline_style('magpress-main', $branding);
     }
+
+    // News font preset override (heading + body family) — atașat după main ca să câștige cascada
+    if ($preset) {
+        $css_preset = 'body,.entry-content,.article-meta,.article-excerpt{font-family:' . $preset['body'] . '}'
+                    . 'h1,h2,h3,h4,h5,h6,.article-title,.featured-card__title,.card-title,.section-header__title,.most-read-widget__title{font-family:' . $preset['heading'] . '}';
+        wp_add_inline_style('magpress-main', $css_preset);
+    }
+}
+
+/**
+ * Returnează config-ul pentru news font preset (sau null dacă e default).
+ * Folosit de enqueue + preconnect.
+ */
+function magpress_news_font_preset_config() {
+    $key = get_theme_mod('magpress_news_font_preset', 'default');
+    $map = [
+        'editorial' => [
+            'label'   => 'News editorial (Merriweather + Inter)',
+            'google'  => 'Merriweather:wght@700;900&family=Inter:wght@400;500;700',
+            'heading' => '"Merriweather",Georgia,"Times New Roman",serif',
+            'body'    => '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif',
+        ],
+        'magazine' => [
+            'label'   => 'Magazine premium (Playfair Display + Lato)',
+            'google'  => 'Playfair+Display:wght@700;900&family=Lato:wght@400;700',
+            'heading' => '"Playfair Display",Georgia,"Times New Roman",serif',
+            'body'    => '"Lato",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif',
+        ],
+        'digital' => [
+            'label'   => 'Modern digital (Lora + Inter)',
+            'google'  => 'Lora:wght@600;700&family=Inter:wght@400;500;700',
+            'heading' => '"Lora",Georgia,"Times New Roman",serif',
+            'body'    => '"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif',
+        ],
+        'compact' => [
+            'label'   => 'News compact (Roboto Slab + Roboto)',
+            'google'  => 'Roboto+Slab:wght@700;900&family=Roboto:wght@400;500;700',
+            'heading' => '"Roboto Slab",Georgia,"Times New Roman",serif',
+            'body'    => '"Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif',
+        ],
+    ];
+    return isset($map[$key]) ? $map[$key] : null;
 }
 
 /**
  * Preconnect la Google Fonts (mic boost PageSpeed) — atat CSS-ul cat si fisierele woff2.
  */
 function magpress_preconnect_google_fonts($urls, $relation_type) {
-    if (get_theme_mod('magpress_google_font', 'Open Sans:400,700') === '') return $urls;
+    // Preset news activ → preconnect sigur
+    $has_preset = (bool) magpress_news_font_preset_config();
+    $has_default = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700')) !== '';
+    if (!$has_preset && !$has_default) return $urls;
     if ($relation_type === 'preconnect') {
         $urls[] = ['href' => 'https://fonts.googleapis.com'];
         $urls[] = ['href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'];
@@ -2248,6 +2301,28 @@ function magpress_register_news_features($wp_customize) {
         'description' => 'Format: <code>web.onesignal.auto.xxxxxxxx</code>. Doar dacă vrei suport Safari pe macOS.',
         'section'     => 'magpress_news',
         'type'        => 'text',
+    ]);
+
+    // 8. News font preset (combinație Google Fonts pereche headline + body)
+    $wp_customize->add_setting('magpress_news_font_preset', [
+        'default'           => 'default',
+        'sanitize_callback' => function ($v) {
+            return in_array($v, ['default', 'editorial', 'magazine', 'digital', 'compact'], true) ? $v : 'default';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_news_font_preset', [
+        'label'       => 'News font preset',
+        'description' => 'Pereche font Google pentru news/editorial (headline serif + body sans). Override-uiește setarea „Google Font" din Culori. Lasă „Default" ca să folosești fontul curent.',
+        'section'     => 'magpress_news',
+        'type'        => 'select',
+        'choices'     => [
+            'default'   => 'Default (păstrează fontul actual)',
+            'editorial' => 'News editorial — Merriweather + Inter',
+            'magazine'  => 'Magazine premium — Playfair Display + Lato',
+            'digital'   => 'Modern digital — Lora + Inter',
+            'compact'   => 'News compact — Roboto Slab + Roboto',
+        ],
     ]);
 
     // 7. Web Stories carousel pe homepage
