@@ -461,6 +461,71 @@ function magpress_register_customize_controls() {
 add_action('customize_register', 'magpress_register_customize_controls', 5);
 
 /**
+ * JS live update pentru marker „— folosit la slot N" în Customizer.
+ * Când user schimbă tipul sau categoria într-un slot, marker-ele din toate
+ * dropdown-urile celelalte se actualizează imediat (fără reload pagină Customizer).
+ */
+function magpress_customize_controls_js() {
+    ?>
+<script id="magpress-customize-slot-markers">
+(function(){
+    if (!window.wp || !wp.customize) return;
+    var SLOT_COUNT = 24;
+    var MARKER_RE = / — folosit la slot \d+$/;
+
+    function updateMarkers() {
+        // 1. Calculează ce categorii sunt folosite și în ce slot
+        var used = {};
+        for (var i = 1; i <= SLOT_COUNT; i++) {
+            var typeSetting = wp.customize('magpress_slot_' + i + '_type');
+            var catSetting  = wp.customize('magpress_slot_' + i + '_cat');
+            if (!typeSetting || !catSetting) continue;
+            if (typeSetting.get() !== 'category') continue;
+            var cid = parseInt(catSetting.get(), 10);
+            if (cid > 0 && !used[cid]) used[cid] = i;
+        }
+
+        // 2. Updatează toate dropdown-urile slot_X_cat
+        for (var i = 1; i <= SLOT_COUNT; i++) {
+            var ctrl = wp.customize.control('magpress_slot_' + i + '_cat');
+            if (!ctrl) continue;
+            var $select = ctrl.container.find('select');
+            if (!$select.length) continue;
+            $select.find('option').each(function() {
+                var $opt = jQuery(this);
+                var cid = parseInt($opt.val(), 10);
+                // Stocăm textul original la primul pass
+                var orig = $opt.data('magpressOriginal');
+                if (!orig) {
+                    orig = $opt.text().replace(MARKER_RE, '');
+                    $opt.data('magpressOriginal', orig);
+                }
+                if (cid > 0 && used[cid] && used[cid] !== i) {
+                    $opt.text(orig + ' — folosit la slot ' + used[cid]);
+                } else {
+                    $opt.text(orig);
+                }
+            });
+        }
+    }
+
+    wp.customize.bind('ready', function(){
+        // Bind change pe toate setările slot_X_type și slot_X_cat
+        for (var i = 1; i <= SLOT_COUNT; i++) {
+            var typeSetting = wp.customize('magpress_slot_' + i + '_type');
+            var catSetting  = wp.customize('magpress_slot_' + i + '_cat');
+            if (typeSetting) typeSetting.bind(updateMarkers);
+            if (catSetting)  catSetting.bind(updateMarkers);
+        }
+        updateMarkers();
+    });
+})();
+</script>
+    <?php
+}
+add_action('customize_controls_print_footer_scripts', 'magpress_customize_controls_js');
+
+/**
  * Customizer: secțiune Magpress cu culori + layout header.
  */
 function magpress_customize_register($wp_customize) {
