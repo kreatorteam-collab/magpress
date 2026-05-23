@@ -330,10 +330,11 @@ function magpress_default_colors() {
         'badge_bg'        => '#6fa84a',
         'badge_text'      => '#ffffff',
         'footer_bg'       => '#f6f7f5',
-        'footer_text'     => '#6b6b6b',
-        'footer_link'     => '#1a1a1a',
-        'footer_border'   => '#e6e6e6',
-        'footer_heading'  => '#1a1a1a',
+        'footer_text'       => '#6b6b6b',
+        'footer_link'       => '#1a1a1a',
+        'footer_link_hover' => '#6fa84a',
+        'footer_border'     => '#e6e6e6',
+        'footer_heading'    => '#1a1a1a',
     ];
 }
 
@@ -623,10 +624,11 @@ function magpress_customize_register($wp_customize) {
         'badge_bg'        => ['Badge categorie — background',                 '#6fa84a'],
         'badge_text'      => ['Badge categorie — text',                       '#ffffff'],
         'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
-        'footer_text'     => ['Footer — text',                               '#6b6b6b'],
-        'footer_link'     => ['Footer — linkuri',                            '#1a1a1a'],
-        'footer_border'   => ['Footer — culoare linii (deasupra + sub coloane)', '#e6e6e6'],
-        'footer_heading'  => ['Footer — titluri widget (REVISTA, INFO UTILE, etc.)', '#1a1a1a'],
+        'footer_text'       => ['Footer — text',                                       '#6b6b6b'],
+        'footer_link'       => ['Footer — linkuri (culoare default)',                  '#1a1a1a'],
+        'footer_link_hover' => ['Footer — linkuri (culoare hover)',                    '#6fa84a'],
+        'footer_border'     => ['Footer — culoare linii (deasupra + sub coloane)',     '#e6e6e6'],
+        'footer_heading'    => ['Footer — titluri widget (REVISTA, INFO UTILE, etc.)', '#1a1a1a'],
     ];
 
     foreach ($colors as $key => $data) {
