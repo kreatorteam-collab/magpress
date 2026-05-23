@@ -2021,27 +2021,30 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
     // Sanitize content (păstrăm HTML safe pentru paginile editate)
     $content = wp_kses_post($content);
 
-    // Verifică dacă pagina există (după slug)
+    // Update-only: NU creăm pagini noi. Dacă slug-ul nu există → skip (admin trebuie să creeze pagina mai întâi).
     $existing = get_page_by_path($slug, OBJECT, 'page');
+    if (!$existing) {
+        return new WP_REST_Response([
+            'ok'      => false,
+            'error'   => 'page_not_found',
+            'message' => 'Pagina cu slug-ul „' . $slug . '" nu există pe acest site. Creați mai întâi pagina manual din WP-Admin → Pagini → Adaugă, apoi reluați sync-ul.',
+            'slug'    => $slug,
+        ], 404);
+    }
+
     $page_args = [
+        'ID'           => $existing->ID,
         'post_title'   => $title,
         'post_content' => $content,
-        'post_status'  => 'publish',
         'post_type'    => 'page',
-        'post_name'    => $slug,
+        // NU schimbăm post_status (lăsăm cum a fost setat de admin: publish/draft/private)
+        // NU schimbăm post_name/slug (deja există cu slug-ul corect)
         'meta_input'   => [
-            '_magpress_managed' => '1', // marker pentru a identifica pagini gestionate central
+            '_magpress_managed' => '1',
         ],
     ];
 
-    if ($existing) {
-        $page_args['ID'] = $existing->ID;
-        $result = wp_update_post($page_args, true);
-        $action = 'updated';
-    } else {
-        $result = wp_insert_post($page_args, true);
-        $action = 'created';
-    }
+    $result = wp_update_post($page_args, true);
 
     if (is_wp_error($result)) {
         return new WP_REST_Response([
@@ -2053,7 +2056,7 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
 
     return new WP_REST_Response([
         'ok'      => true,
-        'action'  => $action,
+        'action'  => 'updated',
         'page_id' => (int) $result,
         'slug'    => $slug,
         'url'     => get_permalink((int) $result),
