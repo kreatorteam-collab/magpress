@@ -398,6 +398,68 @@ function magpress_get_branding_css() {
 }
 
 /**
+ * Custom Customizer control — checkbox list pentru selecție multiplă de categorii.
+ * Stochează valoarea ca CSV de slug-uri (backward-compat cu setarea veche tip textarea).
+ */
+function magpress_register_customize_controls() {
+    if (!class_exists('WP_Customize_Control')) return;
+    if (class_exists('Magpress_Multi_Cat_Control')) return;
+    class Magpress_Multi_Cat_Control extends WP_Customize_Control {
+        public $type = 'magpress_multi_cat';
+        public function render_content() {
+            $categories = get_categories(['hide_empty' => false, 'orderby' => 'name', 'number' => 200]);
+            $value = $this->value();
+            $selected_slugs = [];
+            if (is_string($value) && $value !== '') {
+                $selected_slugs = array_map('sanitize_title', preg_split('/[\s,]+/', $value, -1, PREG_SPLIT_NO_EMPTY));
+            }
+            $uid = 'magpress-mcc-' . esc_attr($this->id);
+            ?>
+            <span class="customize-control-title"><?php echo esc_html($this->label); ?></span>
+            <?php if ($this->description): ?>
+                <span class="description customize-control-description"><?php echo wp_kses_post($this->description); ?></span>
+            <?php endif; ?>
+            <?php if (empty($categories)): ?>
+                <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu există categorii. Creează din Articole → Categorii.</p>
+            <?php else: ?>
+                <div id="<?php echo $uid; ?>-wrap" style="max-height:280px;overflow-y:auto;border:1px solid #ddd;padding:10px;background:#fff;margin-top:6px;border-radius:3px;">
+                    <?php foreach ($categories as $cat): ?>
+                        <label style="display:block;padding:3px 0;cursor:pointer;">
+                            <input type="checkbox" value="<?php echo esc_attr($cat->slug); ?>"
+                                   <?php checked(in_array($cat->slug, $selected_slugs, true)); ?>>
+                            <?php echo esc_html($cat->name); ?>
+                            <span style="color:#999;font-size:.85em;">(<?php echo esc_html($cat->slug); ?>)</span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+            <input type="hidden" id="<?php echo $uid; ?>-input" <?php $this->link(); ?> value="<?php echo esc_attr(is_array($value) ? implode(',', $value) : (string) $value); ?>">
+            <script>
+            (function(){
+                var wrap = document.getElementById('<?php echo $uid; ?>-wrap');
+                var hidden = document.getElementById('<?php echo $uid; ?>-input');
+                if (!wrap || !hidden) return;
+                wrap.addEventListener('change', function(e){
+                    if (!e.target || e.target.type !== 'checkbox') return;
+                    var checked = wrap.querySelectorAll('input[type=checkbox]:checked');
+                    var vals = Array.from(checked).map(function(c){return c.value;});
+                    hidden.value = vals.join(',');
+                    // Trigger jQuery change ca să-l prindă wp.customize
+                    if (window.jQuery) {
+                        jQuery(hidden).trigger('change');
+                    } else {
+                        hidden.dispatchEvent(new Event('change', {bubbles:true}));
+                    }
+                });
+            })();
+            </script>
+            <?php
+        }
+    }
+}
+add_action('customize_register', 'magpress_register_customize_controls', 5);
+
+/**
  * Customizer: secțiune Magpress cu culori + layout header.
  */
 function magpress_customize_register($wp_customize) {
@@ -461,18 +523,22 @@ function magpress_customize_register($wp_customize) {
         ],
     ]);
 
-    // Featured posts — categorii excluse (slug-uri, una pe rând sau separate prin virgulă)
+    // Featured posts — categorii excluse (multi-checkbox din lista categoriilor)
     $wp_customize->add_setting('magpress_featured_excluded_cats', [
         'default'           => '',
-        'sanitize_callback' => 'sanitize_textarea_field',
+        'sanitize_callback' => function ($v) {
+            if (!is_string($v)) return '';
+            $slugs = preg_split('/[\s,]+/', $v, -1, PREG_SPLIT_NO_EMPTY);
+            $clean = array_filter(array_map('sanitize_title', $slugs));
+            return implode(',', array_unique($clean));
+        },
         'transport'         => 'refresh',
     ]);
-    $wp_customize->add_control('magpress_featured_excluded_cats', [
+    $wp_customize->add_control(new Magpress_Multi_Cat_Control($wp_customize, 'magpress_featured_excluded_cats', [
         'label'       => 'Featured posts — Categorii excluse',
-        'description' => 'Slug-uri de categorii care NU trebuie să apară în zona featured de sus (sticky sau fallback). Una pe rând sau separate prin virgulă. Ex: articole-promovate, advertorial. Vezi slug-urile în Articole → Categorii.',
+        'description' => 'Bifează categoriile care NU trebuie să apară în zona featured de sus (sticky sau fallback).',
         'section'     => 'magpress_layout',
-        'type'        => 'textarea',
-    ]);
+    ]));
 
     // Padding header (separate top + bottom)
     $wp_customize->add_setting('magpress_header_padding_top', [
