@@ -3146,12 +3146,15 @@ function magpress_emit_schema_jsonld() {
         if ($bc) $schemas[] = $bc;
     } elseif (is_front_page() || is_home()) {
         if (get_theme_mod('magpress_schema_homepage_extra', 1)) {
-            // Detectie SEOPress: dacă emite deja Organization, skip ca să nu duplicăm
-            if (!magpress_seopress_emits_org_schema()) {
-                $ws = magpress_build_website_schema();
+            // Detectie via output buffer: dacă alt plugin (SEOPress, Rank Math, etc.) a emis deja,
+            // nu duplicăm
+            if (!magpress_head_already_has_schema('Organization')) {
                 $org = magpress_build_organization_schema();
-                if ($ws) $schemas[] = $ws;
                 if ($org) $schemas[] = $org;
+            }
+            if (!magpress_head_already_has_schema('WebSite')) {
+                $ws = magpress_build_website_schema();
+                if ($ws) $schemas[] = $ws;
             }
         }
         // ItemList pe homepage — featured posts (Rich Results Test va detecta acest schema)
@@ -3166,18 +3169,41 @@ function magpress_emit_schema_jsonld() {
 add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
 
 /**
- * Detectează dacă SEOPress emite deja Organization schema pe homepage.
- * Verifică opțiunile pluginului (Knowledge type = Organization).
- * Magpress emite Organization (potrivit pentru publisher) — dacă SEOPress emite Person (default
- * pentru blog personal), Magpress emite Organization peste (publisher-style mai potrivit).
+ * Detectează dacă alt plugin (SEOPress, Rank Math, Yoast, etc.) a emis deja Organization
+ * sau WebSite schema în <head>. Folosim output buffer pentru a inspecta ce s-a emis înainte
+ * de priority 30 (Magpress).
+ *
+ * Robust independent de internalele plugin-urilor — uită-te direct la output.
  */
-function magpress_seopress_emits_org_schema() {
-    if (!function_exists('seopress_get_service') && !defined('SEOPRESS_VERSION')) return false;
-    $opts = get_option('seopress_social_option_name');
-    if (!is_array($opts)) return false;
-    $type = $opts['seopress_social_knowledge_type'] ?? '';
-    return $type === 'Organization';
+function magpress_head_already_has_schema($type) {
+    $buffer = magpress_get_head_buffer();
+    if ($buffer === false) return false;
+    if ($type === 'Organization') {
+        return (bool) preg_match('/"@type"\s*:\s*"(Organization|NewsMediaOrganization|OnlineBusiness)"/', $buffer);
+    }
+    return (bool) preg_match('/"@type"\s*:\s*"' . preg_quote($type, '/') . '"/', $buffer);
 }
+
+// Output buffer pe wp_head: pornim la priority 1, citim la priority 30 (Magpress), oprim la 999
+function magpress_start_head_buffer() {
+    if (!is_front_page() && !is_home()) return; // doar pe homepage e nevoie de detection
+    ob_start();
+}
+add_action('wp_head', 'magpress_start_head_buffer', 1);
+
+function magpress_get_head_buffer() {
+    if (!is_front_page() && !is_home()) return false;
+    if (!ob_get_level()) return false;
+    return ob_get_contents();
+}
+
+function magpress_end_head_buffer() {
+    if (!is_front_page() && !is_home()) return;
+    if (ob_get_level()) {
+        ob_end_flush();
+    }
+}
+add_action('wp_head', 'magpress_end_head_buffer', 999);
 
 function magpress_get_publisher_data() {
     static $cache = null;
