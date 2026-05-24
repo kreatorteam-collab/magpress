@@ -3382,12 +3382,15 @@ function magpress_build_website_schema() {
 
 function magpress_build_organization_schema() {
     $pub = magpress_get_publisher_data();
-    // Adăugăm sameAs din social media URL-uri setate în Customizer
+    // Adăugăm sameAs din social media URL-uri setate în Customizer (doar URL-uri valide HTTP/HTTPS)
     $sameAs = [];
     $socials = ['facebook', 'instagram', 'pinterest', 'youtube', 'tiktok', 'twitter', 'linkedin'];
     foreach ($socials as $key) {
         $url = trim((string) get_theme_mod("magpress_social_{$key}", ''));
-        if ($url) $sameAs[] = $url;
+        if (!$url) continue;
+        // Filtrăm placeholdere (# / javascript / hashes / relative URLs)
+        if (!preg_match('#^https?://#i', $url)) continue;
+        $sameAs[] = $url;
     }
     $org = [
         '@context' => 'https://schema.org',
