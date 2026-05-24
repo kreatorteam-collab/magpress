@@ -3144,14 +3144,19 @@ function magpress_emit_schema_jsonld() {
     } elseif (is_category() || is_tag() || is_author() || is_archive()) {
         $bc = magpress_build_breadcrumb_schema_archive();
         if ($bc) $schemas[] = $bc;
-    } elseif ((is_front_page() || is_home()) && get_theme_mod('magpress_schema_homepage_extra', 1)) {
-        // Detectie SEOPress: dacă emite deja Organization, skip ca să nu duplicăm
-        if (!magpress_seopress_emits_org_schema()) {
-            $ws = magpress_build_website_schema();
-            $org = magpress_build_organization_schema();
-            if ($ws) $schemas[] = $ws;
-            if ($org) $schemas[] = $org;
+    } elseif (is_front_page() || is_home()) {
+        if (get_theme_mod('magpress_schema_homepage_extra', 1)) {
+            // Detectie SEOPress: dacă emite deja Organization, skip ca să nu duplicăm
+            if (!magpress_seopress_emits_org_schema()) {
+                $ws = magpress_build_website_schema();
+                $org = magpress_build_organization_schema();
+                if ($ws) $schemas[] = $ws;
+                if ($org) $schemas[] = $org;
+            }
         }
+        // ItemList pe homepage — featured posts (Rich Results Test va detecta acest schema)
+        $itemlist = magpress_build_homepage_itemlist_schema();
+        if ($itemlist) $schemas[] = $itemlist;
     }
 
     foreach ($schemas as $s) {
@@ -3359,6 +3364,58 @@ function magpress_build_breadcrumb_schema_archive() {
     return [
         '@context'        => 'https://schema.org',
         '@type'           => 'BreadcrumbList',
+        'itemListElement' => $items,
+    ];
+}
+
+/**
+ * ItemList schema pe homepage — lista articolelor featured (sticky sau ultimele).
+ * Asta produce rich result detectabil de Rich Results Test (categoria Carousels/ItemList).
+ */
+function magpress_build_homepage_itemlist_schema() {
+    $count = 10;
+    // Caut sticky posts primii (la fel ca front-page.php)
+    $sticky_ids = get_option('sticky_posts');
+    $args = [
+        'posts_per_page'      => $count,
+        'post_status'         => 'publish',
+        'ignore_sticky_posts' => 1,
+    ];
+    if (!empty($sticky_ids)) {
+        $args['post__in'] = $sticky_ids;
+    }
+    $q = new WP_Query($args);
+    if (!$q->have_posts()) {
+        wp_reset_postdata();
+        $q = new WP_Query(['posts_per_page' => $count, 'post_status' => 'publish']);
+    }
+    if (!$q->have_posts()) { wp_reset_postdata(); return null; }
+
+    $items = [];
+    $pos = 1;
+    while ($q->have_posts()) {
+        $q->the_post();
+        $item = [
+            '@type'    => 'ListItem',
+            'position' => $pos++,
+            'url'      => get_permalink(),
+            'name'     => mb_substr(wp_strip_all_tags(get_the_title()), 0, 120),
+        ];
+        if (has_post_thumbnail()) {
+            $thumb = wp_get_attachment_image_url(get_post_thumbnail_id(), 'magpress-feature');
+            if ($thumb) $item['image'] = $thumb;
+        }
+        $items[] = $item;
+    }
+    wp_reset_postdata();
+
+    if (empty($items)) return null;
+
+    return [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'ItemList',
+        'name'            => 'Articole featured — ' . get_bloginfo('name'),
+        'numberOfItems'   => count($items),
         'itemListElement' => $items,
     ];
 }
