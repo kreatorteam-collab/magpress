@@ -3181,9 +3181,15 @@ add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
 function magpress_head_already_has_schema($type) {
     $buffer = magpress_get_head_buffer();
     if ($buffer === false) return false;
-    // Match EXACT pe tip — astfel pe site-urile news (Magpress emite NewsMediaOrganization),
-    // SEOPress poate emite Organization separat și Magpress completează cu NewsMediaOrganization
-    // (entity reconciliation Google va merge-ui automat ca același publisher)
+    // Pentru tipuri Organization-family (Organization, NewsMediaOrganization, OnlineBusiness, etc.),
+    // detectie permissive — dacă există ORICE subtype Org, nu duplicăm.
+    // User-ul poate dezactiva SEOPress Organization manual pe site-urile unde vrea Magpress să emite
+    // un tip specific (ex: NewsMediaOrganization pe site-uri news).
+    $org_family = ['Organization', 'NewsMediaOrganization', 'OnlineBusiness', 'LocalBusiness', 'Corporation', 'EducationalOrganization', 'GovernmentOrganization', 'NGO'];
+    if (in_array($type, $org_family, true)) {
+        $pattern = '/"@type"\s*:\s*"(' . implode('|', $org_family) . ')"/';
+        return (bool) preg_match($pattern, $buffer);
+    }
     return (bool) preg_match('/"@type"\s*:\s*"' . preg_quote($type, '/') . '"/', $buffer);
 }
 
