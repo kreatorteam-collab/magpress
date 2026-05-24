@@ -3244,9 +3244,31 @@ function magpress_get_head_buffer() {
 
 function magpress_end_head_buffer() {
     if (!is_front_page() && !is_home()) return;
-    if (ob_get_level()) {
-        ob_end_flush();
-    }
+    if (!ob_get_level()) return;
+
+    $buffer = ob_get_clean();
+
+    // Strip schema duplicate emise de SEOPress (Organization, NewsMediaOrganization, WebSite).
+    // Identificare: SEOPress folosește json_encode default cu escape slashes (\/), Magpress folosește
+    // JSON_UNESCAPED_SLASHES (//). Astfel păstrăm DOAR schema Magpress fără confuzie pentru Google.
+    $buffer = preg_replace_callback(
+        '/<script\b[^>]*type="application\/ld\+json"[^>]*>\s*(\{[\s\S]*?\})\s*<\/script>/i',
+        function ($m) {
+            $json = $m[1];
+            // Doar dacă e @type Organization/NewsMediaOrganization/WebSite
+            if (!preg_match('/"@type"\s*:\s*"(Organization|NewsMediaOrganization|OnlineBusiness|LocalBusiness|WebSite)"/', $json)) {
+                return $m[0]; // alt schema (Article, BreadcrumbList, ItemList, Person, etc.) — păstrăm
+            }
+            // SEOPress identification: escape slashes în URL-uri
+            if (strpos($json, '\\/') !== false) {
+                return ''; // strip — Magpress emite varianta corectă
+            }
+            return $m[0]; // Magpress block — păstrăm
+        },
+        $buffer
+    );
+
+    echo $buffer;
 }
 add_action('wp_head', 'magpress_end_head_buffer', 999);
 
