@@ -3099,21 +3099,22 @@ function magpress_register_schema_settings($wp_customize) {
     ]);
 
     $wp_customize->add_setting('magpress_schema_publisher_type', [
-        'default'           => 'Organization',
+        'default'           => 'auto',
         'sanitize_callback' => function ($v) {
-            return in_array($v, ['Organization', 'NewsMediaOrganization', 'OnlineBusiness'], true) ? $v : 'Organization';
+            return in_array($v, ['auto', 'Organization', 'NewsMediaOrganization', 'OnlineBusiness'], true) ? $v : 'auto';
         },
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_publisher_type', [
         'label'       => 'Tip publisher (schema entity)',
-        'description' => '<code>Organization</code> = default sigur (lifestyle, magazine, blog). <code>NewsMediaOrganization</code> = site news/publicații (boost Google News + Discover, dar Google verifică mai strict). <code>OnlineBusiness</code> = site comercial cu servicii.',
+        'description' => '<code>Auto-detect</code> (default) = tema decide pe baza domain-ului (NewsMediaOrganization pentru site-uri news cunoscute, Organization pentru rest). <code>Organization</code> = override manual sigur. <code>NewsMediaOrganization</code> = override pentru publicații news.',
         'section'     => 'magpress_schema',
         'type'        => 'select',
         'choices'     => [
-            'Organization'          => 'Organization (default — sigur pe orice site)',
-            'NewsMediaOrganization' => 'NewsMediaOrganization (site-uri news/publicații)',
-            'OnlineBusiness'        => 'OnlineBusiness (site comercial/servicii)',
+            'auto'                  => 'Auto-detect din domain (recomandat)',
+            'Organization'          => 'Organization (manual override)',
+            'NewsMediaOrganization' => 'NewsMediaOrganization (manual override)',
+            'OnlineBusiness'        => 'OnlineBusiness (manual override)',
         ],
     ]);
 
@@ -3205,6 +3206,32 @@ function magpress_end_head_buffer() {
 }
 add_action('wp_head', 'magpress_end_head_buffer', 999);
 
+/**
+ * Determină tipul de publisher schema pentru site-ul curent.
+ * - Customizer setting (override manual) are prioritate
+ * - Altfel, auto-detect din domain (NewsMediaOrganization pe domenii news cunoscute, Organization altfel)
+ */
+function magpress_resolve_publisher_type() {
+    $setting = (string) get_theme_mod('magpress_schema_publisher_type', 'auto');
+    if ($setting && $setting !== 'auto') return $setting;
+
+    // Auto-detect din domain. Lista poate fi extinsă via filter `magpress_news_domains`.
+    $news_domains = apply_filters('magpress_news_domains', [
+        'comunicateinpresa.ro',
+        'centruldebusiness.ro',
+        'ghidulnational.ro',
+        'jurnaluldemedia.ro',
+        'business-entrepreneur.ro',
+        'blogdeantreprenor.ro',
+        'revistafocus.ro',
+    ]);
+
+    $host = parse_url(home_url('/'), PHP_URL_HOST);
+    $host = preg_replace('/^www\./i', '', strtolower((string) $host));
+
+    return in_array($host, $news_domains, true) ? 'NewsMediaOrganization' : 'Organization';
+}
+
 function magpress_get_publisher_data() {
     static $cache = null;
     if ($cache !== null) return $cache;
@@ -3215,7 +3242,7 @@ function magpress_get_publisher_data() {
             $logo_url = wp_get_attachment_image_url($custom_logo_id, 'full');
         }
     }
-    $type = get_theme_mod('magpress_schema_publisher_type', 'Organization');
+    $type = magpress_resolve_publisher_type();
     $cache = [
         '@type' => $type,
         'name'  => get_bloginfo('name'),
@@ -3303,6 +3330,15 @@ function magpress_build_article_schema() {
 
     // inLanguage
     $schema['inLanguage'] = get_locale() ? str_replace('_', '-', get_locale()) : 'ro-RO';
+
+    // isAccessibleForFree — signal Discover policy compliance (toate articolele sunt free, fără paywall)
+    $schema['isAccessibleForFree'] = true;
+
+    // Speakable — eligibilitate Google Assistant text-to-speech (titlu + excerpt/primul paragraf)
+    $schema['speakable'] = [
+        '@type'       => 'SpeakableSpecification',
+        'cssSelector' => ['.article-title', '.article-excerpt', '.entry-content > p:first-of-type'],
+    ];
 
     return $schema;
 }
