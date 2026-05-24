@@ -1790,35 +1790,6 @@ function magpress_render_settings_page() {
         }
     }
 
-    // Handle publisher data save (legalName, address, contact, etc.)
-    if (isset($_POST['magpress_save_publisher']) && check_admin_referer('magpress_publisher_action')) {
-        $fields = [
-            'legal_name'          => 'sanitize_text_field',
-            'alternate_name'      => 'sanitize_text_field',
-            'description'         => 'sanitize_textarea_field',
-            'email'               => 'sanitize_email',
-            'phone'               => 'sanitize_text_field',
-            'address_street'      => 'sanitize_text_field',
-            'address_locality'    => 'sanitize_text_field',
-            'address_postal_code' => 'sanitize_text_field',
-            'address_country'     => 'sanitize_text_field',
-            'founding_year'       => 'sanitize_text_field',
-        ];
-        foreach ($fields as $key => $sanitizer) {
-            $raw = $_POST['publisher_' . $key] ?? '';
-            $val = call_user_func($sanitizer, $raw);
-            if ($key === 'founding_year') {
-                $val = preg_match('/^\d{4}$/', $val) ? $val : '';
-            }
-            if ($key === 'address_country') {
-                $val = strtoupper(substr($val, 0, 2));
-            }
-            update_option('magpress_publisher_' . $key, $val);
-        }
-        $message = '✓ Datele publisher au fost salvate. Schema homepage și article publisher vor folosi aceste valori.';
-        $message_type = 'success';
-    }
-
     // Handle clear errors button
     if (isset($_POST['magpress_clear_errors']) && check_admin_referer('magpress_clear_errors_action')) {
         if (file_exists(MAGPRESS_ERROR_LOG_FILE))        { @unlink(MAGPRESS_ERROR_LOG_FILE); }
@@ -1917,67 +1888,6 @@ function magpress_render_settings_page() {
                 <button type="submit" name="magpress_save_site_type" class="button button-primary">💾 Salvează tipul site-ului</button>
             </form>
 
-            <h2 style="margin-top:2rem">Date publisher (pentru schema.org JSON-LD)</h2>
-            <p>Aceste date apar în schema homepage și ca <code>publisher</code> în schema articolelor. Lasă gol pentru a folosi default-ul automat.</p>
-            <form method="post">
-                <?php wp_nonce_field('magpress_publisher_action'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="pub_legal">Nume legal</label></th>
-                        <td>
-                            <input type="text" id="pub_legal" name="publisher_legal_name" value="<?php echo esc_attr(get_option('magpress_publisher_legal_name', '')); ?>" class="regular-text" placeholder="<?php echo esc_attr(magpress_publisher_default('legal_name')); ?>">
-                            <p class="description">Nume legal firmă/publisher. Default: titlul site-ului.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="pub_alt">Nume alternativ</label></th>
-                        <td>
-                            <input type="text" id="pub_alt" name="publisher_alternate_name" value="<?php echo esc_attr(get_option('magpress_publisher_alternate_name', '')); ?>" class="regular-text" placeholder="opțional">
-                            <p class="description">Acronim sau denumire alternativă (ex: „GF" pentru „Ghidul Femeii").</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="pub_desc">Descriere</label></th>
-                        <td>
-                            <textarea id="pub_desc" name="publisher_description" rows="3" class="large-text" placeholder="<?php echo esc_attr(magpress_publisher_default('description')); ?>"><?php echo esc_textarea(get_option('magpress_publisher_description', '')); ?></textarea>
-                            <p class="description">Descriere site (max 250 chars). Default: tagline WP.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="pub_email">Email contact</label></th>
-                        <td>
-                            <input type="email" id="pub_email" name="publisher_email" value="<?php echo esc_attr(get_option('magpress_publisher_email', '')); ?>" class="regular-text" placeholder="<?php echo esc_attr(magpress_publisher_default('email')); ?>">
-                            <p class="description">Default: <code><?php echo esc_html(magpress_publisher_default('email')); ?></code></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="pub_phone">Telefon</label></th>
-                        <td>
-                            <input type="text" id="pub_phone" name="publisher_phone" value="<?php echo esc_attr(get_option('magpress_publisher_phone', '')); ?>" class="regular-text" placeholder="ex: 0747394863">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Adresă</th>
-                        <td>
-                            <input type="text" name="publisher_address_street" value="<?php echo esc_attr(get_option('magpress_publisher_address_street', '')); ?>" class="regular-text" placeholder="Stradă, nr." style="margin-bottom:.4rem;">
-                            <br>
-                            <input type="text" name="publisher_address_locality" value="<?php echo esc_attr(get_option('magpress_publisher_address_locality', '')); ?>" class="regular-text" placeholder="Localitate / oraș" style="margin-bottom:.4rem;">
-                            <br>
-                            <input type="text" name="publisher_address_postal_code" value="<?php echo esc_attr(get_option('magpress_publisher_address_postal_code', '')); ?>" placeholder="Cod poștal" style="width:140px;margin-bottom:.4rem;margin-right:.5rem">
-                            <input type="text" name="publisher_address_country" value="<?php echo esc_attr(get_option('magpress_publisher_address_country', 'RO')); ?>" placeholder="Țară (RO)" style="width:80px" maxlength="2">
-                            <p class="description">ISO 3166-1 alpha-2 pentru țară (RO, US, GB, etc.)</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="pub_year">An înființare</label></th>
-                        <td>
-                            <input type="text" id="pub_year" name="publisher_founding_year" value="<?php echo esc_attr(get_option('magpress_publisher_founding_year', '')); ?>" placeholder="ex: 2007" style="width:120px" pattern="\d{4}" maxlength="4">
-                            <p class="description">Anul în care a fost lansat publisher-ul (4 cifre).</p>
-                        </td>
-                    </tr>
-                </table>
-                <button type="submit" name="magpress_save_publisher" class="button button-primary">💾 Salvează datele publisher</button>
-            </form>
         </div>
 
         <div class="card" style="max-width:1100px;padding:1.5rem;margin-top:1rem">
@@ -3417,6 +3327,29 @@ function magpress_get_publisher_field($key) {
     return $val;
 }
 
+/**
+ * Publisher MINIMAL pentru Article schema — doar câmpurile Google-required (name, url, logo).
+ * NU include telefon, address, foundingDate (acele date apar doar pe homepage Organization, nu per articol).
+ */
+function magpress_get_publisher_data_minimal() {
+    $logo_url = trim((string) get_theme_mod('magpress_schema_publisher_logo', ''));
+    if (!$logo_url) {
+        $custom_logo_id = get_theme_mod('custom_logo');
+        if ($custom_logo_id) {
+            $logo_url = wp_get_attachment_image_url($custom_logo_id, 'full');
+        }
+    }
+    $data = [
+        '@type' => magpress_resolve_publisher_type(),
+        'name'  => get_bloginfo('name'),
+        'url'   => home_url('/'),
+    ];
+    if ($logo_url) {
+        $data['logo'] = ['@type' => 'ImageObject', 'url' => $logo_url];
+    }
+    return $data;
+}
+
 function magpress_get_publisher_data() {
     static $cache = null;
     if ($cache !== null) return $cache;
@@ -3523,7 +3456,9 @@ function magpress_build_article_schema() {
             'name'  => $author_name,
             'url'   => $author_url,
         ]],
-        'publisher'        => magpress_get_publisher_data(),
+        // Publisher MINIMAL pe Article (doar Google-required: name + logo). Datele complete (address,
+        // telephone, foundingDate) apar DOAR pe homepage Organization, nu duplicate per articol.
+        'publisher'        => magpress_get_publisher_data_minimal(),
     ];
 
     if ($image_url) {
@@ -3551,15 +3486,6 @@ function magpress_build_article_schema() {
 
     // inLanguage
     $schema['inLanguage'] = get_locale() ? str_replace('_', '-', get_locale()) : 'ro-RO';
-
-    // isAccessibleForFree — signal Discover policy compliance (toate articolele sunt free, fără paywall)
-    $schema['isAccessibleForFree'] = true;
-
-    // Speakable — eligibilitate Google Assistant text-to-speech (titlu + excerpt/primul paragraf)
-    $schema['speakable'] = [
-        '@type'       => 'SpeakableSpecification',
-        'cssSelector' => ['.article-title', '.article-excerpt', '.entry-content > p:first-of-type'],
-    ];
 
     return $schema;
 }
