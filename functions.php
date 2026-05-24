@@ -3672,6 +3672,10 @@ function magpress_build_organization_schema() {
     foreach (['legalName', 'alternateName', 'description', 'email', 'telephone', 'address', 'foundingDate', 'logo'] as $k) {
         if (!empty($pub[$k])) $org[$k] = $pub[$k];
     }
+    // image: Google Organization rich result recomandă să existe. Folosim logo-ul ca image generic.
+    if (!empty($pub['logo']['url'])) {
+        $org['image'] = $pub['logo']['url'];
+    }
     return $org;
 }
 
