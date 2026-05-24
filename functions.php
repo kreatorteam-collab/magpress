@@ -1780,6 +1780,16 @@ function magpress_render_settings_page() {
         }
     }
 
+    // Handle site type save
+    if (isset($_POST['magpress_save_site_type']) && check_admin_referer('magpress_site_type_action')) {
+        $type = sanitize_text_field($_POST['magpress_site_type'] ?? 'auto');
+        if (in_array($type, ['auto', 'news', 'magazine', 'blog', 'business'], true)) {
+            update_option('magpress_site_type', $type);
+            $message = '✓ Tipul site-ului a fost salvat. Schema homepage va folosi tipul corespunzător.';
+            $message_type = 'success';
+        }
+    }
+
     // Handle clear errors button
     if (isset($_POST['magpress_clear_errors']) && check_admin_referer('magpress_clear_errors_action')) {
         if (file_exists(MAGPRESS_ERROR_LOG_FILE))        { @unlink(MAGPRESS_ERROR_LOG_FILE); }
@@ -1848,6 +1858,34 @@ function magpress_render_settings_page() {
                 <button type="submit" name="magpress_send_ping" class="button">
                     📡 Trimite ping acum
                 </button>
+            </form>
+
+            <h2 style="margin-top:2rem">Tip site (pentru schema.org JSON-LD homepage)</h2>
+            <?php $current_site_type = get_option('magpress_site_type', 'auto'); ?>
+            <p>Alege tipul de site — schema.org JSON-LD pe homepage va folosi tipul corespunzător. Influențează eligibilitatea pentru Google News, Discover, Knowledge Graph și rich results.</p>
+            <form method="post">
+                <?php wp_nonce_field('magpress_site_type_action'); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="magpress_site_type">Tip site</label></th>
+                        <td>
+                            <select name="magpress_site_type" id="magpress_site_type" style="min-width:380px">
+                                <option value="auto"     <?php selected('auto', $current_site_type); ?>>Auto-detect din domain (default)</option>
+                                <option value="news"     <?php selected('news', $current_site_type); ?>>Site de știri / publicație news → <strong>NewsMediaOrganization</strong></option>
+                                <option value="magazine" <?php selected('magazine', $current_site_type); ?>>Revistă / Magazine lifestyle → <strong>Organization</strong></option>
+                                <option value="blog"     <?php selected('blog', $current_site_type); ?>>Blog (personal / specialist) → <strong>Organization</strong></option>
+                                <option value="business" <?php selected('business', $current_site_type); ?>>Site business / servicii → <strong>OnlineBusiness</strong></option>
+                            </select>
+                            <p class="description">
+                                <strong>News</strong> = pentru știri actuale, comunicate, evenimente curente. Eligibil pentru Google News + boost Discover.<br>
+                                <strong>Magazine/Lifestyle</strong> = pentru reviste, sfaturi, ghiduri (casa, modă, sănătate, parenting).<br>
+                                <strong>Blog</strong> = pentru content personal/specialist (specific autor).<br>
+                                <strong>Business</strong> = pentru site de companie cu servicii / produse.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <button type="submit" name="magpress_save_site_type" class="button button-primary">💾 Salvează tipul site-ului</button>
             </form>
         </div>
 
@@ -3220,10 +3258,23 @@ add_action('wp_head', 'magpress_end_head_buffer', 999);
  * - Altfel, auto-detect din domain (NewsMediaOrganization pe domenii news cunoscute, Organization altfel)
  */
 function magpress_resolve_publisher_type() {
+    // 1. PRIORITATE: setarea din admin (Aspect → Magpress → Tip site)
+    $site_type = (string) get_option('magpress_site_type', 'auto');
+    $admin_map = [
+        'news'     => 'NewsMediaOrganization',
+        'magazine' => 'Organization',
+        'blog'     => 'Organization',
+        'business' => 'OnlineBusiness',
+    ];
+    if ($site_type && $site_type !== 'auto' && isset($admin_map[$site_type])) {
+        return $admin_map[$site_type];
+    }
+
+    // 2. Customizer override (legacy)
     $setting = (string) get_theme_mod('magpress_schema_publisher_type', 'auto');
     if ($setting && $setting !== 'auto') return $setting;
 
-    // Auto-detect din domain. Lista poate fi extinsă via filter `magpress_news_domains`.
+    // 3. Auto-detect din domain. Lista poate fi extinsă via filter `magpress_news_domains`.
     $news_domains = apply_filters('magpress_news_domains', [
         'comunicateinpresa.ro',
         'centruldebusiness.ro',
