@@ -3098,6 +3098,25 @@ function magpress_register_schema_settings($wp_customize) {
         'type'        => 'checkbox',
     ]);
 
+    $wp_customize->add_setting('magpress_schema_publisher_type', [
+        'default'           => 'Organization',
+        'sanitize_callback' => function ($v) {
+            return in_array($v, ['Organization', 'NewsMediaOrganization', 'OnlineBusiness'], true) ? $v : 'Organization';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_publisher_type', [
+        'label'       => 'Tip publisher (schema entity)',
+        'description' => '<code>Organization</code> = default sigur (lifestyle, magazine, blog). <code>NewsMediaOrganization</code> = site news/publicații (boost Google News + Discover, dar Google verifică mai strict). <code>OnlineBusiness</code> = site comercial cu servicii.',
+        'section'     => 'magpress_schema',
+        'type'        => 'select',
+        'choices'     => [
+            'Organization'          => 'Organization (default — sigur pe orice site)',
+            'NewsMediaOrganization' => 'NewsMediaOrganization (site-uri news/publicații)',
+            'OnlineBusiness'        => 'OnlineBusiness (site comercial/servicii)',
+        ],
+    ]);
+
     $wp_customize->add_setting('magpress_schema_publisher_logo', [
         'default'           => '',
         'sanitize_callback' => 'esc_url_raw',
@@ -3165,8 +3184,9 @@ function magpress_get_publisher_data() {
             $logo_url = wp_get_attachment_image_url($custom_logo_id, 'full');
         }
     }
+    $type = get_theme_mod('magpress_schema_publisher_type', 'Organization');
     $cache = [
-        '@type' => 'Organization',
+        '@type' => $type,
         'name'  => get_bloginfo('name'),
         'url'   => home_url('/'),
     ];
