@@ -1785,7 +1785,9 @@ function magpress_render_settings_page() {
         $type = sanitize_text_field($_POST['magpress_site_type'] ?? 'auto');
         if (in_array($type, ['auto', 'news', 'magazine', 'blog', 'business'], true)) {
             update_option('magpress_site_type', $type);
-            $message = '✓ Tipul site-ului a fost salvat. Schema homepage va folosi tipul corespunzător.';
+            $force = !empty($_POST['magpress_force_schema']) ? 1 : 0;
+            update_option('magpress_force_schema', $force);
+            $message = '✓ Setările schema au fost salvate.';
             $message_type = 'success';
         }
     }
@@ -1884,8 +1886,18 @@ function magpress_render_settings_page() {
                             </p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">Forțează schema Magpress</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="magpress_force_schema" value="1" <?php checked(1, get_option('magpress_force_schema', 0)); ?>>
+                                Emite schema Magpress chiar dacă alt plugin (SEOPress, Rank Math) emite deja Organization
+                            </label>
+                            <p class="description">⚠️ Activează DOAR dacă vezi că schema SEOPress conține date incorecte (ex: adresa altui site) și nu reușești să dezactivezi din SEOPress. Atenție: pot apărea 2 schema Organization diferite pe homepage.</p>
+                        </td>
+                    </tr>
                 </table>
-                <button type="submit" name="magpress_save_site_type" class="button button-primary">💾 Salvează tipul site-ului</button>
+                <button type="submit" name="magpress_save_site_type" class="button button-primary">💾 Salvează setările schema</button>
             </form>
 
         </div>
@@ -3186,15 +3198,15 @@ function magpress_emit_schema_jsonld() {
         if ($bc) $schemas[] = $bc;
     } elseif (is_front_page() || is_home()) {
         if (get_theme_mod('magpress_schema_homepage_extra', 1)) {
-            // Detectie via output buffer: dacă alt plugin a emis deja EXACT tipul pe care Magpress
-            // urmează să-l emite, nu duplicăm. Pe site-urile news, Magpress emite NewsMediaOrganization
-            // chiar dacă SEOPress emite Organization (entity superior, Google le merge-uiește).
+            $force = (bool) get_option('magpress_force_schema', 0);
             $publisher_type = magpress_resolve_publisher_type();
-            if (!magpress_head_already_has_schema($publisher_type)) {
+            // Cu Force ON, Magpress emite mereu (peste ce emite alt plugin).
+            // Fără Force, OB detection sare dacă alt plugin a emis Organization-family.
+            if ($force || !magpress_head_already_has_schema($publisher_type)) {
                 $org = magpress_build_organization_schema();
                 if ($org) $schemas[] = $org;
             }
-            if (!magpress_head_already_has_schema('WebSite')) {
+            if ($force || !magpress_head_already_has_schema('WebSite')) {
                 $ws = magpress_build_website_schema();
                 if ($ws) $schemas[] = $ws;
             }
