@@ -3147,9 +3147,11 @@ function magpress_emit_schema_jsonld() {
         if ($bc) $schemas[] = $bc;
     } elseif (is_front_page() || is_home()) {
         if (get_theme_mod('magpress_schema_homepage_extra', 1)) {
-            // Detectie via output buffer: dacă alt plugin (SEOPress, Rank Math, etc.) a emis deja,
-            // nu duplicăm
-            if (!magpress_head_already_has_schema('Organization')) {
+            // Detectie via output buffer: dacă alt plugin a emis deja EXACT tipul pe care Magpress
+            // urmează să-l emite, nu duplicăm. Pe site-urile news, Magpress emite NewsMediaOrganization
+            // chiar dacă SEOPress emite Organization (entity superior, Google le merge-uiește).
+            $publisher_type = magpress_resolve_publisher_type();
+            if (!magpress_head_already_has_schema($publisher_type)) {
                 $org = magpress_build_organization_schema();
                 if ($org) $schemas[] = $org;
             }
@@ -3179,9 +3181,9 @@ add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
 function magpress_head_already_has_schema($type) {
     $buffer = magpress_get_head_buffer();
     if ($buffer === false) return false;
-    if ($type === 'Organization') {
-        return (bool) preg_match('/"@type"\s*:\s*"(Organization|NewsMediaOrganization|OnlineBusiness)"/', $buffer);
-    }
+    // Match EXACT pe tip — astfel pe site-urile news (Magpress emite NewsMediaOrganization),
+    // SEOPress poate emite Organization separat și Magpress completează cu NewsMediaOrganization
+    // (entity reconciliation Google va merge-ui automat ca același publisher)
     return (bool) preg_match('/"@type"\s*:\s*"' . preg_quote($type, '/') . '"/', $buffer);
 }
 
