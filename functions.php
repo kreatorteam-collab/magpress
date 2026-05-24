@@ -3142,15 +3142,17 @@ function magpress_emit_schema_jsonld() {
 add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
 
 /**
- * Detectează dacă SEOPress emite deja Organization/Person schema pe homepage.
- * Verifică opțiunile pluginului (Knowledge type setat = emite schema).
+ * Detectează dacă SEOPress emite deja Organization schema pe homepage.
+ * Verifică opțiunile pluginului (Knowledge type = Organization).
+ * Magpress emite Organization (potrivit pentru publisher) — dacă SEOPress emite Person (default
+ * pentru blog personal), Magpress emite Organization peste (publisher-style mai potrivit).
  */
 function magpress_seopress_emits_org_schema() {
     if (!function_exists('seopress_get_service') && !defined('SEOPRESS_VERSION')) return false;
     $opts = get_option('seopress_social_option_name');
     if (!is_array($opts)) return false;
     $type = $opts['seopress_social_knowledge_type'] ?? '';
-    return $type === 'Organization' || $type === 'Person';
+    return $type === 'Organization';
 }
 
 function magpress_get_publisher_data() {
