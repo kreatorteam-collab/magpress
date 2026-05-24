@@ -3383,22 +3383,28 @@ function magpress_resolve_publisher_type() {
 }
 
 /**
- * Default valori pentru câmpurile publisher schema (când user nu a setat încă în admin).
+ * Default valori pentru câmpurile publisher schema.
+ * Datele firmei (telefon, adresă, foundingDate) sunt hardcodate pentru SEO Digital S.R.L.
+ * Restul (name, url, email, description) sunt derivate automat din WP/domain.
+ * Extensibil via filter `magpress_publisher_defaults` (orice site care folosește tema poate modifica).
  */
 function magpress_publisher_default($key) {
     $host = preg_replace('/^www\./i', '', parse_url(home_url(), PHP_URL_HOST));
     $defaults = [
+        // Date auto din WP/domain
         'legal_name'          => get_bloginfo('name'),
         'alternate_name'      => '',
         'description'         => get_bloginfo('description'),
         'email'               => $host ? 'contact@' . $host : '',
-        'phone'               => '',
-        'address_street'      => '',
-        'address_locality'    => '',
-        'address_postal_code' => '',
+        // Date firmă publisher (SEO Digital S.R.L. — Eduard) — comune pe toate site-urile
+        'phone'               => '0747394863',
+        'address_street'      => 'Strada Planetei',
+        'address_locality'    => 'Giroc',
+        'address_postal_code' => '307220',
         'address_country'     => 'RO',
-        'founding_year'       => '',
+        'founding_year'       => '2007',
     ];
+    $defaults = apply_filters('magpress_publisher_defaults', $defaults);
     return $defaults[$key] ?? '';
 }
 
@@ -3716,24 +3722,18 @@ function magpress_build_website_schema() {
 
 function magpress_build_organization_schema() {
     $pub = magpress_get_publisher_data();
-    // Adăugăm sameAs din social media URL-uri setate în Customizer (doar URL-uri valide HTTP/HTTPS)
-    $sameAs = [];
-    $socials = ['facebook', 'instagram', 'pinterest', 'youtube', 'tiktok', 'twitter', 'linkedin'];
-    foreach ($socials as $key) {
-        $url = trim((string) get_theme_mod("magpress_social_{$key}", ''));
-        if (!$url) continue;
-        // Filtrăm placeholdere (# / javascript / hashes / relative URLs)
-        if (!preg_match('#^https?://#i', $url)) continue;
-        $sameAs[] = $url;
-    }
+    // sameAs deliberat omis — social URLs din Customizer pot fi cross-contaminate între site-uri
+    // (user setează același cont social pe mai multe site-uri); mai sigur să nu emit decât să confundăm Google.
     $org = [
         '@context' => 'https://schema.org',
         '@type'    => $pub['@type'],
         'name'     => $pub['name'],
         'url'      => $pub['url'],
     ];
-    if (!empty($pub['logo'])) $org['logo'] = $pub['logo'];
-    if (!empty($sameAs))      $org['sameAs'] = $sameAs;
+    // Câmpuri publisher complete din magpress_get_publisher_data (legalName, description, address, etc.)
+    foreach (['legalName', 'alternateName', 'description', 'email', 'telephone', 'address', 'foundingDate', 'logo'] as $k) {
+        if (!empty($pub[$k])) $org[$k] = $pub[$k];
+    }
     return $org;
 }
 
