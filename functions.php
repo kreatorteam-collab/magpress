@@ -3039,6 +3039,330 @@ function magpress_get_legal_page_links() {
     return $cache;
 }
 
+/**
+ * ============================================================
+ * SCHEMA.ORG JSON-LD — articole + breadcrumb (+ homepage opțional)
+ * ============================================================
+ * SEOPress emite Organization + WebSite pe homepage, DAR nu emite Article schema pe single posts.
+ * Magpress acoperă golul: NewsArticle/Article pe single + BreadcrumbList pe single+archive.
+ * Toggle Customizer pentru a dezactiva (dacă altă sursă emite deja).
+ */
+
+function magpress_register_schema_settings($wp_customize) {
+    $wp_customize->add_section('magpress_schema', [
+        'title'       => 'Magpress: Schema.org JSON-LD',
+        'description' => 'Adaugă schema.org structured data în <head>. Util pentru Google Discover, Top Stories, rich results. SEOPress emite deja Organization+WebSite pe homepage; Magpress completează cu Article schema pe single posts și BreadcrumbList.',
+        'priority'    => 41,
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_enabled', [
+        'default'           => 1,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_enabled', [
+        'label'       => 'Activează Schema.org JSON-LD (recomandat)',
+        'description' => 'Emite NewsArticle/Article pe single + BreadcrumbList pe single & archive. Dezactivează doar dacă alt plugin (Rank Math, Yoast, SEOPress Pro) emite deja Article schema (verifică în Search Console „Rich Results Test").',
+        'section'     => 'magpress_schema',
+        'type'        => 'checkbox',
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_article_type', [
+        'default'           => 'Article',
+        'sanitize_callback' => function ($v) {
+            return in_array($v, ['Article', 'NewsArticle', 'BlogPosting'], true) ? $v : 'Article';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_article_type', [
+        'label'       => 'Tip schema pentru articole',
+        'description' => '<code>NewsArticle</code> = site-uri news (eligibilitate Google News/Top Stories). <code>Article</code> = generic (sigur pentru blog/magazine). <code>BlogPosting</code> = blog personal.',
+        'section'     => 'magpress_schema',
+        'type'        => 'select',
+        'choices'     => [
+            'Article'     => 'Article (default — generic, sigur)',
+            'NewsArticle' => 'NewsArticle (site-uri news/publicații)',
+            'BlogPosting' => 'BlogPosting (blog personal)',
+        ],
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_homepage_extra', [
+        'default'           => 0,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_homepage_extra', [
+        'label'       => 'Adaugă Organization+WebSite și pe homepage (DOAR dacă SEOPress NU le emite)',
+        'description' => 'Lasă OFF dacă ai SEOPress activ — emite deja Organization și WebSite pe homepage. Activează doar dacă verifici în source că lipsesc.',
+        'section'     => 'magpress_schema',
+        'type'        => 'checkbox',
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_publisher_logo', [
+        'default'           => '',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_publisher_logo', [
+        'label'       => 'URL logo publisher (opțional)',
+        'description' => 'Pentru schema publisher.logo. Recomandat ≥600×60px PNG/SVG. Lasă gol → folosește custom logo din Customizer → Site Identity sau site name.',
+        'section'     => 'magpress_schema',
+        'type'        => 'url',
+    ]);
+}
+add_action('customize_register', 'magpress_register_schema_settings');
+
+function magpress_emit_schema_jsonld() {
+    if (!get_theme_mod('magpress_schema_enabled', 1)) return;
+
+    $schemas = [];
+
+    if (is_singular('post')) {
+        $article = magpress_build_article_schema();
+        if ($article) $schemas[] = $article;
+        $bc = magpress_build_breadcrumb_schema_single();
+        if ($bc) $schemas[] = $bc;
+    } elseif (is_category() || is_tag() || is_author() || is_archive()) {
+        $bc = magpress_build_breadcrumb_schema_archive();
+        if ($bc) $schemas[] = $bc;
+    } elseif ((is_front_page() || is_home()) && get_theme_mod('magpress_schema_homepage_extra', 0)) {
+        $ws = magpress_build_website_schema();
+        $org = magpress_build_organization_schema();
+        if ($ws) $schemas[] = $ws;
+        if ($org) $schemas[] = $org;
+    }
+
+    foreach ($schemas as $s) {
+        echo '<script type="application/ld+json">' . wp_json_encode($s, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>' . "\n";
+    }
+}
+add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
+
+function magpress_get_publisher_data() {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $logo_url = trim((string) get_theme_mod('magpress_schema_publisher_logo', ''));
+    if (!$logo_url) {
+        $custom_logo_id = get_theme_mod('custom_logo');
+        if ($custom_logo_id) {
+            $logo_url = wp_get_attachment_image_url($custom_logo_id, 'full');
+        }
+    }
+    $cache = [
+        '@type' => 'Organization',
+        'name'  => get_bloginfo('name'),
+        'url'   => home_url('/'),
+    ];
+    if ($logo_url) {
+        $cache['logo'] = [
+            '@type' => 'ImageObject',
+            'url'   => $logo_url,
+        ];
+    }
+    return $cache;
+}
+
+function magpress_build_article_schema() {
+    global $post;
+    if (!$post) return null;
+    $type = get_theme_mod('magpress_schema_article_type', 'Article');
+
+    $author_id = (int) $post->post_author;
+    $author_name = get_the_author_meta('display_name', $author_id);
+    $author_url = get_author_posts_url($author_id);
+
+    $image_url = '';
+    $image_w = $image_h = null;
+    if (has_post_thumbnail($post)) {
+        $thumb_id = get_post_thumbnail_id($post);
+        $img = wp_get_attachment_image_src($thumb_id, 'magpress-feature');
+        if ($img) {
+            $image_url = $img[0];
+            $image_w = $img[1];
+            $image_h = $img[2];
+        }
+    }
+
+    $cats = get_the_category($post->ID);
+    $section = $cats && !is_wp_error($cats) ? $cats[0]->name : '';
+
+    $tags = get_the_tags($post->ID);
+    $keywords = ($tags && !is_wp_error($tags)) ? wp_list_pluck($tags, 'name') : [];
+
+    $excerpt = has_excerpt($post) ? get_the_excerpt($post) : wp_trim_words(strip_shortcodes(strip_tags($post->post_content)), 35, '...');
+
+    $schema = [
+        '@context'         => 'https://schema.org',
+        '@type'            => $type,
+        'mainEntityOfPage' => [
+            '@type' => 'WebPage',
+            '@id'   => get_permalink($post),
+        ],
+        'headline'         => mb_substr(wp_strip_all_tags(get_the_title($post)), 0, 110),
+        'description'      => mb_substr($excerpt, 0, 300),
+        'datePublished'    => get_the_date('c', $post),
+        'dateModified'     => get_the_modified_date('c', $post),
+        'author'           => [[
+            '@type' => 'Person',
+            'name'  => $author_name,
+            'url'   => $author_url,
+        ]],
+        'publisher'        => magpress_get_publisher_data(),
+    ];
+
+    if ($image_url) {
+        $img_obj = [
+            '@type' => 'ImageObject',
+            'url'   => $image_url,
+        ];
+        if ($image_w) $img_obj['width']  = (int) $image_w;
+        if ($image_h) $img_obj['height'] = (int) $image_h;
+        $schema['image'] = $img_obj;
+    }
+
+    if ($section) {
+        $schema['articleSection'] = $section;
+    }
+    if (!empty($keywords)) {
+        $schema['keywords'] = implode(', ', $keywords);
+    }
+
+    // wordCount — recomandat pentru NewsArticle
+    $word_count = str_word_count(strip_shortcodes(strip_tags($post->post_content)));
+    if ($word_count > 0) {
+        $schema['wordCount'] = $word_count;
+    }
+
+    // inLanguage
+    $schema['inLanguage'] = get_locale() ? str_replace('_', '-', get_locale()) : 'ro-RO';
+
+    return $schema;
+}
+
+function magpress_build_breadcrumb_schema_single() {
+    global $post;
+    if (!$post) return null;
+
+    $items = [];
+    $position = 1;
+    $items[] = [
+        '@type'    => 'ListItem',
+        'position' => $position++,
+        'name'     => 'Acasă',
+        'item'     => home_url('/'),
+    ];
+
+    $cats = get_the_category($post->ID);
+    if ($cats && !is_wp_error($cats)) {
+        $cat = $cats[0];
+        $items[] = [
+            '@type'    => 'ListItem',
+            'position' => $position++,
+            'name'     => $cat->name,
+            'item'     => get_category_link($cat),
+        ];
+    }
+
+    $items[] = [
+        '@type'    => 'ListItem',
+        'position' => $position++,
+        'name'     => mb_substr(wp_strip_all_tags(get_the_title($post)), 0, 120),
+        'item'     => get_permalink($post),
+    ];
+
+    return [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => $items,
+    ];
+}
+
+function magpress_build_breadcrumb_schema_archive() {
+    $items = [[
+        '@type'    => 'ListItem',
+        'position' => 1,
+        'name'     => 'Acasă',
+        'item'     => home_url('/'),
+    ]];
+
+    if (is_category()) {
+        $term = get_queried_object();
+        if ($term) {
+            $items[] = [
+                '@type'    => 'ListItem',
+                'position' => 2,
+                'name'     => $term->name,
+                'item'     => get_category_link($term),
+            ];
+        }
+    } elseif (is_tag()) {
+        $term = get_queried_object();
+        if ($term) {
+            $items[] = [
+                '@type'    => 'ListItem',
+                'position' => 2,
+                'name'     => $term->name,
+                'item'     => get_tag_link($term),
+            ];
+        }
+    } elseif (is_author()) {
+        $author = get_queried_object();
+        if ($author) {
+            $items[] = [
+                '@type'    => 'ListItem',
+                'position' => 2,
+                'name'     => $author->display_name,
+                'item'     => get_author_posts_url($author->ID),
+            ];
+        }
+    }
+
+    if (count($items) < 2) return null; // doar Acasă — fără breadcrumb
+
+    return [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => $items,
+    ];
+}
+
+function magpress_build_website_schema() {
+    return [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'WebSite',
+        'name'            => get_bloginfo('name'),
+        'url'             => home_url('/'),
+        'potentialAction' => [
+            '@type'       => 'SearchAction',
+            'target'      => [
+                '@type'       => 'EntryPoint',
+                'urlTemplate' => home_url('/') . '?s={search_term_string}',
+            ],
+            'query-input' => 'required name=search_term_string',
+        ],
+    ];
+}
+
+function magpress_build_organization_schema() {
+    $pub = magpress_get_publisher_data();
+    // Adăugăm sameAs din social media URL-uri setate în Customizer
+    $sameAs = [];
+    $socials = ['facebook', 'instagram', 'pinterest', 'youtube', 'tiktok', 'twitter', 'linkedin'];
+    foreach ($socials as $key) {
+        $url = trim((string) get_theme_mod("magpress_social_{$key}", ''));
+        if ($url) $sameAs[] = $url;
+    }
+    $org = [
+        '@context' => 'https://schema.org',
+        '@type'    => $pub['@type'],
+        'name'     => $pub['name'],
+        'url'      => $pub['url'],
+    ];
+    if (!empty($pub['logo'])) $org['logo'] = $pub['logo'];
+    if (!empty($sameAs))      $org['sameAs'] = $sameAs;
+    return $org;
+}
+
 function magpress_body_classes($classes) {
     $clean = ['magpress'];
     if (is_front_page()) $clean[] = 'home';
