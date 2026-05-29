@@ -1348,15 +1348,52 @@ function magpress_adsense_lazy_script() {
   }
   ensureAdsenseLoader();
 
+  // Injectează HTML custom + execută scripturile. Suportă și scripturi care
+  // afișează bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
+  // nu se randează când scriptul e încărcat lazy (browserul ignoră document.write
+  // după ce pagina s-a parsat). Capturăm output-ul și-l mutăm în slot.
   function executeScripts(container, html){
-    container.insertAdjacentHTML('beforeend', html);
-    container.querySelectorAll('script:not([data-magpress-executed])').forEach(function(oldS){
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    var scripts = [];
+    Array.prototype.slice.call(tmp.childNodes).forEach(function(n){
+      if (n.tagName === 'SCRIPT') { scripts.push(n); }
+      else { container.appendChild(n); }
+    });
+
+    function runNext(i){
+      if (i >= scripts.length) return;
+      var oldS = scripts[i];
       var newS = document.createElement('script');
-      Array.from(oldS.attributes).forEach(function(a){ newS.setAttribute(a.name, a.value); });
+      Array.prototype.slice.call(oldS.attributes).forEach(function(a){ newS.setAttribute(a.name, a.value); });
       newS.textContent = oldS.textContent;
       newS.setAttribute('data-magpress-executed', '1');
-      oldS.parentNode.replaceChild(newS, oldS);
-    });
+
+      // Shim document.write: capturează ce scrie scriptul și-l mutăm în slot.
+      var origWrite = document.write, origWriteln = document.writeln, buffer = '';
+      document.write = document.writeln = function(s){ buffer += s; };
+      function finish(){
+        document.write = origWrite;
+        document.writeln = origWriteln;
+        if (buffer){
+          var holder = document.createElement('div');
+          holder.innerHTML = buffer;
+          while (holder.firstChild) container.appendChild(holder.firstChild);
+          buffer = '';
+        }
+        runNext(i + 1);
+      }
+
+      if (newS.src){
+        newS.onload = finish;
+        newS.onerror = finish;
+        container.appendChild(newS);
+      } else {
+        container.appendChild(newS);
+        finish();
+      }
+    }
+    runNext(0);
   }
 
   // AdSense push() cu safety:
