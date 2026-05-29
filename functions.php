@@ -1418,6 +1418,45 @@ function magpress_adsense_lazy_script() {
     slot.classList.add('ad-slot--loaded');
   }
 
+  // Reclamele cu dimensiune fixă (ex: profitshare 1200x628, 970x250) pot fi mai
+  // late decât slotul (max ~1000px) și s-ar tăia. Le scalăm proporțional cu
+  // transform:scale ca să încapă fără crop și fără distorsiune (rămân clare).
+  function fitFixedAd(slot){
+    var target = slot.querySelector('[data-magpress-fit]');
+    var natW, natH;
+    if (target){
+      natW = parseInt(slot.getAttribute('data-ad-w'), 10);
+      natH = parseInt(slot.getAttribute('data-ad-h'), 10);
+    } else {
+      target = slot.querySelector('div[id^="profitshare"]') || slot.querySelector('iframe[width]');
+      if (!target) return false;
+      natW = parseInt(target.style.width, 10) || parseInt(target.getAttribute('width'), 10) || 0;
+      natH = parseInt(target.style.height, 10) || parseInt(target.getAttribute('height'), 10) || 0;
+      if (!natW || !natH) return false;
+      target.setAttribute('data-magpress-fit', '1');
+      slot.setAttribute('data-ad-w', natW);
+      slot.setAttribute('data-ad-h', natH);
+    }
+    // Reset ca să măsurăm spațiul real disponibil
+    slot.style.width = ''; slot.style.height = ''; target.style.transform = '';
+    var avail = slot.clientWidth || (slot.parentNode && slot.parentNode.clientWidth) || natW;
+    var scale = Math.min(1, avail / natW);
+    target.style.display = 'block';
+    target.style.width = natW + 'px';
+    target.style.height = natH + 'px';
+    target.style.transformOrigin = 'top left';
+    target.style.transform = 'scale(' + scale + ')';
+    slot.style.display = 'block';
+    slot.style.overflow = 'hidden';
+    slot.style.maxWidth = '100%';
+    slot.style.minHeight = '0';
+    slot.style.width = Math.round(natW * scale) + 'px';
+    slot.style.height = Math.round(natH * scale) + 'px';
+    slot.style.marginLeft = 'auto';
+    slot.style.marginRight = 'auto';
+    return true;
+  }
+
   function activateFullSlot(slot){
     // Slot fără <ins> (banner custom HTML/img) — inject totul
     var html = slot.dataset.adHtml || '';
@@ -1426,6 +1465,7 @@ function magpress_adsense_lazy_script() {
     executeScripts(slot, html);
     slot.classList.remove('ad-slot--lazy-full');
     slot.classList.add('ad-slot--loaded');
+    fitFixedAd(slot);
   }
 
   function activate(slot){
@@ -1453,6 +1493,15 @@ function magpress_adsense_lazy_script() {
   },{rootMargin:'200px 0px',threshold:0.01});
 
   document.querySelectorAll(selectors).forEach(function(s){ io.observe(s); });
+
+  // Re-scalează bannerele cu dimensiune fixă când se schimbă lățimea ferestrei.
+  var resizeT;
+  window.addEventListener('resize', function(){
+    clearTimeout(resizeT);
+    resizeT = setTimeout(function(){
+      document.querySelectorAll('.ad-slot[data-ad-w]').forEach(function(s){ fitFixedAd(s); });
+    }, 200);
+  });
 })();
 </script>
     <?php
