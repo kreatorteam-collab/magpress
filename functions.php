@@ -1369,18 +1369,19 @@ function magpress_adsense_lazy_script() {
       newS.textContent = oldS.textContent;
       newS.setAttribute('data-magpress-executed', '1');
 
-      // Shim document.write: capturează ce scrie scriptul și-l mutăm în slot.
-      var origWrite = document.write, origWriteln = document.writeln, buffer = '';
-      document.write = document.writeln = function(s){ buffer += s; };
+      // Shim document.write: inserăm SINCRON output-ul în slot. Unele reclame
+      // (ex: profitshare) fac document.write(<div id=...>) și imediat după
+      // document.getElementById(id) — dacă nu inserăm pe loc, găsesc null și
+      // bannerul nu mai pornește.
+      var origWrite = document.write, origWriteln = document.writeln;
+      document.write = document.writeln = function(s){
+        var holder = document.createElement('div');
+        holder.innerHTML = s;
+        while (holder.firstChild) container.appendChild(holder.firstChild);
+      };
       function finish(){
         document.write = origWrite;
         document.writeln = origWriteln;
-        if (buffer){
-          var holder = document.createElement('div');
-          holder.innerHTML = buffer;
-          while (holder.firstChild) container.appendChild(holder.firstChild);
-          buffer = '';
-        }
         runNext(i + 1);
       }
 
