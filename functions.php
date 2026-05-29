@@ -1327,6 +1327,21 @@ function magpress_enqueue_adsense_loader() {
 }
 add_action('wp_head', 'magpress_enqueue_adsense_loader', 5);
 
+/**
+ * Fix LiteSpeed: feature-ul "Localize Resources" (optm-localize) servește scripturi
+ * externe de pe domeniul propriu (/wp-content/litespeed/localres/...). Pentru
+ * adsbygoogle.js, Google Analytics și GTM asta STRICĂ funcționarea (AdSense nu mai
+ * servește reclame, tracking-ul se rupe), pentru că Google verifică originea reală.
+ * Pe tema asta (fără biblioteci CDN externe) localizarea nu aduce niciun beneficiu,
+ * deci o dezactivăm la runtime prin acțiunea oficială LiteSpeed.
+ */
+function magpress_litespeed_disable_localize() {
+    if (!defined('LSCWP_V')) return; // LiteSpeed Cache nu e activ
+    do_action('litespeed_conf_force', 'optm-localize', false);
+}
+add_action('litespeed_init', 'magpress_litespeed_disable_localize');
+add_action('init', 'magpress_litespeed_disable_localize', 1);
+
 function magpress_adsense_lazy_script() {
     if (!magpress_is_adsense_lazy_enabled()) return;
     ?>
