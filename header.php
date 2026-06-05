@@ -30,7 +30,7 @@ $layout = magpress_header_layout();
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
           $logo_id = get_theme_mod('custom_logo');
-          echo wp_get_attachment_image($logo_id, 'full', false, ['class' => 'site-logo', 'alt' => get_bloginfo('name'), 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']);
+          echo wp_get_attachment_image($logo_id, 'full', false, ['class' => 'site-logo', 'alt' => get_bloginfo('name'), 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'data-no-lazy' => '1']);
         else: ?>
           <span class="site-title"><?php bloginfo('name'); ?></span>
         <?php endif; ?>
@@ -69,7 +69,7 @@ $layout = magpress_header_layout();
       <a class="site-branding" href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name')); ?>">
         <?php if (has_custom_logo()):
           $logo_id = get_theme_mod('custom_logo');
-          echo wp_get_attachment_image($logo_id, 'full', false, ['class' => 'site-logo', 'alt' => get_bloginfo('name'), 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']);
+          echo wp_get_attachment_image($logo_id, 'full', false, ['class' => 'site-logo', 'alt' => get_bloginfo('name'), 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'data-no-lazy' => '1']);
         else: ?>
           <span class="site-title"><?php bloginfo('name'); ?></span>
         <?php endif; ?>

@@ -1342,6 +1342,17 @@ function magpress_litespeed_disable_localize() {
 add_action('litespeed_init', 'magpress_litespeed_disable_localize');
 add_action('init', 'magpress_litespeed_disable_localize', 1);
 
+/**
+ * Exclude logo-ul din LiteSpeed lazy load — logo-ul e LCP, trebuie încărcat eager.
+ * Filtrul `litespeed_media_lazy_img_excludes` primește array de string-uri care, dacă
+ * apar în tag-ul <img>, sar peste lazy. „site-logo" e clasa pusă de header.php.
+ */
+add_filter('litespeed_media_lazy_img_excludes', function($excludes) {
+    if (!is_array($excludes)) $excludes = [];
+    $excludes[] = 'site-logo';
+    return $excludes;
+});
+
 function magpress_adsense_lazy_script() {
     if (!magpress_is_adsense_lazy_enabled()) return;
     ?>
