@@ -321,8 +321,8 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .layout-asymmetric .magpress-card-overlay--small .magpress-card-overlay__title{font-size:.92rem;-webkit-line-clamp:2;line-height:1.3}
 .layout-asymmetric .magpress-card-overlay--small .card-overlay{padding:.75rem .85rem}
 .layout-asymmetric .magpress-card-overlay--small .badge{font-size:.6rem;padding:.2rem .5rem}
-.layout-asymmetric .magpress-card-overlay--big .magpress-card-overlay__title{font-size:1.5rem;-webkit-line-clamp:3;line-height:1.2;text-shadow:0 2px 8px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,1)}
-.layout-asymmetric .magpress-card-overlay--big .card-overlay{padding:1.5rem 2rem 1.75rem}
+.layout-asymmetric .magpress-card-overlay--big .magpress-card-overlay__title{font-size:1.15rem;-webkit-line-clamp:4;line-height:1.3;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,1)}
+.layout-asymmetric .magpress-card-overlay--big .card-overlay{padding:1.1rem 1.4rem 1.25rem}
 @media (max-width: 900px){
   .layout-asymmetric{grid-template-columns:1fr 1fr;grid-template-rows:auto;height:auto}
   .layout-asymmetric .magpress-card-overlay--big{grid-column:1/3;grid-row:auto;aspect-ratio:16/9;height:auto}
