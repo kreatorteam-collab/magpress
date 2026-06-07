@@ -409,6 +409,8 @@ function magpress_register_customize_controls() {
     // Backward compat: dacă valoarea e un singur „12" tot funcționează (parsat ca [12]).
     class Magpress_Slot_Cats_Control extends WP_Customize_Control {
         public $type = 'magpress_slot_cats';
+        public $current_slot = 0;
+        public $used_in_slots = [];
         public function render_content() {
             $categories = get_categories(['hide_empty' => false, 'orderby' => 'name', 'number' => 200]);
             $value = (string) $this->value();
@@ -420,6 +422,8 @@ function magpress_register_customize_controls() {
                 }
             }
             $uid = 'magpress-sct-' . esc_attr($this->id);
+            $current = (int) $this->current_slot;
+            $used = is_array($this->used_in_slots) ? $this->used_in_slots : [];
             ?>
             <span class="customize-control-title"><?php echo esc_html($this->label); ?></span>
             <?php if ($this->description): ?>
@@ -429,12 +433,29 @@ function magpress_register_customize_controls() {
                 <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu există categorii. Creează din Articole → Categorii.</p>
             <?php else: ?>
                 <div id="<?php echo $uid; ?>-wrap" style="max-height:260px;overflow-y:auto;border:1px solid #ddd;padding:8px 10px;background:#fff;margin-top:6px;border-radius:3px;">
-                    <?php foreach ($categories as $cat): ?>
+                    <?php foreach ($categories as $cat):
+                        $cid = (int) $cat->term_id;
+                        // Marker „folosit la slot N" — excludem slot-ul curent.
+                        $other_slots = [];
+                        if (isset($used[$cid]) && is_array($used[$cid])) {
+                            foreach ($used[$cid] as $sn) {
+                                if ((int) $sn !== $current) $other_slots[] = (int) $sn;
+                            }
+                        }
+                        $marker = '';
+                        if ($other_slots) {
+                            sort($other_slots);
+                            $marker = ' — folosit la slot ' . implode(', ', $other_slots);
+                        }
+                    ?>
                         <label style="display:block;padding:3px 0;cursor:pointer;font-size:.92em;">
-                            <input type="checkbox" value="<?php echo (int) $cat->term_id; ?>"
-                                   <?php checked(in_array((int) $cat->term_id, $selected_ids, true)); ?>>
+                            <input type="checkbox" value="<?php echo $cid; ?>"
+                                   <?php checked(in_array($cid, $selected_ids, true)); ?>>
                             <?php echo esc_html($cat->name); ?>
                             <span style="color:#999;font-size:.85em;">(<?php echo (int) $cat->count; ?>)</span>
+                            <?php if ($marker !== ''): ?>
+                                <span style="color:#c47f00;font-size:.82em;font-style:italic;"><?php echo esc_html($marker); ?></span>
+                            <?php endif; ?>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -826,14 +847,18 @@ function magpress_customize_register($wp_customize) {
         $cat_choices[(string) $c->term_id] = $c->name;
     }
 
-    // Map: cat_id => primul slot care folosește categoria (pentru marker „(folosit la slot N)")
+    // Map: cat_id => [slot1, slot2, ...] (pentru marker „— folosit la slot N")
+    // Multi-select: o categorie poate fi în mai multe sloturi simultan.
     $used_in_slots = [];
     for ($k = 1; $k <= 24; $k++) {
         $k_type = get_theme_mod("magpress_slot_{$k}_type", $k <= 4 ? 'category' : 'none');
         if ($k_type !== 'category') continue;
-        $k_cat = (int) get_theme_mod("magpress_slot_{$k}_cat", 0);
-        if ($k_cat > 0 && !isset($used_in_slots[$k_cat])) {
-            $used_in_slots[$k_cat] = $k;
+        $raw = (string) get_theme_mod("magpress_slot_{$k}_cat", '');
+        foreach (preg_split('/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) as $part) {
+            $cid = (int) $part;
+            if ($cid <= 0) continue;
+            if (!isset($used_in_slots[$cid])) $used_in_slots[$cid] = [];
+            if (!in_array($k, $used_in_slots[$cid], true)) $used_in_slots[$cid][] = $k;
         }
     }
 
@@ -871,14 +896,17 @@ function magpress_customize_register($wp_customize) {
             },
             'transport'         => 'refresh',
         ]);
-        $wp_customize->add_control(new Magpress_Slot_Cats_Control($wp_customize, "magpress_slot_{$i}_cat", [
+        $ctrl = new Magpress_Slot_Cats_Control($wp_customize, "magpress_slot_{$i}_cat", [
             'label'           => "Slot {$i} — Categorii",
             'description'     => 'Bifează una sau mai multe. Pentru o singură categorie cu sub-categorii (ex: „Lumea sportului") — WordPress include automat copiii.',
             'section'         => 'magpress_homepage',
             'active_callback' => function() use ($i) {
                 return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
             },
-        ]));
+        ]);
+        $ctrl->current_slot  = $i;
+        $ctrl->used_in_slots = $used_in_slots;
+        $wp_customize->add_control($ctrl);
 
         // 3. Numar articole (vizibila daca tip = category)
         $wp_customize->add_setting("magpress_slot_{$i}_count", [
