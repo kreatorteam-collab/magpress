@@ -453,9 +453,7 @@ function magpress_register_customize_controls() {
                                    <?php checked(in_array($cid, $selected_ids, true)); ?>>
                             <?php echo esc_html($cat->name); ?>
                             <span style="color:#999;font-size:.85em;">(<?php echo (int) $cat->count; ?>)</span>
-                            <?php if ($marker !== ''): ?>
-                                <span style="color:#c47f00;font-size:.82em;font-style:italic;"><?php echo esc_html($marker); ?></span>
-                            <?php endif; ?>
+                            <span class="magpress-used-marker" style="color:#c47f00;font-size:.82em;font-style:italic;<?php echo $marker === '' ? 'display:none;' : ''; ?>"><?php echo esc_html($marker); ?></span>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -549,46 +547,51 @@ function magpress_customize_controls_js() {
 (function(){
     if (!window.wp || !wp.customize) return;
     var SLOT_COUNT = 24;
-    var MARKER_RE = / — folosit la slot \d+$/;
+
+    function parseIds(csv) {
+        if (!csv) return [];
+        return String(csv).split(/[\s,]+/).map(function(s){return parseInt(s,10);}).filter(function(n){return n>0;});
+    }
 
     function updateMarkers() {
-        // 1. Calculează ce categorii sunt folosite și în ce slot
+        // 1. Build map: cat_id => [slot1, slot2, ...] (multi-select)
         var used = {};
         for (var i = 1; i <= SLOT_COUNT; i++) {
             var typeSetting = wp.customize('magpress_slot_' + i + '_type');
             var catSetting  = wp.customize('magpress_slot_' + i + '_cat');
             if (!typeSetting || !catSetting) continue;
             if (typeSetting.get() !== 'category') continue;
-            var cid = parseInt(catSetting.get(), 10);
-            if (cid > 0 && !used[cid]) used[cid] = i;
+            parseIds(catSetting.get()).forEach(function(cid){
+                if (!used[cid]) used[cid] = [];
+                if (used[cid].indexOf(i) === -1) used[cid].push(i);
+            });
         }
 
-        // 2. Updatează toate dropdown-urile slot_X_cat
+        // 2. Update marker span pe fiecare label din controlul multi-checkbox
         for (var i = 1; i <= SLOT_COUNT; i++) {
             var ctrl = wp.customize.control('magpress_slot_' + i + '_cat');
-            if (!ctrl) continue;
-            var $select = ctrl.container.find('select');
-            if (!$select.length) continue;
-            $select.find('option').each(function() {
-                var $opt = jQuery(this);
-                var cid = parseInt($opt.val(), 10);
-                // Stocăm textul original la primul pass
-                var orig = $opt.data('magpressOriginal');
-                if (!orig) {
-                    orig = $opt.text().replace(MARKER_RE, '');
-                    $opt.data('magpressOriginal', orig);
-                }
-                if (cid > 0 && used[cid] && used[cid] !== i) {
-                    $opt.text(orig + ' — folosit la slot ' + used[cid]);
+            if (!ctrl || !ctrl.container || !ctrl.container[0]) continue;
+            var labels = ctrl.container[0].querySelectorAll('label');
+            for (var j = 0; j < labels.length; j++) {
+                var label = labels[j];
+                var cb = label.querySelector('input[type=checkbox]');
+                if (!cb) continue;
+                var cid = parseInt(cb.value, 10);
+                var marker = label.querySelector('.magpress-used-marker');
+                if (!marker) continue; // ar trebui mereu să existe (PHP-ul o emite)
+                var others = (used[cid] || []).filter(function(s){ return s !== i; }).sort(function(a,b){return a-b;});
+                if (others.length === 0) {
+                    marker.textContent = '';
+                    marker.style.display = 'none';
                 } else {
-                    $opt.text(orig);
+                    marker.textContent = ' — folosit la slot ' + others.join(', ');
+                    marker.style.display = '';
                 }
-            });
+            }
         }
     }
 
     wp.customize.bind('ready', function(){
-        // Bind change pe toate setările slot_X_type și slot_X_cat
         for (var i = 1; i <= SLOT_COUNT; i++) {
             var typeSetting = wp.customize('magpress_slot_' + i + '_type');
             var catSetting  = wp.customize('magpress_slot_' + i + '_cat');
