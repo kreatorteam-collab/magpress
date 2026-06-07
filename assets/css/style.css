@@ -294,7 +294,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .section-header{display:flex;align-items:center;gap:.65rem;margin-bottom:1.5rem;padding-bottom:.85rem;border-bottom:1px solid var(--c-border);position:relative}
 .section-header::after{content:"";position:absolute;bottom:-1px;left:0;width:80px;height:2px;background:var(--c-accent)}
 .section-header__icon{width:14px;height:14px;background:var(--c-accent);border-radius:3px;flex-shrink:0;display:inline-block}
-.section-header__title{font-size:1.5rem;margin:0;font-weight:800;letter-spacing:-.02em;color:var(--c-text)}
+.section-header__title{font-size:1.5rem;margin:0;font-weight:800;letter-spacing:-.02em;color:var(--c-heading-h2)}
 .section-header__link{margin-left:auto;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted);text-decoration:none;white-space:nowrap}
 .section-header__link::after{content:" →";display:inline-block;transition:transform .2s}
 .section-header__link:hover{color:var(--c-accent)}
@@ -437,7 +437,7 @@ ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}
 
 /* ===================== ARCHIVE ===================== */
 .archive-header{margin:1rem 0 2rem}
-.archive-title{font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-.025em;margin:.25rem 0 .5rem;color:var(--c-text)}
+.archive-title{font-size:clamp(2rem,4vw,2.75rem);font-weight:800;letter-spacing:-.025em;margin:.25rem 0 .5rem;color:var(--c-heading-h1)}
 .archive-description{font-size:1rem;color:var(--c-text-muted);max-width:none;margin:0}
 
 /* Ascunde label-ul "Paginație articole" generat de WP */
@@ -446,7 +446,7 @@ ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}
 /* ===================== ARTICLE HERO (single) ===================== */
 .article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}
-.article-title{font-size:clamp(1.75rem,3.5vw,2.5rem);line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:0 0 1rem;color:var(--c-text)}
+.article-title{font-size:clamp(1.75rem,3.5vw,2.5rem);line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:0 0 1rem;color:var(--c-heading-h1)}
 .article-excerpt{font-size:1.1rem;line-height:1.55;color:var(--c-text-muted);margin:0 0 1.25rem}
 .article-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;font-size:.88rem;color:var(--c-text-muted);padding-top:1rem;border-top:1px solid var(--c-border)}
 .article-meta strong{color:var(--c-text);font-weight:600}
