@@ -99,18 +99,38 @@ get_header();
       endif;
 
       // type === 'category'
-      $cat    = $slot['cat'];
-      $count  = $slot['count'];
-      $layout = $slot['layout'] ?? 'grid';
-      $q = new WP_Query([
+      $cat     = $slot['cat'];
+      $cat_ids = $slot['cat_ids'] ?? [$cat->term_id];
+      $count   = $slot['count'];
+      $layout  = $slot['layout'] ?? 'grid';
+      $q_args = [
           'posts_per_page'      => $count,
-          'cat'                 => $cat->term_id,
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
-      ]);
+      ];
+      if (count($cat_ids) === 1) {
+          // O singură categorie: folosim `cat` (include automat sub-categorii)
+          $q_args['cat'] = (int) $cat_ids[0];
+      } else {
+          // Multi-categorie: agregăm cu category__in (NU include sub-categorii — user a ales explicit ce vrea)
+          $q_args['category__in'] = array_map('intval', $cat_ids);
+      }
+      $q = new WP_Query($q_args);
 
-      set_query_var('section_title', $cat->name);
-      set_query_var('section_url', get_category_link($cat));
+      // Titlu secțiune: dacă e o singură categorie → numele ei + link.
+      // Multi: agregăm numele („Sport, Fitness, Atletism") cu link la prima.
+      if (count($cat_ids) === 1) {
+          set_query_var('section_title', $cat->name);
+          set_query_var('section_url', get_category_link($cat));
+      } else {
+          $names = [];
+          foreach ($cat_ids as $cid) {
+              $c = get_category($cid);
+              if ($c && !is_wp_error($c)) $names[] = $c->name;
+          }
+          set_query_var('section_title', implode(', ', $names));
+          set_query_var('section_url', get_category_link($cat));
+      }
       set_query_var('magpress_section_query', $q);
   ?>
     <section class="category-row category-row--<?php echo esc_attr($layout); ?>">
