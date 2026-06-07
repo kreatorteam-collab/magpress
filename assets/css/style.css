@@ -412,6 +412,11 @@ ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}
   .ad-slot--lazy-full .ad-slot__placeholder{animation:none}
 }
 
+/* Header opțional deasupra slot-ului HTML/widget (titlu h2 + paragraf descriere) */
+.ad-slot-header{text-align:center;margin:2.5rem auto 1rem;max-width:760px;padding:0 1rem}
+.ad-slot-header__title{font-size:clamp(1.5rem,2.5vw,2rem);line-height:1.2;font-weight:800;letter-spacing:-.02em;margin:0 0 .65rem;color:var(--c-heading-h2)}
+.ad-slot-header__subtitle{font-size:1rem;line-height:1.55;color:var(--c-text-muted);margin:0}
+
 /* ===================== CARD ===================== */
 .card{position:relative;display:flex;flex-direction:column;background:var(--c-bg);border-radius:var(--radius);overflow:hidden;border:1px solid var(--c-border);transition:box-shadow .2s, transform .2s, border-color .2s}
 .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-2px);border-color:var(--c-border)}

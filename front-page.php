@@ -94,6 +94,14 @@ get_header();
   // Sloturi homepage — configurate in Customizer (24 max, mix category + ad)
   foreach (magpress_homepage_slots() as $slot):
       if ($slot['type'] === 'ad'):
+        $ad_title    = $slot['title']    ?? '';
+        $ad_subtitle = $slot['subtitle'] ?? '';
+        if ($ad_title !== '' || $ad_subtitle !== ''): ?>
+          <div class="ad-slot-header">
+            <?php if ($ad_title !== ''): ?><h2 class="ad-slot-header__title"><?php echo esc_html($ad_title); ?></h2><?php endif; ?>
+            <?php if ($ad_subtitle !== ''): ?><p class="ad-slot-header__subtitle"><?php echo esc_html($ad_subtitle); ?></p><?php endif; ?>
+          </div>
+        <?php endif;
         echo magpress_render_ad_html($slot['html'], 'homepage');
         continue;
       endif;

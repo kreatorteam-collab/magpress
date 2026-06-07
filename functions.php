@@ -941,6 +941,38 @@ function magpress_customize_register($wp_customize) {
                 return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'ad';
             },
         ]);
+
+        // 4b. Titlu opțional H2 (vizibil daca tip = ad)
+        $wp_customize->add_setting("magpress_slot_{$i}_html_title", [
+            'default'           => '',
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_html_title", [
+            'label'           => "Slot {$i} — Titlu (h2) [opțional]",
+            'description'     => 'Apare deasupra widget-ului ca h2. Lasă gol pentru a nu afișa.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'text',
+            'active_callback' => function() use ($i) {
+                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'ad';
+            },
+        ]);
+
+        // 4c. Subtitlu opțional (vizibil daca tip = ad)
+        $wp_customize->add_setting("magpress_slot_{$i}_html_subtitle", [
+            'default'           => '',
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_html_subtitle", [
+            'label'           => "Slot {$i} — Subtitlu / descriere [opțional]",
+            'description'     => 'Apare sub titlu, ca paragraf descriptiv. Lasă gol pentru a nu afișa.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'textarea',
+            'active_callback' => function() use ($i) {
+                return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'ad';
+            },
+        ]);
     }
 
     // ---------- Sectiune: Reclame articol ----------
@@ -1115,7 +1147,9 @@ function magpress_homepage_slots() {
         } elseif ($type === 'ad') {
             $html = trim((string) get_theme_mod("magpress_slot_{$i}_ad", ''));
             if ($html === '') continue;
-            $slots[] = ['type' => 'ad', 'html' => $html];
+            $title    = trim((string) get_theme_mod("magpress_slot_{$i}_html_title", ''));
+            $subtitle = trim((string) get_theme_mod("magpress_slot_{$i}_html_subtitle", ''));
+            $slots[] = ['type' => 'ad', 'html' => $html, 'title' => $title, 'subtitle' => $subtitle];
         }
     }
     if ($slots) return $slots;
