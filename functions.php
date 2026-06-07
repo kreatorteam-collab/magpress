@@ -1450,11 +1450,14 @@ function magpress_adsense_lazy_script() {
   function executeScripts(container, html){
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
-    var scripts = [];
-    Array.prototype.slice.call(tmp.childNodes).forEach(function(n){
-      if (n.tagName === 'SCRIPT') { scripts.push(n); }
-      else { container.appendChild(n); }
-    });
+    // Mută TOATE nodurile copil în container, păstrând structura (div-urile wrapper rămân).
+    // Script-urile sunt inerte după innerHTML — le re-creăm IN PLACE mai jos.
+    while (tmp.firstChild) container.appendChild(tmp.firstChild);
+
+    // Detectează TOATE script-urile (inclusiv nested în div-uri wrapper — ex: Scoreaxis,
+    // unde <script> e copil al <div id="scoreaxis-widget-X">; document.currentScript.parentNode
+    // trebuie să fie wrapperul, NU ad-slot-ul direct).
+    var scripts = Array.prototype.slice.call(container.querySelectorAll('script:not([data-magpress-executed])'));
 
     function runNext(i){
       if (i >= scripts.length) return;
@@ -1464,15 +1467,16 @@ function magpress_adsense_lazy_script() {
       newS.textContent = oldS.textContent;
       newS.setAttribute('data-magpress-executed', '1');
 
-      // Shim document.write: inserăm SINCRON output-ul în slot. Unele reclame
-      // (ex: profitshare) fac document.write(<div id=...>) și imediat după
-      // document.getElementById(id) — dacă nu inserăm pe loc, găsesc null și
-      // bannerul nu mai pornește.
+      var parent = oldS.parentNode || container;
+
+      // Shim document.write: inserăm SINCRON output-ul în parent-ul scriptului
+      // (ex: profitshare face document.write(<div id=...>) și imediat după
+      // document.getElementById(id) — dacă nu inserăm pe loc, găsesc null).
       var origWrite = document.write, origWriteln = document.writeln;
       document.write = document.writeln = function(s){
         var holder = document.createElement('div');
         holder.innerHTML = s;
-        while (holder.firstChild) container.appendChild(holder.firstChild);
+        while (holder.firstChild) parent.appendChild(holder.firstChild);
       };
       function finish(){
         document.write = origWrite;
@@ -1483,9 +1487,9 @@ function magpress_adsense_lazy_script() {
       if (newS.src){
         newS.onload = finish;
         newS.onerror = finish;
-        container.appendChild(newS);
+        parent.replaceChild(newS, oldS);
       } else {
-        container.appendChild(newS);
+        parent.replaceChild(newS, oldS);
         finish();
       }
     }
