@@ -1686,6 +1686,55 @@ function magpress_lightbox_script() {
   var content = document.querySelector('.entry-content');
   if (!content) return;
 
+  // Verifică dacă un src e un placeholder lazy load (NU URL real de imagine).
+  // LiteSpeed/lazy-loaders folosesc data URIs (data:image/svg+xml;base64,...) ca placeholder.
+  function isPlaceholder(src){
+    if (!src) return true;
+    if (/^data:/.test(src)) return true;
+    if (/lazy-?placeholder|blank\.gif|1x1|spacer\.gif/i.test(src)) return true;
+    return false;
+  }
+
+  // Alege cea mai mare imagine din srcset (returnează URL-ul).
+  function largestFromSrcset(srcset){
+    if (!srcset) return '';
+    var best = '', maxW = 0;
+    srcset.split(',').forEach(function(s){
+      var parts = s.trim().split(/\s+/);
+      var w = parseInt(parts[1], 10) || 0;
+      if (w > maxW){ maxW = w; best = parts[0]; }
+    });
+    return best;
+  }
+
+  // Detectează URL-ul full pentru o imagine, EVITÂND lazy load placeholders.
+  // Prioritate: <a> părinte cu link media → srcset largest → data-srcset (LiteSpeed) → data-src → currentSrc/src.
+  function getFullSrc(img){
+    // 1. Link părinte la fișier media
+    var a = img.closest('a');
+    if (a && a.href && /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i.test(a.href)) return a.href;
+
+    // 2. srcset normal (cea mai mare)
+    var fromSrcset = largestFromSrcset(img.srcset || img.getAttribute('srcset'));
+    if (fromSrcset && !isPlaceholder(fromSrcset)) return fromSrcset;
+
+    // 3. data-srcset (LiteSpeed/lazy plugin-uri stochează aici originalul)
+    var fromDataSrcset = largestFromSrcset(img.getAttribute('data-srcset'));
+    if (fromDataSrcset) return fromDataSrcset;
+
+    // 4. data-src (LiteSpeed original)
+    var dataSrc = img.getAttribute('data-src');
+    if (dataSrc && !isPlaceholder(dataSrc)) return dataSrc;
+
+    // 5. data-lazy-src (alte lazy loaders)
+    var lazySrc = img.getAttribute('data-lazy-src');
+    if (lazySrc && !isPlaceholder(lazySrc)) return lazySrc;
+
+    // 6. Fallback final — currentSrc/src (poate fi placeholder dar e tot ce avem)
+    var cur = img.currentSrc || img.src || '';
+    return cur;
+  }
+
   // Colectează toate imaginile linkabile din articol: galerie + wp-block-image cu <a> la full size
   function collectImages(){
     var imgs = [];
@@ -1693,27 +1742,7 @@ function magpress_lightbox_script() {
       '.wp-block-gallery img, .gallery img, .wp-block-image a > img, .entry-content figure a > img'
     );
     nodes.forEach(function(img){
-      var full = img.dataset.fullSrc || '';
-      if (!full){
-        // 1. Caută <a href> părintele cu imagine
-        var a = img.closest('a');
-        if (a && /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i.test(a.href)) full = a.href;
-        // 2. Fallback: src curent (sau srcset largest)
-        if (!full){
-          full = img.currentSrc || img.src;
-          // Încearcă să găsești dimensiunea cea mai mare din srcset
-          if (img.srcset){
-            var best = '', maxW = 0;
-            img.srcset.split(',').forEach(function(s){
-              var parts = s.trim().split(/\s+/);
-              var w = parseInt(parts[1], 10) || 0;
-              if (w > maxW){ maxW = w; best = parts[0]; }
-            });
-            if (best) full = best;
-          }
-        }
-        img.dataset.fullSrc = full;
-      }
+      var full = getFullSrc(img);
       var caption = '';
       var fig = img.closest('figure');
       if (fig){
@@ -1754,6 +1783,10 @@ function magpress_lightbox_script() {
     if (idx >= items.length) idx = 0;
     currentIdx = idx;
     var it = items[idx];
+    // Re-derivă URL-ul la fiecare show — dacă LiteSpeed a încărcat imaginea între timp,
+    // src/srcset sunt acum URL-uri reale (nu placeholder data:URI).
+    var freshFull = getFullSrc(it.el);
+    if (freshFull) it.full = freshFull;
     lbImg.src = it.full;
     lbImg.alt = it.alt;
     lbCounter.textContent = (idx + 1) + ' / ' + items.length;
