@@ -1673,6 +1673,155 @@ function magpress_adsense_lazy_script() {
 add_action('wp_footer', 'magpress_adsense_lazy_script', 5);
 
 /**
+ * Lightbox pentru imagini din articol (.entry-content) — auto-detectează imaginile
+ * cu link la full size (wp-block-image cu <a>, gallery, wp-block-gallery) și deschide
+ * overlay cu navigare prev/next, ESC, click outside, swipe pe mobil.
+ * Doar pe single post/page (nu pe homepage/archive).
+ */
+function magpress_lightbox_script() {
+    if (!is_singular()) return;
+    ?>
+<script id="magpress-lightbox">
+(function(){
+  var content = document.querySelector('.entry-content');
+  if (!content) return;
+
+  // Colectează toate imaginile linkabile din articol: galerie + wp-block-image cu <a> la full size
+  function collectImages(){
+    var imgs = [];
+    var nodes = content.querySelectorAll(
+      '.wp-block-gallery img, .gallery img, .wp-block-image a > img, .entry-content figure a > img'
+    );
+    nodes.forEach(function(img){
+      var full = img.dataset.fullSrc || '';
+      if (!full){
+        // 1. Caută <a href> părintele cu imagine
+        var a = img.closest('a');
+        if (a && /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i.test(a.href)) full = a.href;
+        // 2. Fallback: src curent (sau srcset largest)
+        if (!full){
+          full = img.currentSrc || img.src;
+          // Încearcă să găsești dimensiunea cea mai mare din srcset
+          if (img.srcset){
+            var best = '', maxW = 0;
+            img.srcset.split(',').forEach(function(s){
+              var parts = s.trim().split(/\s+/);
+              var w = parseInt(parts[1], 10) || 0;
+              if (w > maxW){ maxW = w; best = parts[0]; }
+            });
+            if (best) full = best;
+          }
+        }
+        img.dataset.fullSrc = full;
+      }
+      var caption = '';
+      var fig = img.closest('figure');
+      if (fig){
+        var cap = fig.querySelector('figcaption');
+        if (cap) caption = cap.textContent.trim();
+      }
+      imgs.push({ el: img, full: full, alt: img.alt || '', caption: caption });
+    });
+    return imgs;
+  }
+
+  var items = collectImages();
+  if (!items.length) return;
+
+  // Construiește overlay-ul o singură dată
+  var lb = document.createElement('div');
+  lb.className = 'magpress-lightbox';
+  lb.setAttribute('role', 'dialog');
+  lb.setAttribute('aria-modal', 'true');
+  lb.innerHTML = ''
+    + '<button class="magpress-lightbox__btn magpress-lightbox__close" aria-label="Închide"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg></button>'
+    + '<button class="magpress-lightbox__btn magpress-lightbox__prev" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>'
+    + '<button class="magpress-lightbox__btn magpress-lightbox__next" aria-label="Următor"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>'
+    + '<div class="magpress-lightbox__counter" aria-live="polite"></div>'
+    + '<img class="magpress-lightbox__img" alt="">'
+    + '<div class="magpress-lightbox__caption" aria-live="polite" style="display:none"></div>';
+  document.body.appendChild(lb);
+
+  var lbImg = lb.querySelector('.magpress-lightbox__img');
+  var lbCounter = lb.querySelector('.magpress-lightbox__counter');
+  var lbCaption = lb.querySelector('.magpress-lightbox__caption');
+  var lbPrev = lb.querySelector('.magpress-lightbox__prev');
+  var lbNext = lb.querySelector('.magpress-lightbox__next');
+  var currentIdx = 0;
+
+  function show(idx){
+    if (idx < 0) idx = items.length - 1;
+    if (idx >= items.length) idx = 0;
+    currentIdx = idx;
+    var it = items[idx];
+    lbImg.src = it.full;
+    lbImg.alt = it.alt;
+    lbCounter.textContent = (idx + 1) + ' / ' + items.length;
+    if (it.caption){
+      lbCaption.textContent = it.caption;
+      lbCaption.style.display = '';
+    } else {
+      lbCaption.style.display = 'none';
+    }
+    // Hide prev/next dacă e o singură imagine
+    var multi = items.length > 1;
+    lbPrev.style.display = multi ? '' : 'none';
+    lbNext.style.display = multi ? '' : 'none';
+  }
+
+  function open(idx){
+    show(idx);
+    lb.classList.add('is-open');
+    document.body.classList.add('magpress-lightbox-open');
+  }
+  function close(){
+    lb.classList.remove('is-open');
+    document.body.classList.remove('magpress-lightbox-open');
+    lbImg.src = '';
+  }
+
+  // Bind click pe imagini
+  items.forEach(function(it, idx){
+    it.el.style.cursor = 'zoom-in';
+    // Dacă imaginea e în <a>, prevent default și deschide lightbox-ul
+    var a = it.el.closest('a');
+    var target = a || it.el;
+    target.addEventListener('click', function(e){
+      e.preventDefault();
+      open(idx);
+    });
+  });
+
+  lb.querySelector('.magpress-lightbox__close').addEventListener('click', close);
+  lbPrev.addEventListener('click', function(e){ e.stopPropagation(); show(currentIdx - 1); });
+  lbNext.addEventListener('click', function(e){ e.stopPropagation(); show(currentIdx + 1); });
+  // Click pe fundal (nu pe imagine/buton) → close
+  lb.addEventListener('click', function(e){
+    if (e.target === lb) close();
+  });
+  // Keyboard
+  document.addEventListener('keydown', function(e){
+    if (!lb.classList.contains('is-open')) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(currentIdx - 1);
+    else if (e.key === 'ArrowRight') show(currentIdx + 1);
+  });
+  // Swipe pe mobil
+  var touchX = 0;
+  lb.addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; }, {passive:true});
+  lb.addEventListener('touchend', function(e){
+    var dx = (e.changedTouches[0].clientX - touchX);
+    if (Math.abs(dx) > 50){
+      show(dx > 0 ? currentIdx - 1 : currentIdx + 1);
+    }
+  }, {passive:true});
+})();
+</script>
+    <?php
+}
+add_action('wp_footer', 'magpress_lightbox_script', 6);
+
+/**
  * Customizer toggle.
  */
 function magpress_register_adsense_lazy_setting($wp_customize) {
