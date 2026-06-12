@@ -546,7 +546,7 @@ function magpress_customize_controls_js() {
 <script id="magpress-customize-slot-markers">
 (function(){
     if (!window.wp || !wp.customize) return;
-    var SLOT_COUNT = 24;
+    var SLOT_COUNT = 30;
 
     function parseIds(csv) {
         if (!csv) return [];
@@ -832,10 +832,10 @@ function magpress_customize_register($wp_customize) {
         ]);
     }
 
-    // ---------- Sectiune: Homepage (24 sloturi flexibile) ----------
+    // ---------- Sectiune: Homepage (30 sloturi flexibile) ----------
     $wp_customize->add_section('magpress_homepage', [
         'title'       => 'Magpress: Homepage',
-        'description' => '24 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă). Default: doar primele 4 sunt active (categorii); restul sunt „Gol".',
+        'description' => '30 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă). Default: doar primele 4 sunt active (categorii); restul sunt „Gol".',
         'priority'    => 27,
     ]);
 
@@ -853,7 +853,7 @@ function magpress_customize_register($wp_customize) {
     // Map: cat_id => [slot1, slot2, ...] (pentru marker „— folosit la slot N")
     // Multi-select: o categorie poate fi în mai multe sloturi simultan.
     $used_in_slots = [];
-    for ($k = 1; $k <= 24; $k++) {
+    for ($k = 1; $k <= 30; $k++) {
         $k_type = get_theme_mod("magpress_slot_{$k}_type", $k <= 4 ? 'category' : 'none');
         if ($k_type !== 'category') continue;
         $raw = (string) get_theme_mod("magpress_slot_{$k}_cat", '');
@@ -865,7 +865,7 @@ function magpress_customize_register($wp_customize) {
         }
     }
 
-    for ($i = 1; $i <= 24; $i++) {
+    for ($i = 1; $i <= 30; $i++) {
         // 1. Tip slot
         $wp_customize->add_setting("magpress_slot_{$i}_type", [
             'default'           => $i <= 4 ? 'category' : 'none',
@@ -1140,13 +1140,13 @@ function magpress_breadcrumbs() {
 }
 
 /**
- * Sloturi homepage configurate in Customizer (24 sloturi).
+ * Sloturi homepage configurate in Customizer (30 sloturi).
  * Fiecare slot poate fi: 'category' (rand articole) sau 'ad' (HTML/AdSense).
  * Returns: array de ['type' => 'category'|'ad', ...payload...]
  */
 function magpress_homepage_slots() {
     $slots = [];
-    for ($i = 1; $i <= 24; $i++) {
+    for ($i = 1; $i <= 30; $i++) {
         // IMPORTANT: default identic cu cel din customize_register, altfel WP returneaza 'none'
         // pentru sloturile pe care user-ul le-a lasat pe default (nu-l salveaza in DB).
         $default_type = $i <= 4 ? 'category' : 'none';
@@ -1440,7 +1440,7 @@ function magpress_enqueue_adsense_loader() {
             (string) get_theme_mod('magpress_article_ad_mid', ''),
             (string) get_theme_mod('magpress_article_ad_end', ''),
         ];
-        for ($i = 1; $i <= 24; $i++) {
+        for ($i = 1; $i <= 30; $i++) {
             $candidates[] = (string) get_theme_mod("magpress_slot_{$i}_ad", '');
         }
         $all = implode("\n", $candidates);
