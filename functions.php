@@ -53,6 +53,22 @@ function magpress_remove_unused_image_sizes($sizes) {
 add_filter('intermediate_image_sizes_advanced', 'magpress_remove_unused_image_sizes');
 
 /**
+ * Forțează GD în locul Imagick pentru procesarea imaginilor.
+ * Multe servere au ImageMagick prost configurat (policy.xml cu limite memory/area
+ * restrictive) care produce eroarea „Serverul nu poate procesa imaginea". GD e mai
+ * ușor, mai stabil și fără policy.xml — rezolvă eroarea fără modificări server-side.
+ * Reversibil: șterge acest filtru pentru a reveni la default (Imagick prioritar).
+ */
+function magpress_prefer_gd_image_editor($editors) {
+    $gd = 'WP_Image_Editor_GD';
+    // Scoate GD din poziția curentă și pune-l primul → WP îl preferă dacă e disponibil.
+    $editors = array_diff($editors, [$gd]);
+    array_unshift($editors, $gd);
+    return $editors;
+}
+add_filter('wp_image_editors', 'magpress_prefer_gd_image_editor');
+
+/**
  * Dezactivează New Relic Browser Agent (RUM script).
  * Acel script trimite trafic spre bam.nr-data.net + adaugă 4+s latență la PageSpeed.
  * Folosit doar dacă serverul are extension PHP New Relic activă.
