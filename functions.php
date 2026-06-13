@@ -12,9 +12,6 @@ define('MAGPRESS_VERSION', '0.3.0');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
-// Modul de diagnoză admin (Unelte → 🔍 Magpress Diagnoză)
-require_once MAGPRESS_DIR . '/magpress-diagnostics.php';
-
 /**
  * Setup tema.
  */
