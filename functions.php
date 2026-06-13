@@ -32,11 +32,25 @@ function magpress_setup() {
     set_post_thumbnail_size(600, 400, true);
     add_image_size('magpress-card',    600, 400,  true);
     add_image_size('magpress-feature', 1200, 750, true);
-    add_image_size('magpress-thumb',   120, 120,  true);
+    // NOTE: `magpress-thumb` (120x120) eliminat — neutilizat în temă, doar consuma memorie la upload.
 
     load_theme_textdomain('magpress', MAGPRESS_DIR . '/languages');
 }
 add_action('after_setup_theme', 'magpress_setup');
+
+/**
+ * Dezactivează mărimile WP default neutilizate în Magpress: medium (300), medium_large (768), large (1024).
+ * Magpress folosește doar `thumbnail` (avatar autor), `magpress-card` (600x400) și `magpress-feature` (1200x750).
+ * Asta reduce numărul de procesări la upload de la ~8 la 4 → mai puțină memorie/CPU.
+ * Fix critic pentru site-urile pe hosting cu memory_limit mic (medpress.ro, observatormedical.ro etc.).
+ */
+function magpress_remove_unused_image_sizes($sizes) {
+    unset($sizes['medium']);
+    unset($sizes['medium_large']);
+    unset($sizes['large']);
+    return $sizes;
+}
+add_filter('intermediate_image_sizes_advanced', 'magpress_remove_unused_image_sizes');
 
 /**
  * Dezactivează New Relic Browser Agent (RUM script).
