@@ -1159,6 +1159,10 @@ function magpress_breadcrumbs() {
  * Returns: array de ['type' => 'category'|'ad', ...payload...]
  */
 function magpress_homepage_slots() {
+    // Static memo — apelată o singură dată per request
+    static $cached_slots = null;
+    if ($cached_slots !== null) return $cached_slots;
+
     $slots = [];
     for ($i = 1; $i <= 30; $i++) {
         // IMPORTANT: default identic cu cel din customize_register, altfel WP returneaza 'none'
@@ -1197,7 +1201,7 @@ function magpress_homepage_slots() {
             $slots[] = ['type' => 'ad', 'html' => $html, 'title' => $title, 'subtitle' => $subtitle];
         }
     }
-    if ($slots) return $slots;
+    if ($slots) return ($cached_slots = $slots);
 
     // Fallback: setari vechi (slot 1-6 din versiunea anterioara)
     for ($i = 1; $i <= 6; $i++) {
@@ -1208,7 +1212,7 @@ function magpress_homepage_slots() {
         $count = (int) get_theme_mod("magpress_homepage_count_{$i}", 8);
         $slots[] = ['type' => 'category', 'cat' => $cat, 'cat_ids' => [$cat_id], 'count' => max(2, min(20, $count))];
     }
-    if ($slots) return $slots;
+    if ($slots) return ($cached_slots = $slots);
 
     // Fallback: site-config.json
     $cfg = magpress_site_config();
@@ -1217,13 +1221,13 @@ function magpress_homepage_slots() {
             $c = get_category_by_slug($slug);
             if ($c) $slots[] = ['type' => 'category', 'cat' => $c, 'cat_ids' => [(int) $c->term_id], 'count' => 8];
         }
-        if ($slots) return $slots;
+        if ($slots) return ($cached_slots = $slots);
     }
 
     // Fallback final: top 4 categorii
     $top = get_categories(['orderby' => 'count', 'order' => 'DESC', 'number' => 4, 'hide_empty' => true]);
     foreach ($top as $c) $slots[] = ['type' => 'category', 'cat' => $c, 'cat_ids' => [(int) $c->term_id], 'count' => 8];
-    return $slots;
+    return ($cached_slots = $slots);
 }
 
 /**
@@ -1345,8 +1349,11 @@ function magpress_register_error_handlers() {
     // Doar pe frontend + admin (nu in cron sau cli)
     if (defined('DOING_CRON') && DOING_CRON) return;
     if (defined('WP_CLI') && WP_CLI) return;
-
-    set_error_handler('magpress_error_handler', E_ALL & ~E_STRICT);
+    // SKIP pe producție când WP_DEBUG e off — error handler-ul adaugă overhead pe FIECARE request.
+    // Pe producție WordPress nu emite warning-uri vizibile oricum.
+    if (!defined('WP_DEBUG') || !WP_DEBUG) return;
+    // E_STRICT deprecated în PHP 8.4+ — folosim E_ALL direct (E_STRICT oricum nu mai e folosit)
+    set_error_handler('magpress_error_handler', E_ALL);
     register_shutdown_function('magpress_fatal_handler');
 }
 add_action('init', 'magpress_register_error_handlers');
