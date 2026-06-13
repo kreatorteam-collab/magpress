@@ -189,6 +189,70 @@ function magpress_diag_register_menu() {
 }
 add_action('admin_menu', 'magpress_diag_register_menu');
 
+/**
+ * Export JSON cu toate datele de diagnoză — pentru trimis dezvoltatorului.
+ * Hook admin_init (priority -1) ca să poată trimite header download înainte de orice output.
+ */
+function magpress_diag_handle_export() {
+    if (!is_admin()) return;
+    if (empty($_GET['page']) || $_GET['page'] !== 'magpress-diagnostics') return;
+    if (empty($_GET['export'])) return;
+    if (!current_user_can('manage_options')) return;
+    if (empty($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'magpress_diag_export')) {
+        wp_die('Nonce invalid.');
+    }
+
+    $format = sanitize_key($_GET['export']);
+    $payload = [
+        'meta' => [
+            'site_url'        => home_url(),
+            'site_name'       => get_bloginfo('name'),
+            'magpress_ver'    => wp_get_theme()->get('Version'),
+            'wp_ver'          => get_bloginfo('version'),
+            'php_ver'         => PHP_VERSION,
+            'memory_limit'    => ini_get('memory_limit'),
+            'max_execution'   => ini_get('max_execution_time'),
+            'export_time'     => date('Y-m-d H:i:s'),
+            'active_plugins'  => array_values((array) get_option('active_plugins', [])),
+        ],
+        'http_log'      => Magpress_Diag_Http_Logger::get_log(),
+        'hook_timing'   => Magpress_Diag_Hook_Timer::get_data(),
+        'current_page_assets' => magpress_diag_get_assets(),
+    ];
+
+    $slug = sanitize_title(parse_url(home_url(), PHP_URL_HOST));
+    $ts   = date('Ymd-His');
+    $fname = "magpress-diag-{$slug}-{$ts}";
+
+    if ($format === 'csv') {
+        // CSV doar pentru HTTP log (cea mai utilă vedere tabulară)
+        nocache_headers();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $fname . '.csv"');
+        $out = fopen('php://output', 'w');
+        // BOM UTF-8 pentru Excel
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Timp', 'Plugin/Caller', 'Metodă', 'URL', 'Durată (ms)', 'Status', 'Pagină']);
+        foreach ($payload['http_log'] as $e) {
+            fputcsv($out, [
+                $e['time'] ?? '', $e['caller'] ?? '', $e['method'] ?? '',
+                $e['url'] ?? '', $e['duration_ms'] ?? 0,
+                $e['status'] ?? '', $e['page'] ?? '',
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    // Default: JSON complet
+    nocache_headers();
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $fname . '.json"');
+    echo wp_json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+add_action('admin_init', 'magpress_diag_handle_export', -1);
+
 function magpress_diag_render_page() {
     if (!current_user_can('manage_options')) return;
 
@@ -224,10 +288,27 @@ function magpress_diag_render_page() {
         ?>
         </div>
 
-        <form method="post" style="margin-top:20px">
-            <?php wp_nonce_field('magpress_diag_clear'); ?>
-            <button type="submit" name="magpress_diag_clear" class="button">🗑️ Golește toate datele de diagnoză</button>
-        </form>
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <form method="post" style="margin:0">
+                <?php wp_nonce_field('magpress_diag_clear'); ?>
+                <button type="submit" name="magpress_diag_clear" class="button">🗑️ Golește toate datele</button>
+            </form>
+
+            <?php
+            $export_json = wp_nonce_url(
+                admin_url('tools.php?page=magpress-diagnostics&export=json'),
+                'magpress_diag_export'
+            );
+            $export_csv = wp_nonce_url(
+                admin_url('tools.php?page=magpress-diagnostics&export=csv'),
+                'magpress_diag_export'
+            );
+            ?>
+            <a href="<?php echo esc_url($export_json); ?>" class="button button-primary">📥 Export JSON (complet)</a>
+            <a href="<?php echo esc_url($export_csv); ?>" class="button">📊 Export CSV (doar HTTP log)</a>
+
+            <span style="color:#666;font-size:.9em">Trimite JSON-ul dezvoltatorului pentru analiză.</span>
+        </div>
     </div>
     <?php
 }
