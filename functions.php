@@ -52,30 +52,9 @@ function magpress_remove_unused_image_sizes($sizes) {
 }
 add_filter('intermediate_image_sizes_advanced', 'magpress_remove_unused_image_sizes');
 
-/**
- * Forțează Imagick în locul GD pentru procesarea imaginilor.
- * GD respinge anumite JPEG-uri (CMYK, progresiv) și produce eroarea „Serverul nu poate
- * procesa imaginea" pe imagini specifice (ex. poze de stock medicale). Imagick le
- * procesează corect, e mai rapid și de calitate mai bună la redimensionare.
- * GD rămâne în listă DOAR ca fallback dacă pe vreun server Imagick lipsește complet.
- * NOTĂ: pe servere cu Imagick prost configurat (policy.xml restrictiv) eroarea poate
- * reveni — verifică după deploy. Reversibil: șterge acest filtru pentru default-ul WP.
- */
-function magpress_select_image_editor($editors) {
-    // IMPLICIT GD: sigur pe orice host, fără policy.xml. Pe hosturi cu Imagick restrictiv
-    // (ex. medpress), Imagick pică pe imagini mari și SATUREAZĂ serverul (workerii rămân
-    // blocați până la timeout → tot site-ul „se blochează"). GD evită asta.
-    // IMAGICK (opt-in per-site): doar pe hosturi cu Imagick sănătos care au imagini CMYK/
-    // progresive (GD le respinge). Activează: update_option('magpress_use_imagick','1')
-    // sau prin endpoint-ul semnat /wp-json/magpress/v1/set-editor.
-    $prefer = (get_option('magpress_use_imagick') === '1')
-        ? 'WP_Image_Editor_Imagick'
-        : 'WP_Image_Editor_GD';
-    $editors = array_diff($editors, [$prefer]);
-    array_unshift($editors, $prefer);
-    return $editors;
-}
-add_filter('wp_image_editors', 'magpress_select_image_editor');
+// NOTĂ: tema NU mai forțează editorul de imagini. WordPress alege nativ GD/Imagick (ambele
+// active pe server), exact ca orice altă temă. Dacă un anumit host are Imagick prost
+// configurat (policy.xml), se reglează server-side — nu e treaba temei.
 
 /**
  * Dezactivează New Relic Browser Agent (RUM script).
@@ -2647,11 +2626,6 @@ add_action('rest_api_init', function () {
         'callback'            => 'magpress_rest_errorlog',
         'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
     ]);
-    register_rest_route('magpress/v1', '/set-editor', [
-        'methods'             => 'POST',
-        'callback'            => 'magpress_rest_set_editor',
-        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
-    ]);
     // Force ping — apelat din dashboard-ul de pe targetseo.ro ("Ping now")
     register_rest_route('magpress/v1', '/send-ping', [
         'methods'             => 'POST',
@@ -2798,30 +2772,6 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
     ];
     if ($raw) { $out['tail'] = $tail; }
     return $out;
-}
-
-/**
- * Setează editorul de imagini per-site (gd = implicit sigur; imagick = opt-in pe hosturi sănătoase
- * cu imagini CMYK). POST semnat HMAC cu deploy_secret. Body: {"editor":"gd"|"imagick"}.
- */
-function magpress_rest_set_editor(WP_REST_Request $req) {
-    $body     = (string) $req->get_body();
-    $sig      = (string) $req->get_header('X-Magpress-Signature');
-    $expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
-    if ($sig === '' || !hash_equals($expected, $sig)) {
-        return new WP_REST_Response(['error' => 'bad_signature'], 403);
-    }
-    $data = json_decode($body, true);
-    $ed   = is_array($data) && isset($data['editor']) ? strtolower((string) $data['editor']) : '';
-    if ($ed === 'imagick') {
-        update_option('magpress_use_imagick', '1');
-    } elseif ($ed === 'gd') {
-        delete_option('magpress_use_imagick');
-    } else {
-        return new WP_REST_Response(['error' => 'editor must be gd|imagick'], 400);
-    }
-    $chosen = function_exists('_wp_image_editor_choose') ? _wp_image_editor_choose(['mime_type' => 'image/jpeg']) : '?';
-    return ['site' => home_url('/'), 'set' => $ed, 'active_editor' => $chosen];
 }
 
 function magpress_rest_legal_status() {
