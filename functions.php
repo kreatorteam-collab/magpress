@@ -2717,6 +2717,7 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
     $data  = json_decode($body, true);
     $lines = max(1, min(5000, (int) (is_array($data) && isset($data['lines']) ? $data['lines'] : 400)));
     $raw   = is_array($data) && !empty($data['raw']);
+    $clear = is_array($data) && !empty($data['clear']);
 
     $candidates = [];
     $ini = ini_get('error_log');
@@ -2728,6 +2729,25 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
     $candidates[] = ABSPATH . 'wp-content/error_log';
     $candidates[] = dirname(ABSPATH) . '/error_log';
     $candidates[] = dirname(dirname(ABSPATH)) . '/error_log';
+
+    // Golire log-uri (fresh start) — trunchiază TOATE fișierele de log găsite, nu doar primul.
+    if ($clear) {
+        $cleared = [];
+        $failed  = [];
+        $freed   = 0;
+        foreach (array_values(array_unique(array_filter($candidates))) as $c) {
+            if (@file_exists($c)) {
+                $sz = (int) @filesize($c);
+                if (@file_put_contents($c, '') !== false) {
+                    $cleared[] = $c;
+                    $freed += $sz;
+                } else {
+                    $failed[] = $c;
+                }
+            }
+        }
+        return ['site' => home_url('/'), 'cleared' => $cleared, 'failed' => $failed, 'freed_bytes' => $freed];
+    }
 
     $found = null;
     foreach ($candidates as $c) {
