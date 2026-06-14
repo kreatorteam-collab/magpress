@@ -1347,7 +1347,8 @@ function magpress_error_handler($errno, $errstr, $errfile, $errline) {
         E_USER_NOTICE   => 'USER_NOTICE',
         E_DEPRECATED    => 'DEPRECATED',
         E_USER_DEPRECATED => 'USER_DEPRECATED',
-        E_STRICT        => 'STRICT',
+        // E_STRICT eliminat: constanta e deprecată în PHP 8.4+ și simpla ei referire
+        // (chiar ca cheie de array) spama log-ul cu „Constant E_STRICT is deprecated".
         E_RECOVERABLE_ERROR => 'RECOVERABLE_ERROR',
     ];
     $severity = $severity_map[$errno] ?? 'UNKNOWN(' . $errno . ')';
@@ -2723,8 +2724,10 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
     if (defined('WP_DEBUG_LOG') && is_string(WP_DEBUG_LOG)) { $candidates[] = WP_DEBUG_LOG; }
     $candidates[] = WP_CONTENT_DIR . '/debug.log';
     $candidates[] = ABSPATH . 'error_log';
+    $candidates[] = ABSPATH . 'wp-admin/error_log';
     $candidates[] = ABSPATH . 'wp-content/error_log';
     $candidates[] = dirname(ABSPATH) . '/error_log';
+    $candidates[] = dirname(dirname(ABSPATH)) . '/error_log';
 
     $found = null;
     foreach ($candidates as $c) {
