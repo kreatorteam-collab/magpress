@@ -99,6 +99,23 @@ function magpress_remove_bloat() {
 add_action('init', 'magpress_remove_bloat');
 
 /**
+ * Throttle heartbeat pe ecranul de editare articol: 15s -> 60s.
+ * Pe hosturi cu puține procese PHP concurente (medpress, observatormedical), autosave +
+ * heartbeat se ciocnesc cu upload-ul de imagini / generarea Claude Writer și le „înfometează"
+ * → „Serverul nu poate procesa imaginea" / „Conexiune pierdută". Reducând frecvența cererilor
+ * de fundal de 4x, lăsăm workeri liberi pentru upload/generare. Autosave-ul rămâne funcțional
+ * (la 60s, oricum default-ul WP). NU atinge procesarea imaginilor — doar ritmul cererilor.
+ */
+function magpress_throttle_admin_heartbeat($hook) {
+    if ($hook !== 'post.php' && $hook !== 'post-new.php') {
+        return;
+    }
+    $js = "(function(){function s(){try{if(window.wp&&wp.heartbeat&&wp.heartbeat.interval){wp.heartbeat.interval(60);}}catch(e){}}if(window.jQuery){jQuery(s);}else{document.addEventListener('DOMContentLoaded',s);}setInterval(s,30000);})();";
+    wp_add_inline_script('heartbeat', $js);
+}
+add_action('admin_enqueue_scripts', 'magpress_throttle_admin_heartbeat');
+
+/**
  * Dezactivam jQuery pe frontend.
  */
 function magpress_deregister_jquery() {
