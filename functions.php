@@ -2656,6 +2656,34 @@ function magpress_rest_diag($req) {
     }
     $args = ['mime_type' => 'image/jpeg'];
     $chosen = function_exists('_wp_image_editor_choose') ? _wp_image_editor_choose($args) : 'unknown';
+
+    // Test REAL de procesare: generăm o imagine de mărime normală de articol (1600x1200)
+    // și o redimensionăm cu editorul ales. Dacă pică aici, editorul chiar nu poate procesa
+    // pe acest host (policy.xml restrictiv / delegate lipsă) — nu e concurență.
+    $img_test = 'skip';
+    $tmp = tempnam(sys_get_temp_dir(), 'mptest');
+    try {
+        if (strpos((string) $chosen, 'Imagick') !== false && class_exists('Imagick')) {
+            $im = new Imagick();
+            $im->newImage(1600, 1200, new ImagickPixel('white'));
+            $im->setImageFormat('jpeg');
+            $im->resizeImage(600, 400, Imagick::FILTER_LANCZOS, 1);
+            $im->writeImage($tmp);
+            $im->clear();
+            $img_test = 'imagick_ok(' . (int) @filesize($tmp) . 'b)';
+        } elseif (function_exists('imagecreatetruecolor')) {
+            $src = imagecreatetruecolor(1600, 1200);
+            $dst = imagecreatetruecolor(600, 400);
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, 600, 400, 1600, 1200);
+            imagejpeg($dst, $tmp);
+            imagedestroy($src);
+            imagedestroy($dst);
+            $img_test = 'gd_ok(' . (int) @filesize($tmp) . 'b)';
+        }
+    } catch (\Throwable $e) {
+        $img_test = 'FAIL: ' . substr($e->getMessage(), 0, 120);
+    }
+    @unlink($tmp);
     return [
         'theme_version'   => wp_get_theme()->get('Version'),
         'active_editor'   => $chosen ?: 'none',
@@ -2669,6 +2697,7 @@ function magpress_rest_diag($req) {
         'session_auto_start' => (int) ini_get('session.auto_start'),
         'session_status'  => function_exists('session_status') ? session_status() : -1, // 0=off,1=none,2=ACTIVA(lock)
         'session_save_path' => ini_get('session.save_path'),
+        'img_test'        => $img_test,
     ];
 }
 
