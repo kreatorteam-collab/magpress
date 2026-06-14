@@ -2666,6 +2666,9 @@ function magpress_rest_diag($req) {
         'memory_limit'    => ini_get('memory_limit'),
         'big_image_thr'   => (int) apply_filters('big_image_size_threshold', 2560),
         'opcache_reset'   => function_exists('opcache_reset'),
+        'session_auto_start' => (int) ini_get('session.auto_start'),
+        'session_status'  => function_exists('session_status') ? session_status() : -1, // 0=off,1=none,2=ACTIVA(lock)
+        'session_save_path' => ini_get('session.save_path'),
     ];
 }
 
