@@ -53,20 +53,22 @@ function magpress_remove_unused_image_sizes($sizes) {
 add_filter('intermediate_image_sizes_advanced', 'magpress_remove_unused_image_sizes');
 
 /**
- * Forțează GD în locul Imagick pentru procesarea imaginilor.
- * Multe servere au ImageMagick prost configurat (policy.xml cu limite memory/area
- * restrictive) care produce eroarea „Serverul nu poate procesa imaginea". GD e mai
- * ușor, mai stabil și fără policy.xml — rezolvă eroarea fără modificări server-side.
- * Reversibil: șterge acest filtru pentru a reveni la default (Imagick prioritar).
+ * Forțează Imagick în locul GD pentru procesarea imaginilor.
+ * GD respinge anumite JPEG-uri (CMYK, progresiv) și produce eroarea „Serverul nu poate
+ * procesa imaginea" pe imagini specifice (ex. poze de stock medicale). Imagick le
+ * procesează corect, e mai rapid și de calitate mai bună la redimensionare.
+ * GD rămâne în listă DOAR ca fallback dacă pe vreun server Imagick lipsește complet.
+ * NOTĂ: pe servere cu Imagick prost configurat (policy.xml restrictiv) eroarea poate
+ * reveni — verifică după deploy. Reversibil: șterge acest filtru pentru default-ul WP.
  */
-function magpress_prefer_gd_image_editor($editors) {
-    $gd = 'WP_Image_Editor_GD';
-    // Scoate GD din poziția curentă și pune-l primul → WP îl preferă dacă e disponibil.
-    $editors = array_diff($editors, [$gd]);
-    array_unshift($editors, $gd);
+function magpress_prefer_imagick_image_editor($editors) {
+    $imagick = 'WP_Image_Editor_Imagick';
+    // Scoate Imagick din poziția curentă și pune-l primul → WP îl preferă dacă e disponibil.
+    $editors = array_diff($editors, [$imagick]);
+    array_unshift($editors, $imagick);
     return $editors;
 }
-add_filter('wp_image_editors', 'magpress_prefer_gd_image_editor');
+add_filter('wp_image_editors', 'magpress_prefer_imagick_image_editor');
 
 /**
  * Dezactivează New Relic Browser Agent (RUM script).
