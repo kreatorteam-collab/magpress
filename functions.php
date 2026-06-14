@@ -2623,6 +2623,11 @@ add_action('rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ]);
+    register_rest_route('magpress/v1', '/diag', [
+        'methods'             => 'GET',
+        'callback'            => 'magpress_rest_diag',
+        'permission_callback' => '__return_true',
+    ]);
     // Force ping — apelat din dashboard-ul de pe targetseo.ro ("Ping now")
     register_rest_route('magpress/v1', '/send-ping', [
         'methods'             => 'POST',
@@ -2642,6 +2647,29 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 });
+
+/**
+ * Diagnostic imagini — ce editor alege WP pentru JPEG, ce extensii există, memorie, opcache.
+ * Gate slab cu ping secret (info puțin sensibilă). Folosit la debugging fleet multi-site.
+ */
+function magpress_rest_diag($req) {
+    if ((string) $req->get_param('key') !== MAGPRESS_PING_SECRET) {
+        return new WP_REST_Response(['error' => 'forbidden'], 403);
+    }
+    $args = ['mime_type' => 'image/jpeg'];
+    $chosen = function_exists('_wp_image_editor_choose') ? _wp_image_editor_choose($args) : 'unknown';
+    return [
+        'theme_version'   => wp_get_theme()->get('Version'),
+        'active_editor'   => $chosen ?: 'none',
+        'imagick_loaded'  => extension_loaded('imagick'),
+        'imagick_wp_test' => class_exists('WP_Image_Editor_Imagick') ? WP_Image_Editor_Imagick::test($args) : false,
+        'gd_loaded'       => extension_loaded('gd'),
+        'gd_wp_test'      => class_exists('WP_Image_Editor_GD') ? WP_Image_Editor_GD::test($args) : false,
+        'memory_limit'    => ini_get('memory_limit'),
+        'big_image_thr'   => (int) apply_filters('big_image_size_threshold', 2560),
+        'opcache_reset'   => function_exists('opcache_reset'),
+    ];
+}
 
 function magpress_rest_legal_status() {
     $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
@@ -2941,6 +2969,13 @@ function magpress_perform_deploy() {
     }
     _magpress_rrmdir($tmp_extract);
     $log_msg('Theme deployed: ' . $current_slug);
+
+    // 4b. Reset opcache — altfel PHP servește functions.php VECHI din cache pe hosturi cu
+    //     opcache.validate_timestamps=0 (codul nou nu se activează până la restart PHP).
+    if (function_exists('opcache_reset')) {
+        @opcache_reset();
+        $log_msg('opcache reset');
+    }
 
     // 5. Păstrăm ultimele 3 backup-uri
     $old = glob($backups_dir . '/' . $current_slug . '-bak-*', GLOB_ONLYDIR);
