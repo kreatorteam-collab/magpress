@@ -2153,7 +2153,10 @@ function magpress_check_for_update($transient) {
     }
     return $transient;
 }
-add_filter('pre_set_site_transient_update_themes', 'magpress_check_for_update');
+// DEZACTIVAT: site-urile NU mai verifică update prin WordPress — deploy-ul vine exclusiv prin
+// push.ps1. Astfel WP nu mai detectează o versiune nouă și nu mai declanșează auto-instalarea
+// (care intră în maintenance mode 503 → heartbeat-ul pică → „Conexiune pierdută").
+// add_filter('pre_set_site_transient_update_themes', 'magpress_check_for_update');
 
 /**
  * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
@@ -2189,7 +2192,10 @@ function magpress_enable_auto_update($update, $item) {
     }
     return $update;
 }
-add_filter('auto_update_theme', 'magpress_enable_auto_update', 10, 2);
+// DEZACTIVAT: deploy-ul se face EXCLUSIV prin push.ps1 (REST /v1/deploy), care înlocuiește
+// fișierele direct, fără maintenance mode. Nu mai forțăm auto-update-ul WP — el intra în
+// maintenance mode (503) la fiecare instalare și rupea heartbeat-ul wp-admin.
+// add_filter('auto_update_theme', 'magpress_enable_auto_update', 10, 2);
 
 /**
  * Pagină admin "Magpress" cu buton "Verifică update acum".
@@ -2240,7 +2246,7 @@ function magpress_render_settings_page() {
 
         if (is_array($info) && !empty($info['version'])) {
             if (version_compare($current, $info['version'], '<')) {
-                $message = '✅ <strong>Update disponibil:</strong> versiunea ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Tema se va instala automat în câteva minute. Sau mergi la <a href="' . admin_url('themes.php') . '">Aspect → Teme</a> și instalează manual.';
+                $message = '✅ <strong>Versiune nouă pe GitHub:</strong> ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Deploy-ul se face prin <code>push.ps1</code> — rulează scriptul ca să se propage pe site-uri.';
                 $message_type = 'success';
             } else {
                 $message = '✓ Tema e la zi. Versiune curentă: <strong>' . esc_html($current) . '</strong> (GitHub are tot ' . esc_html($info['version']) . ').';
