@@ -2634,6 +2634,11 @@ add_action('rest_api_init', function () {
         'callback'            => 'magpress_rest_diag',
         'permission_callback' => '__return_true',
     ]);
+    register_rest_route('magpress/v1', '/errorlog', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_errorlog',
+        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
+    ]);
     // Force ping — apelat din dashboard-ul de pe targetseo.ro ("Ping now")
     register_rest_route('magpress/v1', '/send-ping', [
         'methods'             => 'POST',
@@ -2675,6 +2680,89 @@ function magpress_rest_diag($req) {
         'big_image_thr'   => (int) apply_filters('big_image_size_threshold', 2560),
         'opcache_reset'   => function_exists('opcache_reset'),
     ];
+}
+
+/**
+ * Tail al unui fișier — ultimele $lines linii, citind cel mult $max_bytes de la final.
+ */
+function magpress_tail_file($path, $lines = 400, $max_bytes = 524288) {
+    $size = @filesize($path);
+    if ($size === false) { return null; }
+    if ($size === 0) { return ''; }
+    $read = (int) min($size, $max_bytes);
+    $fp = @fopen($path, 'rb');
+    if (!$fp) { return null; }
+    @fseek($fp, -$read, SEEK_END);
+    $data = @fread($fp, $read);
+    @fclose($fp);
+    if ($data === false) { return null; }
+    $arr = explode("\n", $data);
+    if (count($arr) > $lines) { $arr = array_slice($arr, -$lines); }
+    return implode("\n", $arr);
+}
+
+/**
+ * Citire error_log per-site pentru debugging fleet. POST semnat HMAC cu deploy_secret
+ * (același mecanism ca /deploy — secret per-site, NU în repo public). Întoarce un sumar
+ * cu semnăturile unice de erori + count; trimite {"raw":true} ca să adaugi coada brută.
+ */
+function magpress_rest_errorlog(WP_REST_Request $req) {
+    $body     = (string) $req->get_body();
+    $sig      = (string) $req->get_header('X-Magpress-Signature');
+    $expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
+    if ($sig === '' || !hash_equals($expected, $sig)) {
+        return new WP_REST_Response(['error' => 'bad_signature'], 403);
+    }
+    $data  = json_decode($body, true);
+    $lines = max(1, min(5000, (int) (is_array($data) && isset($data['lines']) ? $data['lines'] : 400)));
+    $raw   = is_array($data) && !empty($data['raw']);
+
+    $candidates = [];
+    $ini = ini_get('error_log');
+    if ($ini) { $candidates[] = $ini; }
+    if (defined('WP_DEBUG_LOG') && is_string(WP_DEBUG_LOG)) { $candidates[] = WP_DEBUG_LOG; }
+    $candidates[] = WP_CONTENT_DIR . '/debug.log';
+    $candidates[] = ABSPATH . 'error_log';
+    $candidates[] = ABSPATH . 'wp-content/error_log';
+    $candidates[] = dirname(ABSPATH) . '/error_log';
+
+    $found = null;
+    foreach ($candidates as $c) {
+        if ($c && @is_readable($c)) { $found = $c; break; }
+    }
+    if (!$found) {
+        return ['site' => home_url('/'), 'wp' => get_bloginfo('version'), 'php' => PHP_VERSION, 'path' => null, 'checked' => $candidates];
+    }
+
+    $tail = magpress_tail_file($found, $lines);
+
+    // Sumar: scoatem [timestamp]-ul din față și numărăm semnăturile unice.
+    $counts = [];
+    foreach (explode("\n", (string) $tail) as $ln) {
+        $ln = trim($ln);
+        if ($ln === '') { continue; }
+        $norm = preg_replace('/^\[[^\]]+\]\s*/', '', $ln);
+        $counts[$norm] = isset($counts[$norm]) ? $counts[$norm] + 1 : 1;
+    }
+    arsort($counts);
+    $summary = [];
+    $i = 0;
+    foreach ($counts as $msg => $n) {
+        $summary[] = ['n' => $n, 'msg' => $msg];
+        if (++$i >= 40) { break; }
+    }
+
+    $out = [
+        'site'    => home_url('/'),
+        'wp'      => get_bloginfo('version'),
+        'php'     => PHP_VERSION,
+        'path'    => $found,
+        'size'    => @filesize($found),
+        'unique'  => count($counts),
+        'summary' => $summary,
+    ];
+    if ($raw) { $out['tail'] = $tail; }
+    return $out;
 }
 
 function magpress_rest_legal_status() {
