@@ -481,7 +481,7 @@ body.magpress-lightbox-open{overflow:hidden}
 
 /* ===================== ARTICLE IMAGE ===================== */
 .article-image{margin:0 auto 2rem;max-width:none}
-.article-image img{width:100%;height:auto;border-radius:var(--radius-lg);display:block;max-height:540px;object-fit:cover}
+.article-image img{width:100%;height:auto;border-radius:var(--radius-lg);display:block;max-height:640px;object-fit:cover}
 
 /* ===================== ARTICLE BODY ===================== */
 .article-body{max-width:none;margin:0 auto}
