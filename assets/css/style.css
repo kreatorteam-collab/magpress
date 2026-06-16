@@ -649,7 +649,7 @@ body.page .article-body .entry-content{max-width:none}
 .site-footer{background:var(--c-footer-bg);border-top:1px solid var(--c-footer-border);margin-top:0;padding:3rem 0 1.5rem;color:var(--c-footer-text);font-size:.92rem}
 .site-footer a{color:var(--c-footer-link);text-decoration:none;transition:color .15s ease}
 .site-footer a:hover{color:var(--c-footer-link-hover);text-decoration:underline}
-.footer-cols{display:grid;grid-template-columns:1fr;gap:2rem;margin-bottom:2.5rem}
+.footer-cols{display:grid;grid-template-columns:1fr;gap:2rem;margin-bottom:3rem}
 @media (min-width:640px){.footer-cols{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:900px){.footer-cols{grid-template-columns:repeat(4,1fr)}}
 .footer-col .widget-title,.footer-col h2,.footer-col h3,.footer-col h4{font-family:inherit;font-size:1.1rem;text-transform:uppercase!important;letter-spacing:.05em;color:var(--c-footer-heading);margin:0 0 1.1rem;font-weight:800;line-height:1.3}
