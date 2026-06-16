@@ -14,12 +14,6 @@ the_post();
     <h1 class="article-title"><?php the_title(); ?></h1>
   </header>
 
-  <?php if (has_post_thumbnail()): ?>
-    <figure class="article-image">
-      <?php the_post_thumbnail('magpress-feature'); ?>
-    </figure>
-  <?php endif; ?>
-
   <article class="article-body">
     <div class="entry-content">
       <?php the_content(); ?>
