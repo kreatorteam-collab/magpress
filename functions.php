@@ -4418,8 +4418,12 @@ add_action('parse_request', function ($wp) {
         exit;
     }
 });
-//    e) mesaj de login generic (nu mai distinge user greșit vs parolă greșită).
+//    e) mesaj de login generic (nu mai distinge user greșit vs parolă greșită);
+//       excepție: dacă IP-ul e blocat de throttle, arătăm mesajul de blocare.
 add_filter('login_errors', function () {
+    if (!empty($GLOBALS['magpress_login_locked'])) {
+        return __('<strong>Prea multe încercări eșuate.</strong> Reîncearcă peste 15 minute.', 'magpress');
+    }
     return __('Date de autentificare incorecte.', 'magpress');
 });
 //    f) defense-in-depth: scoate providerul "users" din sitemap-ul WP core.
@@ -4552,3 +4556,43 @@ function magpress_inject_htaccess_hardening() {
     }
     delete_transient('magpress_htaccess_lock');
 }
+
+/* =====================================================================
+ * SECURITY HARDENING 4 — login throttle nativ (anti brute-force).
+ * Blochează IP-ul după 5 încercări eșuate, timp de 15 min. Reset la login
+ * reușit. Cheia = REMOTE_ADDR (IP real pe LiteSpeed direct, nespoofabil).
+ * ===================================================================== */
+define('MAGPRESS_LOGIN_MAX_FAILS', 5);
+define('MAGPRESS_LOGIN_LOCK_MINUTES', 15);
+
+function magpress_login_throttle_key() {
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        $ip = '0.0.0.0';
+    }
+    return 'magpress_lla_' . md5($ip);
+}
+
+// Blochează ÎNAINTE de verificarea parolei dacă IP-ul a depășit limita.
+add_filter('authenticate', function ($user, $username) {
+    if (empty($username)) {
+        return $user;
+    }
+    if ((int) get_transient(magpress_login_throttle_key()) >= MAGPRESS_LOGIN_MAX_FAILS) {
+        $GLOBALS['magpress_login_locked'] = true;
+        return new WP_Error('magpress_locked', __('Prea multe încercări eșuate. Reîncearcă mai târziu.', 'magpress'));
+    }
+    return $user;
+}, 30, 2);
+
+// Incrementează contorul la fiecare login eșuat.
+add_action('wp_login_failed', function () {
+    $key   = magpress_login_throttle_key();
+    $fails = (int) get_transient($key);
+    set_transient($key, $fails + 1, MAGPRESS_LOGIN_LOCK_MINUTES * MINUTE_IN_SECONDS);
+});
+
+// Reset la login reușit.
+add_action('wp_login', function () {
+    delete_transient(magpress_login_throttle_key());
+});
