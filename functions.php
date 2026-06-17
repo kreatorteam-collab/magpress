@@ -4362,3 +4362,68 @@ function magpress_body_classes($classes) {
     return $clean;
 }
 add_filter('body_class', 'magpress_body_classes');
+
+/* =====================================================================
+ * SECURITY HARDENING — central, pe toate site-urile.
+ * Răspuns la rapoarte beg-bounty:
+ *   - XML-RPC: pingback.ping (SSRF orb) + system.multicall (brute-force).
+ *   - Enumerare utilizatori: REST /wp/v2/users, ?_embed, oEmbed, ?author=N.
+ * NOTĂ: tema expune INTENȚIONAT autorul (byline + /author/slug/ + schema
+ * E-E-A-T), deci slug-ul public rămâne vizibil by design. Aici ascundem
+ * LISTA de utilizatori și vectorii machine-readable, nu existența autorilor.
+ * Deploy-ul Magpress folosește REST (magpress/v1), NU XML-RPC.
+ * rsd/wlw/generator sunt deja scoase în magpress_remove_bloat().
+ * ===================================================================== */
+
+// 1) XML-RPC complet oprit. xmlrpc.php definește XMLRPC_REQUEST înainte de
+//    a încărca tema → blocăm direct accesul la fișier (403).
+if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
+    http_response_code(403);
+    exit('XML-RPC disabled.');
+}
+add_filter('xmlrpc_enabled', '__return_false');
+add_filter('xmlrpc_methods', '__return_empty_array');
+add_filter('wp_headers', function ($headers) {
+    unset($headers['X-Pingback'], $headers['x-pingback']);
+    return $headers;
+});
+
+// 2) Anti user-enumeration (fără a strica paginile /author/slug/).
+//    a) ascunde lista REST de utilizatori pentru neautentificați.
+add_filter('rest_endpoints', function ($endpoints) {
+    if (!is_user_logged_in()) {
+        unset($endpoints['/wp/v2/users'], $endpoints['/wp/v2/users/(?P<id>[\d]+)']);
+    }
+    return $endpoints;
+});
+//    b) scoate slug-ul (username) din payload-ul REST de user — acoperă și ?_embed.
+add_filter('rest_prepare_user', function ($response) {
+    if (!is_user_logged_in() && is_object($response) && method_exists($response, 'get_data')) {
+        $data = $response->get_data();
+        unset($data['slug']);
+        $response->set_data($data);
+    }
+    return $response;
+});
+//    c) scoate autorul din oEmbed.
+add_filter('oembed_response_data', function ($data) {
+    unset($data['author_name'], $data['author_url']);
+    return $data;
+});
+//    d) omoară enumerarea numerică ?author=N înainte de canonical redirect.
+add_action('parse_request', function ($wp) {
+    if (!is_user_logged_in() && isset($wp->query_vars['author'])
+        && is_numeric($wp->query_vars['author'])) {
+        wp_safe_redirect(home_url('/'), 301);
+        exit;
+    }
+});
+//    e) mesaj de login generic (nu mai distinge user greșit vs parolă greșită).
+add_filter('login_errors', function () {
+    return __('Date de autentificare incorecte.', 'magpress');
+});
+//    f) defense-in-depth: scoate providerul "users" din sitemap-ul WP core.
+//       (No-op dacă SEOPress servește sitemap-ul — verifică setarea Authors din SEOPress.)
+add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
+    return ('users' === $name) ? false : $provider;
+}, 10, 2);
