@@ -4472,3 +4472,83 @@ function magpress_hide_wp_version_assets($src) {
 }
 add_filter('style_loader_src', 'magpress_hide_wp_version_assets', 9999);
 add_filter('script_loader_src', 'magpress_hide_wp_version_assets', 9999);
+
+/* =====================================================================
+ * SECURITY HARDENING 3 — injector .htaccess (server-level, via temă).
+ * Scrie un bloc între markeri în .htaccess-ul site-ului, O SINGURĂ DATĂ
+ * per versiune, cu BACKUP + SELF-HEAL: dacă după scriere homepage-ul cade
+ * în 5xx (ex. host fără AllowOverride), restaurează automat .htaccess.
+ * Gardat de un option + transient lock (evită recursia din loopback).
+ * ===================================================================== */
+add_action('init', 'magpress_inject_htaccess_hardening', 99);
+function magpress_inject_htaccess_hardening() {
+    $target = '0.9.84';
+    if (get_option('magpress_htaccess_hardened') === $target) {
+        return;
+    }
+    if (get_transient('magpress_htaccess_lock')) {
+        return; // request-ul de loopback (sau un al doilea load) nu reintră
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+
+    // Doar unde .htaccess contează (Apache/LiteSpeed cu mod_rewrite).
+    if (function_exists('got_url_rewrite') && !got_url_rewrite()) {
+        update_option('magpress_htaccess_hardened', $target); // nu se aplică aici
+        return;
+    }
+
+    $file = get_home_path() . '.htaccess';
+    if (!file_exists($file) || !is_writable($file)) {
+        return; // reîncearcă la următorul load
+    }
+
+    set_transient('magpress_htaccess_lock', 1, 2 * MINUTE_IN_SECONDS);
+
+    $rules = array(
+        'Options -Indexes',
+        '<Files "xmlrpc.php">',
+        '    Require all denied',
+        '</Files>',
+        '<Files "wp-config.php">',
+        '    Require all denied',
+        '</Files>',
+        '<Files "debug.log">',
+        '    Require all denied',
+        '</Files>',
+        '<FilesMatch "(?i)\.(bak|save|old|orig|swp|swo|tmp|sql|sql\.gz|log|env|sh)$">',
+        '    Require all denied',
+        '</FilesMatch>',
+        '<FilesMatch "(?i)^(wp-config\.php\..*|\.env|\.htpasswd|readme\.html|license\.txt)$">',
+        '    Require all denied',
+        '</FilesMatch>',
+        '<IfModule mod_headers.c>',
+        '    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"',
+        '</IfModule>',
+    );
+
+    $backup = $file . '.magpress-bak';
+    @copy($file, $backup);
+
+    if (!insert_with_markers($file, 'Magpress Security', $rules)) {
+        delete_transient('magpress_htaccess_lock');
+        return; // n-a putut scrie; reîncearcă
+    }
+
+    // Self-heal: verifică homepage prin loopback; rollback DOAR la 5xx.
+    $resp = wp_remote_get(home_url('/'), array('timeout' => 10, 'sslverify' => false, 'redirection' => 0));
+    $code = is_wp_error($resp) ? 0 : (int) wp_remote_retrieve_response_code($resp);
+
+    if ($code >= 500) {
+        if (file_exists($backup)) {
+            @copy($backup, $file); // restaurează .htaccess original
+        } else {
+            insert_with_markers($file, 'Magpress Security', array()); // scoate blocul
+        }
+        update_option('magpress_htaccess_hardened', 'FAILED-' . $target);
+    } else {
+        update_option('magpress_htaccess_hardened', $target);
+    }
+    delete_transient('magpress_htaccess_lock');
+}
