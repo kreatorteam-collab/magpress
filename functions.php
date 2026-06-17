@@ -4427,3 +4427,48 @@ add_filter('login_errors', function () {
 add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
     return ('users' === $name) ? false : $provider;
 }, 10, 2);
+
+/* =====================================================================
+ * SECURITY HARDENING 2 — headere + reducere amprentă (theme-fixable).
+ * Restul (login rate-limit, deny fișiere .log/.bak/.sql, HSTS, directory
+ * listing) e la nivel de server LiteSpeed/.htaccess, NU din temă.
+ * ===================================================================== */
+
+// Defense-in-depth: nu afișa erori PHP la vizitator (anti full-path disclosure).
+@ini_set('display_errors', '0');
+
+// Dezactivează Application Passwords (deploy-ul folosește HMAC, nu app passwords).
+add_filter('wp_is_application_passwords_available', '__return_false');
+
+// Security response headers + ascunde X-Powered-By (versiunea PHP).
+add_action('send_headers', function () {
+    if (headers_sent()) {
+        return;
+    }
+    @header_remove('X-Powered-By');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    // Blocăm doar funcții device-sensitive; NU atingem features de ads (browsing-topics etc.).
+    header('Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()');
+}, 1);
+
+// Ascunde versiunea WordPress din ?ver= pe asset-urile core
+// (păstrează cache-busting pentru temă/plugin-uri, care au alt ver).
+function magpress_hide_wp_version_assets($src) {
+    global $wp_version;
+    if (!$src) {
+        return $src;
+    }
+    $parts = wp_parse_url($src);
+    if (empty($parts['query'])) {
+        return $src;
+    }
+    parse_str($parts['query'], $q);
+    if (isset($q['ver']) && $q['ver'] === $wp_version) {
+        $src = remove_query_arg('ver', $src);
+    }
+    return $src;
+}
+add_filter('style_loader_src', 'magpress_hide_wp_version_assets', 9999);
+add_filter('script_loader_src', 'magpress_hide_wp_version_assets', 9999);
