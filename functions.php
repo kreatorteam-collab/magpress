@@ -4441,6 +4441,15 @@ add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
 // Defense-in-depth: nu afișa erori PHP la vizitator (anti full-path disclosure).
 @ini_set('display_errors', '0');
 
+// Reduce spam-ul din debug.log: nu mai loga warnings/notices/deprecations
+// (ex. "Undefined array key width/height/file" din wp-includes/media.php pe
+// articole cu metadata de imagine stricată). Erorile REALE (fatal/parse) rămân.
+// WordPress forțează E_ALL când WP_DEBUG e on; revenim la nivel de producție
+// DOAR dacă nu ești în debug activ (WP_DEBUG_DISPLAY off).
+if (!defined('WP_DEBUG_DISPLAY') || !WP_DEBUG_DISPLAY) {
+    error_reporting(E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR);
+}
+
 // Dezactivează Application Passwords (deploy-ul folosește HMAC, nu app passwords).
 add_filter('wp_is_application_passwords_available', '__return_false');
 
