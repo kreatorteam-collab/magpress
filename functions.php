@@ -4624,3 +4624,35 @@ add_action('wp_login_failed', function () {
 add_action('wp_login', function () {
     delete_transient(magpress_login_throttle_key());
 });
+
+/* =====================================================================
+ * FIX PUNCTUAL — business-entrepreneur.ro: WP Rocket rula în paralel cu
+ * LiteSpeed (dublu page-cache). Dezactivăm WP Rocket (LiteSpeed rămâne
+ * singurul cache). Gardat pe HOST + o singură dată. No-op pe restul flotei.
+ * ===================================================================== */
+add_action('init', 'magpress_fix_be_wprocket', 99);
+function magpress_fix_be_wprocket() {
+    $host = preg_replace('/^www\./i', '', strtolower((string) parse_url(home_url('/'), PHP_URL_HOST)));
+    if ($host !== 'business-entrepreneur.ro') {
+        return;
+    }
+    if (get_option('magpress_be_wprocket_fixed') === 'done') {
+        return;
+    }
+    if (!function_exists('deactivate_plugins') || !function_exists('is_plugin_active')) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    $pf = 'wp-rocket/wp-rocket.php';
+    if (is_plugin_active($pf)) {
+        deactivate_plugins($pf); // silent=false → rulează hook-ul de cleanup al WP Rocket
+    }
+    // Fallback: dacă advanced-cache.php a rămas și e al WP Rocket, îl scoatem.
+    $adv = WP_CONTENT_DIR . '/advanced-cache.php';
+    if (@file_exists($adv)) {
+        $c = (string) @file_get_contents($adv, false, null, 0, 400);
+        if (strpos($c, 'WP_ROCKET') !== false) {
+            @unlink($adv);
+        }
+    }
+    update_option('magpress_be_wprocket_fixed', 'done');
+}
