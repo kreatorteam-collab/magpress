@@ -2701,6 +2701,14 @@ function magpress_rest_diag($req) {
         $img_test = 'FAIL: ' . substr($e->getMessage(), 0, 120);
     }
     @unlink($tmp);
+
+    // Diagnostic cache: WP_CACHE + drop-in-uri + object cache (read-only).
+    $adv = WP_CONTENT_DIR . '/advanced-cache.php';
+    $adv_hint = '';
+    if (@file_exists($adv)) {
+        $adv_hint = trim(preg_replace('/\s+/', ' ', (string) @file_get_contents($adv, false, null, 0, 200)));
+    }
+
     return [
         'theme_version'   => wp_get_theme()->get('Version'),
         'active_editor'   => $chosen ?: 'none',
@@ -2715,6 +2723,17 @@ function magpress_rest_diag($req) {
         'session_status'  => function_exists('session_status') ? session_status() : -1, // 0=off,1=none,2=ACTIVA(lock)
         'session_save_path' => ini_get('session.save_path'),
         'img_test'        => $img_test,
+        'cache' => [
+            'WP_CACHE'           => defined('WP_CACHE') ? (WP_CACHE ? 'true' : 'false') : 'undefined',
+            'advanced_cache_php' => @file_exists($adv),
+            'advanced_cache_hint'=> $adv_hint,
+            'object_cache_php'   => @file_exists(WP_CONTENT_DIR . '/object-cache.php'),
+            'ext_object_cache'   => function_exists('wp_using_ext_object_cache') && wp_using_ext_object_cache(),
+            'object_cache_impl'  => (isset($GLOBALS['wp_object_cache']) && is_object($GLOBALS['wp_object_cache'])) ? get_class($GLOBALS['wp_object_cache']) : null,
+            'redis_ext'          => extension_loaded('redis'),
+            'memcached_ext'      => extension_loaded('memcached') || extension_loaded('memcache'),
+            'litespeed_plugin'   => defined('LSCWP_V') ? LSCWP_V : false,
+        ],
     ];
 }
 
