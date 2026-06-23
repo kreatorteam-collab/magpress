@@ -4373,6 +4373,7 @@ function magpress_body_classes($classes) {
     if (is_search())     $clean[] = 'search';
     if (is_404())        $clean[] = 'error404';
     if (get_theme_mod('magpress_header_sticky', 1)) $clean[] = 'has-sticky-header';
+    if (function_exists('magpress_is_age_gated') && magpress_is_age_gated()) $clean[] = 'has-age-gate';
 
     // Pastram clase WP esentiale care influenteaza layout (admin-bar offset, logged-in, embed responsive)
     foreach (['admin-bar', 'logged-in', 'wp-embed-responsive', 'rtl'] as $important) {
@@ -4656,3 +4657,100 @@ function magpress_fix_be_wprocket() {
     }
     update_option('magpress_be_wprocket_fixed', 'done');
 }
+
+/* =====================================================================
+ * AGE GATE 18+ — overlay de confirmare vârstă pe articole MARCATE.
+ * Pentru subiecte cu restricție de vârstă (alcool, tutun etc.).
+ * 100% client-side (cookie) → compatibil cu full-page cache LiteSpeed.
+ * Conținutul rămâne în DOM (SEO-safe). Overlay vizibil DEFAULT, ascuns de
+ * JS dacă există cookie-ul de consimțământ. 0 bytes pe articolele nemarcate.
+ * ===================================================================== */
+
+// Per-articol: meta + checkbox în editor.
+add_action('init', function () {
+    register_post_meta('post', '_magpress_adult', [
+        'type'          => 'boolean',
+        'single'        => true,
+        'show_in_rest'  => true,
+        'auth_callback' => function () { return current_user_can('edit_posts'); },
+    ]);
+});
+add_action('add_meta_boxes', function () {
+    add_meta_box('magpress_adult_box', 'Restricție vârstă 18+', 'magpress_adult_box_cb', 'post', 'side', 'default');
+});
+function magpress_adult_box_cb($post) {
+    wp_nonce_field('magpress_adult_save', 'magpress_adult_nonce');
+    $on = (bool) get_post_meta($post->ID, '_magpress_adult', true);
+    echo '<label style="display:flex;gap:.5rem;align-items:flex-start;line-height:1.4">';
+    echo '<input type="checkbox" name="magpress_adult" value="1" ' . checked($on, true, false) . '>';
+    echo '<span>Articol <strong>18+</strong> — afișează confirmare de vârstă înainte de conținut (alcool, tutun etc.).</span>';
+    echo '</label>';
+}
+add_action('save_post_post', function ($post_id) {
+    if (!isset($_POST['magpress_adult_nonce']) || !wp_verify_nonce($_POST['magpress_adult_nonce'], 'magpress_adult_save')) return;
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (!current_user_can('edit_post', $post_id)) return;
+    update_post_meta($post_id, '_magpress_adult', empty($_POST['magpress_adult']) ? 0 : 1);
+});
+
+// Articolul curent e marcat 18+?
+function magpress_is_age_gated() {
+    if (!is_singular('post')) return false;
+    if ((bool) get_post_meta(get_queried_object_id(), '_magpress_adult', true)) return true;
+    // TEMP-VERIF (doar favit.ro, scos după test): ?mp_agetest=b7f2
+    if (isset($_GET['mp_agetest']) && $_GET['mp_agetest'] === 'b7f2' && strpos((string) home_url(), 'favit.ro') !== false) return true;
+    return false;
+}
+
+// Anti-flash: în <head>, dacă există cookie-ul, marcăm <html> ca age-ok ÎNAINTE de paint.
+add_action('wp_head', function () {
+    if (!magpress_is_age_gated()) return;
+    ?>
+<style id="magpress-age-gate-css">
+body.has-age-gate{overflow:hidden}
+html.age-ok body.has-age-gate{overflow:visible}
+.magpress-age-gate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:rgba(15,16,20,.94)}
+html.age-ok .magpress-age-gate{display:none}
+.magpress-age-gate__card{background:#fff;max-width:440px;width:100%;border-radius:14px;padding:2rem 1.75rem;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.45);font-family:var(--f-sans,system-ui,sans-serif)}
+.magpress-age-gate__card h2{margin:0 0 .6rem;font-size:1.4rem;color:#1a1a1a}
+.magpress-age-gate__card p{margin:0 0 1.4rem;color:#555;font-size:.98rem;line-height:1.55}
+.magpress-age-gate__actions{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.magpress-age-gate__btn{cursor:pointer;border:0;border-radius:8px;padding:.7rem 1.4rem;font-size:.95rem;font-weight:700;font-family:inherit}
+.magpress-age-gate__btn--yes{background:var(--c-accent,#6fa84a);color:#fff}
+.magpress-age-gate__btn--no{background:#ececec;color:#333}
+</style>
+<script>(function(){try{if(document.cookie.indexOf('magpress_adult_ok=1')>-1){document.documentElement.className+=' age-ok';}}catch(e){}})();</script>
+    <?php
+}, 2);
+
+// Overlay-ul propriu-zis, imediat după <body> (conținutul rămâne în DOM dedesubt).
+add_action('wp_body_open', function () {
+    if (!magpress_is_age_gated()) return;
+    $title = apply_filters('magpress_age_gate_title', 'Conținut pentru adulți (18+)');
+    $text  = apply_filters('magpress_age_gate_text', 'Acest articol tratează un subiect cu restricție de vârstă. Confirmă că ai cel puțin 18 ani pentru a continua.');
+    ?>
+<div class="magpress-age-gate" id="magpress-age-gate" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr($title); ?>">
+  <div class="magpress-age-gate__card">
+    <h2><?php echo esc_html($title); ?></h2>
+    <p><?php echo esc_html($text); ?></p>
+    <div class="magpress-age-gate__actions">
+      <button type="button" class="magpress-age-gate__btn magpress-age-gate__btn--yes" data-age="yes">Am peste 18 ani</button>
+      <button type="button" class="magpress-age-gate__btn magpress-age-gate__btn--no" data-age="no">Nu am 18 ani</button>
+    </div>
+  </div>
+</div>
+    <?php
+});
+
+// JS pentru butoane (doar pe articolele marcate).
+add_action('wp_footer', function () {
+    if (!magpress_is_age_gated()) return;
+    $home = esc_js(home_url('/'));
+    ?>
+<script>(function(){var g=document.getElementById('magpress-age-gate');if(!g)return;
+function ok(){document.cookie='magpress_adult_ok=1;path=/;max-age=15552000;SameSite=Lax;Secure';document.documentElement.className+=' age-ok';g.style.display='none';document.body.classList.remove('has-age-gate');}
+function no(){window.location.href='<?php echo $home; ?>';}
+var y=g.querySelector('[data-age="yes"]'),n=g.querySelector('[data-age="no"]');
+if(y)y.addEventListener('click',ok);if(n)n.addEventListener('click',no);})();</script>
+    <?php
+});
