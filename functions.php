@@ -4697,8 +4697,6 @@ add_action('save_post_post', function ($post_id) {
 function magpress_is_age_gated() {
     if (!is_singular('post')) return false;
     if ((bool) get_post_meta(get_queried_object_id(), '_magpress_adult', true)) return true;
-    // TEMP-VERIF (doar favit.ro, scos după test): ?mp_agetest=b7f2
-    if (isset($_GET['mp_agetest']) && $_GET['mp_agetest'] === 'b7f2' && strpos((string) home_url(), 'favit.ro') !== false) return true;
     return false;
 }
 
