@@ -2661,6 +2661,12 @@ add_action('rest_api_init', function () {
         'callback'            => 'magpress_rest_legal_status',
         'permission_callback' => '__return_true',
     ]);
+    // Instalare/upgrade plugin fleet-wide — broadcast semnat HMAC (push-plugin.ps1).
+    register_rest_route('magpress/v1', '/install-plugin', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_install_plugin',
+        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
+    ]);
 });
 
 /**
@@ -3049,6 +3055,89 @@ function magpress_rest_deploy(WP_REST_Request $request) {
 
     $status = !empty($result['ok']) ? 200 : 500;
     return new WP_REST_Response($result, $status);
+}
+
+/**
+ * REST: instalare/upgrade plugin fleet-wide.
+ * POST {site}/wp-json/magpress/v1/install-plugin
+ * Auth: X-Magpress-Signature = hash_hmac('sha256', body, deploy_secret) — la fel ca /deploy.
+ * Body JSON: { slug, zip_b64 (ZIP-ul plugin-ului în base64), activate (bool) }
+ * Instalează SAU upgradează (overwrite_package) prin Plugin_Upgrader, opțional activează.
+ */
+function magpress_rest_install_plugin(WP_REST_Request $request) {
+    $body = $request->get_body();
+    $sig  = $request->get_header('x_magpress_signature');
+    if (!$sig) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'missing_signature'], 403);
+    }
+    if (!hash_equals(hash_hmac('sha256', $body, magpress_get_deploy_secret()), $sig)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
+    }
+
+    $data = json_decode($body, true);
+    if (!is_array($data) || empty($data['zip_b64'])) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'no_zip'], 400);
+    }
+    $activate = !empty($data['activate']);
+    $zip = base64_decode((string) $data['zip_b64'], true);
+    if ($zip === false || strlen($zip) < 100) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'bad_zip'], 400);
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+    $tmp = wp_tempnam('mp-plugin.zip');
+    if (!$tmp || @file_put_contents($tmp, $zip) === false) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'tmp_write_failed'], 500);
+    }
+
+    add_filter('filesystem_method', function () { return 'direct'; });
+    if (!WP_Filesystem()) {
+        @unlink($tmp);
+        return new WP_REST_Response(['ok' => false, 'error' => 'filesystem_unavailable'], 500);
+    }
+
+    @ignore_user_abort(true);
+    @set_time_limit(180);
+
+    $skin     = new Automatic_Upgrader_Skin();
+    $upgrader = new Plugin_Upgrader($skin);
+    $result   = $upgrader->install($tmp, ['overwrite_package' => true]);
+    @unlink($tmp);
+
+    if (is_wp_error($result)) {
+        return new WP_REST_Response(['ok' => false, 'error' => $result->get_error_message()], 500);
+    }
+    if (!$result) {
+        $errs = $skin->get_errors();
+        $msg  = (is_wp_error($errs) && $errs->has_errors()) ? $errs->get_error_message() : 'install_failed';
+        return new WP_REST_Response(['ok' => false, 'error' => $msg], 500);
+    }
+
+    $plugin_file = $upgrader->plugin_info(); // ex: "internal-link-inserter/internal-link-inserter.php"
+    $version = '';
+    if ($plugin_file && file_exists(WP_PLUGIN_DIR . '/' . $plugin_file)) {
+        $hdr = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_file, false, false);
+        $version = $hdr['Version'] ?? '';
+    }
+
+    $activated = false;
+    if ($activate && $plugin_file) {
+        $act = activate_plugin($plugin_file);
+        $activated = !is_wp_error($act);
+    }
+
+    if (function_exists('opcache_reset')) { @opcache_reset(); }
+
+    return new WP_REST_Response([
+        'ok'        => true,
+        'plugin'    => $plugin_file,
+        'version'   => $version,
+        'activated' => $activated,
+    ], 200);
 }
 
 function magpress_perform_deploy() {
