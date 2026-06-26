@@ -3940,6 +3940,58 @@ function magpress_register_schema_settings($wp_customize) {
 }
 add_action('customize_register', 'magpress_register_schema_settings');
 
+/**
+ * FAQPage schema — DOAR dacă articolul are o secțiune reală de Întrebări frecvente.
+ * Detectează heading-ul FAQ (h2/h3) + perechile h3 întrebare / paragraf răspuns.
+ * Exclude disclaimerele (text italic / „rol pur educativ" / „nu înlocuiesc consultul").
+ * Folosește wpautop pe conținutul brut (fără side-effects de la filtre the_content).
+ */
+function magpress_build_faq_schema($post) {
+    if (!$post || empty($post->post_content)) return null;
+    $raw = $post->post_content;
+    if (stripos($raw, 'frecvente') === false && stripos($raw, 'FAQ') === false) return null;
+
+    $html = wpautop($raw);
+    // izolează zona de la heading-ul FAQ încolo
+    if (!preg_match('/<h[23][^>]*>[^<]*(?:întrebări\s+frecvente|intrebari\s+frecvente|întrebări\s+și\s+răspunsuri|\bFAQ\b)[^<]*<\/h[23]>(.*)$/isu', $html, $mm)) {
+        return null;
+    }
+    // taie la următorul h2 (sfârșit de secțiune)
+    $region = preg_split('/<h2\b/i', $mm[1])[0];
+
+    if (!preg_match_all('/<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[34]\b|$)/isu', $region, $pairs, PREG_SET_ORDER)) {
+        return null;
+    }
+
+    $entities = [];
+    foreach ($pairs as $pr) {
+        $q = trim(html_entity_decode(wp_strip_all_tags($pr[1]), ENT_QUOTES, 'UTF-8'));
+        $ans = '';
+        if (preg_match_all('/<p[^>]*>(.*?)<\/p>/isu', $pr[2], $ps)) {
+            foreach ($ps[1] as $pp) {
+                if (preg_match('/^\s*<(?:i|em)\b/i', $pp)) continue; // disclaimer italic
+                $plain = trim(html_entity_decode(wp_strip_all_tags($pp), ENT_QUOTES, 'UTF-8'));
+                if ($plain === '') continue;
+                if (preg_match('/(rol pur educativ|nu înlocuie|consult(?:ă|ul)? (?:medic|de specialitate)|Informațiile prezentate)/iu', $plain)) continue;
+                $ans .= ($ans !== '' ? ' ' : '') . $plain;
+            }
+        }
+        if (mb_strlen($q) < 5 || mb_strlen($ans) < 15) continue;
+        $entities[] = [
+            '@type'          => 'Question',
+            'name'           => $q,
+            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $ans],
+        ];
+    }
+    if (count($entities) < 2) return null; // FAQPage are sens cu ≥2 perechi
+
+    return [
+        '@context'   => 'https://schema.org',
+        '@type'      => 'FAQPage',
+        'mainEntity' => $entities,
+    ];
+}
+
 function magpress_emit_schema_jsonld() {
     if (!get_theme_mod('magpress_schema_enabled', 1)) return;
 
@@ -3950,6 +4002,8 @@ function magpress_emit_schema_jsonld() {
         if ($article) $schemas[] = $article;
         $bc = magpress_build_breadcrumb_schema_single();
         if ($bc) $schemas[] = $bc;
+        $faq = magpress_build_faq_schema(get_post()); // doar dacă articolul are secțiune FAQ reală
+        if ($faq) $schemas[] = $faq;
     } elseif (is_category() || is_tag() || is_author() || is_archive()) {
         $bc = magpress_build_breadcrumb_schema_archive();
         if ($bc) $schemas[] = $bc;
