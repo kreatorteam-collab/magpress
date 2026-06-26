@@ -4288,6 +4288,24 @@ function magpress_build_article_schema() {
         $desc = rtrim($desc, " ,.;:–-") . '…';
     }
 
+    // Autor = Person îmbogățit (E-E-A-T): jobTitle, image (avatar), worksFor (publisher), sameAs (site autor).
+    $author = [
+        '@type' => 'Person',
+        'name'  => $author_name,
+        'url'   => $author_url,
+    ];
+    $job = apply_filters('magpress_author_job_title', 'Editor', $author_id); // schimbabil via filter / per autor
+    if ($job) { $author['jobTitle'] = $job; }
+    $avatar = get_avatar_url($author_id, ['size' => 192]);
+    if ($avatar) { $author['image'] = $avatar; }
+    $author['worksFor'] = [
+        '@type' => 'Organization',
+        'name'  => get_bloginfo('name'),
+        'url'   => home_url('/'),
+    ];
+    $author_site = trim((string) get_the_author_meta('user_url', $author_id));
+    if ($author_site && $author_site !== $author_url) { $author['sameAs'] = [$author_site]; }
+
     $schema = [
         '@context'         => 'https://schema.org',
         '@type'            => $type,
@@ -4299,12 +4317,8 @@ function magpress_build_article_schema() {
         'description'      => $desc,
         'datePublished'    => get_the_date('c', $post),
         'dateModified'     => get_the_modified_date('c', $post),
-        // un singur autor → obiect Person (nu array), acceptat de toate validatoarele.
-        'author'           => [
-            '@type' => 'Person',
-            'name'  => $author_name,
-            'url'   => $author_url,
-        ],
+        // un singur autor → obiect Person îmbogățit (vezi $author mai sus).
+        'author'           => $author,
         // Publisher MINIMAL pe Article (doar Google-required: name + logo). Datele complete (address,
         // telephone, foundingDate) apar DOAR pe homepage Organization, nu duplicate per articol.
         'publisher'        => magpress_get_publisher_data_minimal(),
