@@ -4279,6 +4279,14 @@ function magpress_build_article_schema() {
     $keywords = ($tags && !is_wp_error($tags)) ? wp_list_pluck($tags, 'name') : [];
 
     $excerpt = has_excerpt($post) ? get_the_excerpt($post) : wp_trim_words(strip_shortcodes(strip_tags($post->post_content)), 35, '...');
+    // description ≤160 caractere (tăiat la limită de cuvânt), recomandat de validatoare.
+    $desc = wp_strip_all_tags($excerpt);
+    if (mb_strlen($desc) > 160) {
+        $desc = mb_substr($desc, 0, 157);
+        $sp = mb_strrpos($desc, ' ');
+        if ($sp !== false && $sp > 100) { $desc = mb_substr($desc, 0, $sp); }
+        $desc = rtrim($desc, " ,.;:–-") . '…';
+    }
 
     $schema = [
         '@context'         => 'https://schema.org',
@@ -4288,14 +4296,15 @@ function magpress_build_article_schema() {
             '@id'   => get_permalink($post),
         ],
         'headline'         => mb_substr(wp_strip_all_tags(get_the_title($post)), 0, 110),
-        'description'      => mb_substr($excerpt, 0, 300),
+        'description'      => $desc,
         'datePublished'    => get_the_date('c', $post),
         'dateModified'     => get_the_modified_date('c', $post),
-        'author'           => [[
+        // un singur autor → obiect Person (nu array), acceptat de toate validatoarele.
+        'author'           => [
             '@type' => 'Person',
             'name'  => $author_name,
             'url'   => $author_url,
-        ]],
+        ],
         // Publisher MINIMAL pe Article (doar Google-required: name + logo). Datele complete (address,
         // telephone, foundingDate) apar DOAR pe homepage Organization, nu duplicate per articol.
         'publisher'        => magpress_get_publisher_data_minimal(),
