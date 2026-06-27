@@ -1260,13 +1260,29 @@ function magpress_inject_mid_article_ad($content) {
     $ad = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
     if ($ad === '') return $content;
 
-    // Split la </p> si insereaza dupa al 3-lea
     $parts = explode('</p>', $content);
-    if (count($parts) < 5) return $content; // <4 paragrafe — nu injectam
+    $n = count($parts);
+    if ($n < 5) return $content; // <4 paragrafe — nicio reclamă
 
     $ad_html = magpress_render_ad_html($ad, 'mid-article');
-    $injected = implode('</p>', array_slice($parts, 0, 3)) . '</p>' . $ad_html . implode('</p>', array_slice($parts, 3));
-    return $injected;
+
+    // Poziții de inserare (după al K-lea paragraf). Prima după 3. A DOUA reclamă doar pe
+    // articole LUNGI și distanțată (ca să nu fie două reclame lipite). Refolosește același cod.
+    $positions = [3];
+    if ($n >= 10) {
+        $second = (int) floor($n * 0.6);
+        if ($second >= 6 && $second <= $n - 2) { $positions[] = $second; }
+    }
+
+    $out = '';
+    for ($i = 0; $i < $n; $i++) {
+        $out .= $parts[$i];
+        if ($i < $n - 1) {
+            $out .= '</p>';
+            if (in_array($i + 1, $positions, true)) { $out .= $ad_html; }
+        }
+    }
+    return $out;
 }
 add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
 
@@ -1310,6 +1326,17 @@ function magpress_get_end_article_ad() {
     $ad = trim((string) get_theme_mod('magpress_article_ad_end', ''));
     if ($ad === '') return '';
     return magpress_render_ad_html($ad, 'end-article');
+}
+
+/**
+ * Reclamă în capul paginilor de categorie/tag (după descriere, înainte de articole).
+ * Refolosește codul AdSense din slotul mid-article (zero config suplimentar per site).
+ */
+function magpress_get_category_top_ad() {
+    if (!is_category() && !is_tag()) return '';
+    $ad = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
+    if ($ad === '') return '';
+    return magpress_render_ad_html($ad, 'category-top');
 }
 
 /**

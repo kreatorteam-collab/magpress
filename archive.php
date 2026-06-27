@@ -19,6 +19,8 @@ get_header();
     <?php endif; ?>
   </header>
 
+  <?php echo magpress_get_category_top_ad(); // reclamă sus, după descriere, înainte de articole ?>
+
   <?php if (have_posts()): ?>
     <div class="card-grid">
       <?php while (have_posts()): the_post();
