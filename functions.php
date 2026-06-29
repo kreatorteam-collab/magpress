@@ -32,6 +32,7 @@ function magpress_setup() {
     set_post_thumbnail_size(600, 400, true);
     add_image_size('magpress-card',    600, 400,  true);
     add_image_size('magpress-feature', 1200, 750, true);
+    add_image_size('magpress-hero',    1280, 0,   false); // hero articol single: full-width, proportional, FĂRĂ crop (existentele cad pe full)
     // NOTE: `magpress-thumb` (120x120) eliminat — neutilizat în temă, doar consuma memorie la upload.
 
     load_theme_textdomain('magpress', MAGPRESS_DIR . '/languages');
@@ -40,7 +41,7 @@ add_action('after_setup_theme', 'magpress_setup');
 
 /**
  * Dezactivează mărimile WP default neutilizate în Magpress: medium (300), medium_large (768), large (1024).
- * Magpress folosește doar `thumbnail` (avatar autor), `magpress-card` (600x400) și `magpress-feature` (1200x750).
+ * Magpress folosește doar `thumbnail` (avatar autor), `magpress-card` (600x400), `magpress-feature` (1200x750) și `magpress-hero` (1280, fără crop).
  * Asta reduce numărul de procesări la upload de la ~8 la 4 → mai puțină memorie/CPU.
  * Fix critic pentru site-urile pe hosting cu memory_limit mic (medpress.ro, observatormedical.ro etc.).
  */

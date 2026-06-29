@@ -28,7 +28,7 @@ $cats = get_the_category();
 
   <?php if (has_post_thumbnail()): ?>
     <figure class="article-image">
-      <?php the_post_thumbnail('magpress-feature', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+      <?php the_post_thumbnail('magpress-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
     </figure>
   <?php endif; ?>
 
