@@ -480,7 +480,7 @@ body.magpress-lightbox-open{overflow:hidden}
 .article-meta .sep{color:var(--c-border)}
 
 /* ===================== ARTICLE IMAGE ===================== */
-.article-image{margin:0 auto 2rem;max-width:none}
+.article-image{margin:0 auto 2rem;max-width:1000px}
 .article-image img{width:100%;height:auto;border-radius:var(--radius-lg);display:block}
 
 /* ===================== ARTICLE BODY ===================== */
