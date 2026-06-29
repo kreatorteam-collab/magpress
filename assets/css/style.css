@@ -481,7 +481,10 @@ body.magpress-lightbox-open{overflow:hidden}
 
 /* ===================== ARTICLE IMAGE ===================== */
 .article-image{margin:0 auto 2rem;max-width:none}
-.article-image img{max-width:100%;max-height:480px;width:auto;height:auto;margin:0 auto;border-radius:var(--radius-lg);display:block}
+.article-image__band{position:relative;width:100%;height:440px;overflow:hidden;border-radius:var(--radius-lg);background:#eaeef1}
+.article-image__band::before{content:"";position:absolute;inset:0;background-image:var(--hero-bg);background-size:cover;background-position:center;filter:blur(28px) brightness(.92);transform:scale(1.18)}
+.article-image__band img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;margin:0 auto}
+@media (max-width:640px){.article-image__band{height:260px}}
 
 /* ===================== ARTICLE BODY ===================== */
 .article-body{max-width:none;margin:0 auto}

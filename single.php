@@ -26,9 +26,12 @@ $cats = get_the_category();
     <?php echo magpress_render_article_meta(); // plain default; rich news byline dacă toggle ON ?>
   </header>
 
-  <?php if (has_post_thumbnail()): ?>
+  <?php if (has_post_thumbnail()):
+    $hero_url = get_the_post_thumbnail_url(get_the_ID(), 'magpress-feature'); ?>
     <figure class="article-image">
-      <?php the_post_thumbnail('magpress-feature', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+      <div class="article-image__band"<?php echo $hero_url ? ' style="--hero-bg:url(\'' . esc_url($hero_url) . '\')"' : ''; ?>>
+        <?php the_post_thumbnail('magpress-feature', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+      </div>
     </figure>
   <?php endif; ?>
 
