@@ -3274,8 +3274,17 @@ function magpress_perform_deploy() {
         }
     }
 
-    // 6. Purge LiteSpeed cache (dacă există)
-    if (has_action('litespeed_purge_all')) {
+    // 6. Purge LiteSpeed (dacă există). ATENȚIE: litespeed_purge_all golește DOAR page cache-ul;
+    //    CSS/JS-ul combinat din /wp-content/litespeed/css/ rămâne stale după un update de temă,
+    //    deci modificările de stil nu apar până la un purge CSS/JS manual. Purgem explicit și
+    //    cssjs + critical/unique CSS ca deploy-ul să fie vizibil imediat.
+    if (defined('LSCWP_V')) {
+        do_action('litespeed_purge_all');
+        do_action('litespeed_purge_all_cssjs');
+        do_action('litespeed_purge_all_ccss');
+        do_action('litespeed_purge_all_ucss');
+        $log_msg('LiteSpeed purged: page + CSS/JS + CCSS/UCSS');
+    } elseif (has_action('litespeed_purge_all')) {
         do_action('litespeed_purge_all');
         $log_msg('LiteSpeed cache purged');
     }
