@@ -2310,6 +2310,104 @@ function magpress_enable_auto_update($update, $item) {
 // add_filter('auto_update_theme', 'magpress_enable_auto_update', 10, 2);
 
 /**
+ * ============================================================
+ * AUTO-DEPLOY prin CRON (self-update) — fără maintenance mode
+ * ============================================================
+ * Restaurează comportamentul „push pe GitHub → site-ul se actualizează singur",
+ * dar FĂRĂ bug-ul „Conexiune pierdută": nu folosim upgrader-ul WordPress (care
+ * intră în maintenance mode 503 și rupe heartbeat-ul), ci apelăm DIRECT
+ * magpress_perform_deploy() — aceeași funcție folosită de push.ps1, care
+ * înlocuiește fișierele în loc, fără maintenance mode.
+ *
+ * Fluxul:
+ *   1. Un cron orar citește .update-info.json de pe GitHub.
+ *   2. Dacă versiunea de pe GitHub > versiunea instalată → rulează deploy-ul safe.
+ *   3. push.ps1 rămâne funcțional în paralel (deploy manual instant), ca fallback.
+ *
+ * Se poate dezactiva fără edit de cod: add_filter('magpress_auto_deploy_enabled', '__return_false');
+ * sau definind constanta MAGPRESS_AUTO_DEPLOY_DISABLED = true în wp-config.php.
+ */
+function magpress_auto_deploy_enabled() {
+    if (defined('MAGPRESS_AUTO_DEPLOY_DISABLED') && MAGPRESS_AUTO_DEPLOY_DISABLED) {
+        return false;
+    }
+    return (bool) apply_filters('magpress_auto_deploy_enabled', true);
+}
+
+// Programează cron-ul orar (re-schedule idempotent, ca la ping).
+function magpress_schedule_auto_deploy() {
+    if (!magpress_auto_deploy_enabled()) {
+        if (wp_next_scheduled('magpress_auto_deploy_check')) {
+            wp_clear_scheduled_hook('magpress_auto_deploy_check');
+        }
+        return;
+    }
+    if (!wp_next_scheduled('magpress_auto_deploy_check')) {
+        wp_schedule_event(time() + 300, 'hourly', 'magpress_auto_deploy_check');
+    }
+}
+add_action('after_switch_theme', 'magpress_schedule_auto_deploy');
+add_action('init', 'magpress_schedule_auto_deploy');
+add_action('magpress_auto_deploy_check', 'magpress_run_auto_deploy');
+
+// Cleanup la schimbarea temei.
+add_action('switch_theme', function () {
+    wp_clear_scheduled_hook('magpress_auto_deploy_check');
+});
+
+/**
+ * Handler cron: verifică GitHub și, dacă e o versiune nouă, rulează deploy-ul safe.
+ * Returnează array cu rezultatul (util și pentru trigger manual din admin).
+ */
+function magpress_run_auto_deploy() {
+    if (!magpress_auto_deploy_enabled()) {
+        return ['ok' => false, 'skipped' => 'disabled'];
+    }
+
+    // Nu ne suprapunem cu un deploy în curs (push.ps1 sau alt cron).
+    if (get_transient('magpress_deploy_lock')) {
+        return ['ok' => false, 'skipped' => 'deploy_in_progress'];
+    }
+
+    // 1. Versiunea instalată acum.
+    $installed = (string) wp_get_theme()->get('Version');
+
+    // 2. Versiunea de pe GitHub (cache-buster ca să sărim CDN-ul raw de 5 min).
+    $resp = wp_remote_get(MAGPRESS_UPDATE_INFO_URL . '?_=' . time(), [
+        'timeout' => 10,
+        'headers' => ['User-Agent' => 'magpress-autodeploy/' . get_stylesheet()],
+    ]);
+    if (is_wp_error($resp) || 200 !== wp_remote_retrieve_response_code($resp)) {
+        return ['ok' => false, 'error' => 'update_info_unreachable'];
+    }
+    $info = json_decode(wp_remote_retrieve_body($resp), true);
+    if (!is_array($info) || empty($info['version'])) {
+        return ['ok' => false, 'error' => 'update_info_invalid'];
+    }
+    $remote = (string) $info['version'];
+
+    // 3. Deploy DOAR dacă GitHub e strict mai nou.
+    if (version_compare($installed, $remote, '>=')) {
+        return ['ok' => true, 'skipped' => 'up_to_date', 'installed' => $installed, 'remote' => $remote];
+    }
+
+    // 4. Rulează deploy-ul safe (fără maintenance mode). Lock 120s ca la REST.
+    set_transient('magpress_deploy_lock', time(), 120);
+    @ignore_user_abort(true);
+    @set_time_limit(180);
+
+    $result = magpress_perform_deploy();
+
+    delete_transient('magpress_deploy_lock');
+    delete_transient('magpress_update_info');
+
+    $result['auto_deploy'] = true;
+    $result['from']        = $installed;
+    $result['to_target']   = $remote;
+    return $result;
+}
+
+/**
  * Pagină admin "Magpress" cu buton "Verifică update acum".
  * Aspect → Magpress.
  */
@@ -2358,8 +2456,24 @@ function magpress_render_settings_page() {
 
         if (is_array($info) && !empty($info['version'])) {
             if (version_compare($current, $info['version'], '<')) {
-                $message = '✅ <strong>Versiune nouă pe GitHub:</strong> ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Deploy-ul se face prin <code>push.ps1</code> — rulează scriptul ca să se propage pe site-uri.';
-                $message_type = 'success';
+                if (magpress_auto_deploy_enabled()) {
+                    // Deploy instant, safe (fără maintenance mode) — la fel ca push.ps1, dar cu un click.
+                    $deploy = magpress_run_auto_deploy();
+                    if (!empty($deploy['ok']) && !empty($deploy['version'])) {
+                        $message = '✅ <strong>Actualizat automat la ' . esc_html($deploy['version']) . '</strong> (de la ' . esc_html($current) . '). Deploy fără maintenance mode — fără „Conexiune pierdută".';
+                        $message_type = 'success';
+                    } elseif (!empty($deploy['skipped']) && $deploy['skipped'] === 'deploy_in_progress') {
+                        $message = '⏳ Un deploy e deja în curs. Reîncearcă în ~1 minut.';
+                        $message_type = 'warning';
+                    } else {
+                        $err = $deploy['error'] ?? ($deploy['skipped'] ?? 'necunoscut');
+                        $message = '⚠️ Am detectat versiunea ' . esc_html($info['version']) . ', dar deploy-ul automat a eșuat (' . esc_html($err) . '). Poți rula <code>push.ps1</code> ca fallback.';
+                        $message_type = 'warning';
+                    }
+                } else {
+                    $message = '✅ <strong>Versiune nouă pe GitHub:</strong> ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Auto-deploy e dezactivat — rulează <code>push.ps1</code> ca să se propage pe site-uri.';
+                    $message_type = 'success';
+                }
             } else {
                 $message = '✓ Tema e la zi. Versiune curentă: <strong>' . esc_html($current) . '</strong> (GitHub are tot ' . esc_html($info['version']) . ').';
                 $message_type = 'success';
@@ -2424,7 +2538,16 @@ function magpress_render_settings_page() {
                 </tr>
                 <tr>
                     <th scope="row">Auto-update</th>
-                    <td>✓ Activat (default). Update-urile se aplică automat când sunt detectate.</td>
+                    <td>
+                        <?php if (magpress_auto_deploy_enabled()):
+                            $next = wp_next_scheduled('magpress_auto_deploy_check');
+                            $next_txt = $next ? human_time_diff(time(), $next) : 'la următorul trafic';
+                        ?>
+                            ✓ <strong>Activat</strong> — cron orar, deploy fără maintenance mode (fără „Conexiune pierdută"). Următoarea verificare: <?php echo esc_html($next_txt); ?>.
+                        <?php else: ?>
+                            ✗ Dezactivat. Deploy-ul se face manual prin <code>push.ps1</code>.
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <tr>
                     <th scope="row">Repo</th>
@@ -2433,7 +2556,7 @@ function magpress_render_settings_page() {
             </table>
 
             <h2>Verifică update manual</h2>
-            <p>În mod normal, WordPress verifică update-uri la fiecare 12 ore automat. Click aici dacă vrei să forțezi o verificare instant:</p>
+            <p>Cron-ul orar aplică automat orice versiune nouă de pe GitHub. Dacă vrei acum, pe loc, apasă butonul — verifică GitHub și, dacă e o versiune mai nouă, o instalează instant (deploy safe, fără maintenance mode):</p>
 
             <form method="post">
                 <?php wp_nonce_field('magpress_check_update_action'); ?>
