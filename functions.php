@@ -1084,8 +1084,88 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_colors',
         'type'        => 'text',
     ]);
+
+    // ---------- Sectiune: Coduri personalizate (Header/Footer) ----------
+    $wp_customize->add_section('magpress_custom_code', [
+        'title'       => 'Magpress: Coduri Header/Footer',
+        'description' => 'Adaugă coduri de urmărire (Google Analytics, Google Tag Manager, Facebook Pixel, verificări de proprietate, chat widgets etc.). Codul e inserat exact așa cum îl scrii — include tag-urile <script> / <style> / <meta> unde e nevoie.',
+        'priority'    => 160,
+    ]);
+
+    // Cod în <head> — analytics, meta verification, GTM etc.
+    $wp_customize->add_setting('magpress_code_head', [
+        'default'           => '',
+        'sanitize_callback' => 'magpress_sanitize_custom_code',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_code_head', [
+        'label'       => 'Cod în <head>',
+        'description' => 'Se inserează chiar înainte de închiderea </head>, pe toate paginile. Ideal pentru Google Analytics (gtag.js), Google Tag Manager, meta tag-uri de verificare (Search Console), Facebook Pixel etc.',
+        'section'     => 'magpress_custom_code',
+        'type'        => 'textarea',
+        'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: Google Analytics -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-XXXX\"></script>"],
+    ]);
+
+    // Cod imediat după <body> — GTM noscript etc.
+    $wp_customize->add_setting('magpress_code_body_open', [
+        'default'           => '',
+        'sanitize_callback' => 'magpress_sanitize_custom_code',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_code_body_open', [
+        'label'       => 'Cod după deschiderea <body>',
+        'description' => 'Se inserează imediat după tag-ul <body>, pe toate paginile. Folosit de obicei pentru fragmentul <noscript> al Google Tag Manager.',
+        'section'     => 'magpress_custom_code',
+        'type'        => 'textarea',
+        'input_attrs' => ['rows' => 5, 'placeholder' => "<!-- ex: Google Tag Manager (noscript) -->"],
+    ]);
+
+    // Cod înainte de </body> — footer scripts, chat widgets etc.
+    $wp_customize->add_setting('magpress_code_footer', [
+        'default'           => '',
+        'sanitize_callback' => 'magpress_sanitize_custom_code',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_code_footer', [
+        'label'       => 'Cod în footer (înainte de </body>)',
+        'description' => 'Se inserează chiar înainte de închiderea </body>, pe toate paginile. Ideal pentru scripturi care nu trebuie să blocheze randarea: chat widgets, remarketing, heatmaps etc.',
+        'section'     => 'magpress_custom_code',
+        'type'        => 'textarea',
+        'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: chat widget, remarketing... -->"],
+    ]);
 }
 add_action('customize_register', 'magpress_customize_register');
+
+/**
+ * Sanitizare pentru codurile personalizate (analytics/scripts) din Customizer.
+ * Aceste câmpuri sunt setate doar de administratori cu acces la Customizer,
+ * deci acceptăm HTML/JS brut (inclusiv <script>) — la fel ca alte plugin-uri de
+ * tip „Insert Headers and Footers". Doar ne asigurăm că valoarea e string.
+ */
+function magpress_sanitize_custom_code($value) {
+    return is_string($value) ? $value : '';
+}
+
+/**
+ * Emite codurile personalizate în head / body-open / footer.
+ */
+function magpress_print_code_head() {
+    $code = (string) get_theme_mod('magpress_code_head', '');
+    if (trim($code) !== '') { echo "\n" . $code . "\n"; }
+}
+add_action('wp_head', 'magpress_print_code_head', 99);
+
+function magpress_print_code_body_open() {
+    $code = (string) get_theme_mod('magpress_code_body_open', '');
+    if (trim($code) !== '') { echo "\n" . $code . "\n"; }
+}
+add_action('wp_body_open', 'magpress_print_code_body_open', 5);
+
+function magpress_print_code_footer() {
+    $code = (string) get_theme_mod('magpress_code_footer', '');
+    if (trim($code) !== '') { echo "\n" . $code . "\n"; }
+}
+add_action('wp_footer', 'magpress_print_code_footer', 99);
 
 /**
  * Inline critical CSS — minimul absolut pentru above-the-fold (header + container + featured).
