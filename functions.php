@@ -1133,6 +1133,72 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'textarea',
         'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: chat widget, remarketing... -->"],
     ]);
+
+    // ---------- Sectiune: Parteneri (feed din alte site-uri) ----------
+    $wp_customize->add_section('magpress_partners', [
+        'title'       => 'Magpress: Parteneri (feed extern)',
+        'description' => 'Carduri cu ultimele articole de pe alte site-uri ale tale (stil „Parteneri" Libertatea). Completează URL-ul site-ului sursă; opțional, slug-ul unei categorii (ex: „sport"). Secțiunea apare doar dacă e configurat cel puțin un site.',
+        'priority'    => 161,
+    ]);
+
+    $wp_customize->add_setting('magpress_partners_title', [
+        'default'           => 'Parteneri',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_partners_title', [
+        'label'   => 'Titlul secțiunii',
+        'section' => 'magpress_partners',
+        'type'    => 'text',
+    ]);
+
+    $wp_customize->add_setting('magpress_partners_on_home', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_partners_on_home', [
+        'label'   => 'Afișează pe homepage (jos, după sloturi)',
+        'section' => 'magpress_partners',
+        'type'    => 'checkbox',
+    ]);
+
+    $wp_customize->add_setting('magpress_partners_on_single', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_partners_on_single', [
+        'label'   => 'Afișează pe pagina de articol (înainte de comentarii)',
+        'section' => 'magpress_partners',
+        'type'    => 'checkbox',
+    ]);
+
+    for ($i = 1; $i <= 4; $i++) {
+        $wp_customize->add_setting("magpress_partner_{$i}_url", [
+            'default'           => '',
+            'sanitize_callback' => 'esc_url_raw',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_partner_{$i}_url", [
+            'label'       => "Sursa {$i} — URL site",
+            'description' => $i === 1 ? 'Ex: https://revistacasamea.ro (orice site WordPress de-al tău)' : '',
+            'section'     => 'magpress_partners',
+            'type'        => 'url',
+        ]);
+
+        $wp_customize->add_setting("magpress_partner_{$i}_cat", [
+            'default'           => '',
+            'sanitize_callback' => 'sanitize_title',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_partner_{$i}_cat", [
+            'label'       => "Sursa {$i} — categorie (slug, opțional)",
+            'description' => $i === 1 ? 'Gol = cele mai noi articole din tot site-ul.' : '',
+            'section'     => 'magpress_partners',
+            'type'        => 'text',
+        ]);
+    }
 }
 add_action('customize_register', 'magpress_customize_register');
 
@@ -1166,6 +1232,137 @@ function magpress_print_code_footer() {
     if (trim($code) !== '') { echo "\n" . $code . "\n"; }
 }
 add_action('wp_footer', 'magpress_print_code_footer', 99);
+
+/**
+ * ============================================================
+ * PARTENERI — feed de articole din alte site-uri (stil Libertatea)
+ * ============================================================
+ * Sursele (URL + categorie opțională) vin din Customizer. Articolele se iau
+ * prin REST API-ul WordPress al site-ului sursă (wp-json/wp/v2), cu imagine
+ * featured, și se țin în cache 30 min (transient). Cache-ul e reîmprospătat
+ * și de cron-ul de 5 minute, ca vizitatorii să nu aștepte fetch-ul aproape
+ * niciodată. La eroare → cache gol 10 min, pagina nu se blochează.
+ */
+function magpress_partner_sources() {
+    $out = [];
+    for ($i = 1; $i <= 4; $i++) {
+        $url = trim((string) get_theme_mod("magpress_partner_{$i}_url", ''));
+        if ($url === '') continue;
+        if (!preg_match('#^https?://#i', $url)) { $url = 'https://' . $url; }
+        $out[] = ['url' => rtrim($url, '/'), 'cat' => trim((string) get_theme_mod("magpress_partner_{$i}_cat", ''))];
+    }
+    return $out;
+}
+
+function magpress_partner_fetch($src, $limit = 4) {
+    $key    = 'magpress_partner_' . md5($src['url'] . '|' . $src['cat'] . '|' . $limit);
+    $cached = get_transient($key);
+    if ($cached !== false) { return is_array($cached) ? $cached : []; }
+
+    $posts = [];
+    $api   = $src['url'] . '/wp-json/wp/v2/posts?per_page=' . (int) $limit . '&_embed=1';
+
+    if ($src['cat'] !== '') {
+        $cat_resp = wp_remote_get(
+            $src['url'] . '/wp-json/wp/v2/categories?slug=' . rawurlencode($src['cat']) . '&_fields=id',
+            ['timeout' => 4]
+        );
+        if (!is_wp_error($cat_resp) && 200 === wp_remote_retrieve_response_code($cat_resp)) {
+            $cats = json_decode(wp_remote_retrieve_body($cat_resp), true);
+            if (is_array($cats) && !empty($cats[0]['id'])) {
+                $api .= '&categories=' . (int) $cats[0]['id'];
+            }
+        }
+    }
+
+    $resp = wp_remote_get($api, ['timeout' => 4]);
+    if (!is_wp_error($resp) && 200 === wp_remote_retrieve_response_code($resp)) {
+        $data = json_decode(wp_remote_retrieve_body($resp), true);
+        if (is_array($data)) {
+            $host = preg_replace('/^www\./i', '', (string) parse_url($src['url'], PHP_URL_HOST));
+            foreach ($data as $p) {
+                if (empty($p['link']) || empty($p['title']['rendered'])) continue;
+                $img   = '';
+                $media = isset($p['_embedded']['wp:featuredmedia'][0]) ? $p['_embedded']['wp:featuredmedia'][0] : null;
+                if (is_array($media)) {
+                    $sizes = isset($media['media_details']['sizes']) ? $media['media_details']['sizes'] : [];
+                    foreach (['medium_large', 'medium', 'large'] as $s) {
+                        if (!empty($sizes[$s]['source_url'])) { $img = $sizes[$s]['source_url']; break; }
+                    }
+                    if ($img === '' && !empty($media['source_url'])) { $img = $media['source_url']; }
+                }
+                $posts[] = [
+                    'title' => wp_strip_all_tags(html_entity_decode((string) $p['title']['rendered'], ENT_QUOTES)),
+                    'link'  => (string) $p['link'],
+                    'img'   => $img,
+                    'host'  => $host,
+                ];
+            }
+        }
+        set_transient($key, $posts, 30 * MINUTE_IN_SECONDS);
+    } else {
+        set_transient($key, [], 10 * MINUTE_IN_SECONDS);
+    }
+    return $posts;
+}
+
+/**
+ * Randează secțiunea Parteneri: 4 carduri, round-robin câte un articol din
+ * fiecare sursă (dacă e o singură sursă → ultimele ei 4 articole).
+ * $context: 'home' | 'single' — respectă toggle-urile din Customizer.
+ */
+function magpress_render_partners($context = 'home') {
+    $enabled = ($context === 'single')
+        ? get_theme_mod('magpress_partners_on_single', 1)
+        : get_theme_mod('magpress_partners_on_home', 1);
+    if (!$enabled) { return ''; }
+
+    $sources = magpress_partner_sources();
+    if (!$sources) { return ''; }
+
+    $per_source = [];
+    foreach ($sources as $i => $src) { $per_source[$i] = magpress_partner_fetch($src, 4); }
+
+    $cards = [];
+    $seen  = [];
+    for ($round = 0; $round < 4 && count($cards) < 4; $round++) {
+        foreach ($per_source as $list) {
+            if (count($cards) >= 4) break;
+            if (empty($list[$round])) continue;
+            $p = $list[$round];
+            if (isset($seen[$p['link']])) continue;
+            $seen[$p['link']] = 1;
+            $cards[] = $p;
+        }
+    }
+    if (!$cards) { return ''; }
+
+    $title = get_theme_mod('magpress_partners_title', 'Parteneri');
+    ob_start(); ?>
+    <section class="partners-row">
+      <div class="section-header">
+        <span class="section-header__icon" aria-hidden="true"></span>
+        <h2 class="section-header__title"><?php echo esc_html($title); ?></h2>
+      </div>
+      <div class="partners-grid">
+        <?php foreach ($cards as $c): ?>
+          <a class="partner-card" href="<?php echo esc_url($c['link']); ?>" target="_blank" rel="noopener">
+            <?php if ($c['img']): ?>
+              <img class="partner-card__img" src="<?php echo esc_url($c['img']); ?>" alt="" loading="lazy" decoding="async">
+            <?php endif; ?>
+            <span class="partner-card__host"><?php echo esc_html($c['host']); ?></span>
+            <h3 class="partner-card__title"><?php echo esc_html($c['title']); ?></h3>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php return ob_get_clean();
+}
+
+// Încălzește cache-ul feed-urilor pe cron-ul de 5 minute (după check-ul de update).
+add_action('magpress_auto_deploy_check', function () {
+    foreach (magpress_partner_sources() as $src) { magpress_partner_fetch($src, 4); }
+}, 20);
 
 /**
  * Inline critical CSS — minimul absolut pentru above-the-fold (header + container + featured).

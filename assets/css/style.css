@@ -808,3 +808,14 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
   .site-header,.site-footer,.newsletter,.related-row,.article-comments,.magpress-pagination{display:none!important}
   .article-image,.article-body{max-width:none}
 }
+
+/* ---- Parteneri (feed extern, stil Libertatea) ---- */
+.partners-row{margin:2.5rem 0}
+.partners-grid{display:grid;gap:var(--gap);grid-template-columns:1fr}
+@media (min-width:560px){.partners-grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1000px){.partners-grid{grid-template-columns:repeat(4,1fr)}}
+.partner-card{display:flex;flex-direction:column;gap:.45rem;background:#fff;border:1px solid var(--c-border);border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;transition:box-shadow .2s,transform .2s}
+.partner-card:hover{box-shadow:0 6px 18px rgba(0,0,0,.09);transform:translateY(-2px)}
+.partner-card__img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
+.partner-card__host{padding:.35rem .9rem 0;font-size:.74rem;font-weight:700;color:var(--c-accent)}
+.partner-card__title{padding:0 .9rem .95rem;margin:0;font-size:.95rem;line-height:1.35;font-weight:700;color:var(--c-heading-h2,inherit)}

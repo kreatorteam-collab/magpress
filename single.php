@@ -94,6 +94,8 @@ $cats = get_the_category();
 
   <?php echo magpress_render_most_read(5); // News feature toggle ?>
 
+  <?php echo magpress_render_partners('single'); ?>
+
   <?php if (comments_open() || get_comments_number()): ?>
     <section class="article-comments">
       <?php comments_template(); ?>
