@@ -6,6 +6,8 @@
 /_deploy/
 deploy.php
 deploy-config.php
+tools/sites.json
+sites.json
 
 # Build artifacts
 /node_modules/
