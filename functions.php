@@ -2320,9 +2320,12 @@ function magpress_enable_auto_update($update, $item) {
  * înlocuiește fișierele în loc, fără maintenance mode.
  *
  * Fluxul:
- *   1. Un cron orar citește .update-info.json de pe GitHub.
+ *   1. Un cron la 5 minute citește .update-info.json de pe GitHub (cache-buster).
  *   2. Dacă versiunea de pe GitHub > versiunea instalată → rulează deploy-ul safe.
- *   3. push.ps1 rămâne funcțional în paralel (deploy manual instant), ca fallback.
+ *   3. BONUS instant: cât timp un admin e logat în wp-admin, la fiecare pagină
+ *      încărcată (throttle 60s) se declanșează aceeași verificare în FUNDAL —
+ *      site-ul la care lucrezi prinde update-ul în secunde, fără click.
+ *   4. push.ps1 rămâne funcțional în paralel (deploy manual instant), ca fallback.
  *
  * Se poate dezactiva fără edit de cod: add_filter('magpress_auto_deploy_enabled', '__return_false');
  * sau definind constanta MAGPRESS_AUTO_DEPLOY_DISABLED = true în wp-config.php.
@@ -2334,7 +2337,18 @@ function magpress_auto_deploy_enabled() {
     return (bool) apply_filters('magpress_auto_deploy_enabled', true);
 }
 
-// Programează cron-ul orar (re-schedule idempotent, ca la ping).
+// Interval custom de 5 minute pentru verificarea de update.
+add_filter('cron_schedules', function ($schedules) {
+    if (!isset($schedules['magpress_5min'])) {
+        $schedules['magpress_5min'] = [
+            'interval' => 5 * MINUTE_IN_SECONDS,
+            'display'  => 'La 5 minute (Magpress auto-deploy)',
+        ];
+    }
+    return $schedules;
+});
+
+// Programează cron-ul la 5 minute (re-schedule idempotent, ca la ping).
 function magpress_schedule_auto_deploy() {
     if (!magpress_auto_deploy_enabled()) {
         if (wp_next_scheduled('magpress_auto_deploy_check')) {
@@ -2342,17 +2356,59 @@ function magpress_schedule_auto_deploy() {
         }
         return;
     }
-    if (!wp_next_scheduled('magpress_auto_deploy_check')) {
-        wp_schedule_event(time() + 300, 'hourly', 'magpress_auto_deploy_check');
+    // Re-programează dacă intervalul s-a schimbat (ex: vechiul 'hourly' → 'magpress_5min').
+    $ev = wp_get_scheduled_event('magpress_auto_deploy_check');
+    if ($ev && $ev->schedule !== 'magpress_5min') {
+        wp_clear_scheduled_hook('magpress_auto_deploy_check');
+        $ev = false;
+    }
+    if (!$ev) {
+        wp_schedule_event(time() + 60, 'magpress_5min', 'magpress_auto_deploy_check');
     }
 }
 add_action('after_switch_theme', 'magpress_schedule_auto_deploy');
 add_action('init', 'magpress_schedule_auto_deploy');
 add_action('magpress_auto_deploy_check', 'magpress_run_auto_deploy');
+// Hook separat pentru trigger-ul instant din admin (hook diferit ca să nu fie
+// dedupe-uit de wp_schedule_single_event — WP ignoră single events cu același
+// hook la <10 min de un event recurent deja programat).
+add_action('magpress_auto_deploy_instant', 'magpress_run_auto_deploy');
 
 // Cleanup la schimbarea temei.
 add_action('switch_theme', function () {
     wp_clear_scheduled_hook('magpress_auto_deploy_check');
+    wp_clear_scheduled_hook('magpress_auto_deploy_instant');
+});
+
+/**
+ * Trigger INSTANT: cât timp lucrezi în wp-admin, fiecare încărcare de pagină
+ * (max 1/minut) pornește verificarea de update în FUNDAL — prin cron spawn,
+ * ca să nu blocheze pagina de admin nici măcar o secundă. Efect: după un push
+ * pe GitHub, site-ul la care lucrezi se actualizează în secunde, fără click.
+ * Pe hosturile cu DISABLE_WP_CRON, event-ul e preluat de cron-ul de sistem.
+ */
+function magpress_instant_deploy_trigger() {
+    if (!magpress_auto_deploy_enabled()) return;
+    if (!current_user_can('manage_options')) return;
+    if (get_transient('magpress_instant_check_throttle')) return;
+    set_transient('magpress_instant_check_throttle', 1, MINUTE_IN_SECONDS);
+
+    wp_schedule_single_event(time() - 1, 'magpress_auto_deploy_instant');
+    if (function_exists('spawn_cron')) {
+        spawn_cron();
+    }
+}
+add_action('admin_init', 'magpress_instant_deploy_trigger');
+
+/**
+ * Notificare discretă în admin după un auto-deploy reușit (afișată o dată).
+ */
+add_action('admin_notices', function () {
+    if (!current_user_can('manage_options')) return;
+    $last = get_option('magpress_last_auto_deploy');
+    if (!is_array($last) || empty($last['version'])) return;
+    delete_option('magpress_last_auto_deploy');
+    echo '<div class="notice notice-success is-dismissible"><p>✅ <strong>Magpress</strong> s-a actualizat automat la versiunea <strong>' . esc_html($last['version']) . '</strong>.</p></div>';
 });
 
 /**
@@ -2400,6 +2456,11 @@ function magpress_run_auto_deploy() {
 
     delete_transient('magpress_deploy_lock');
     delete_transient('magpress_update_info');
+
+    // Reținem ultimul auto-deploy reușit → notificare discretă în admin.
+    if (!empty($result['ok']) && !empty($result['version'])) {
+        update_option('magpress_last_auto_deploy', ['version' => $result['version'], 'time' => time()], false);
+    }
 
     $result['auto_deploy'] = true;
     $result['from']        = $installed;
@@ -2543,7 +2604,7 @@ function magpress_render_settings_page() {
                             $next = wp_next_scheduled('magpress_auto_deploy_check');
                             $next_txt = $next ? human_time_diff(time(), $next) : 'la următorul trafic';
                         ?>
-                            ✓ <strong>Activat</strong> — cron orar, deploy fără maintenance mode (fără „Conexiune pierdută"). Următoarea verificare: <?php echo esc_html($next_txt); ?>.
+                            ✓ <strong>Activat</strong> — verificare la 5 minute + instant cât timp ești în wp-admin. Deploy fără maintenance mode (fără „Conexiune pierdută"). Următoarea verificare programată: <?php echo esc_html($next_txt); ?>.
                         <?php else: ?>
                             ✗ Dezactivat. Deploy-ul se face manual prin <code>push.ps1</code>.
                         <?php endif; ?>
@@ -2556,7 +2617,7 @@ function magpress_render_settings_page() {
             </table>
 
             <h2>Verifică update manual</h2>
-            <p>Cron-ul orar aplică automat orice versiune nouă de pe GitHub. Dacă vrei acum, pe loc, apasă butonul — verifică GitHub și, dacă e o versiune mai nouă, o instalează instant (deploy safe, fără maintenance mode):</p>
+            <p>Update-urile se aplică singure: instant cât timp ești în wp-admin, în maxim 5 minute în rest. Butonul e doar pentru confirmare imediată — verifică GitHub și, dacă e o versiune mai nouă, o instalează pe loc:</p>
 
             <form method="post">
                 <?php wp_nonce_field('magpress_check_update_action'); ?>
