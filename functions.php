@@ -4630,6 +4630,21 @@ function magpress_end_head_buffer() {
 add_action('wp_head', 'magpress_end_head_buffer', 999);
 
 /**
+ * Fix titluri dublu-codate (SEOPress): separatorul salvat ca text „&raquo;"
+ * mai e codat o dată la output → în tab/Google apare literal „&raquo;" în loc
+ * de „»". Decodăm doar dublu-codările (&amp;raquo; → &raquo;), fără să atingem
+ * ampersand-urile legitime (&amp; venit dintr-un „&" real rămâne intact).
+ */
+function magpress_fix_double_encoded_title($title) {
+    if (!is_string($title) || $title === '') { return $title; }
+    return preg_replace('/&amp;(#?[a-zA-Z0-9]+;)/', '&$1', $title);
+}
+// SEOPress scurtcircuitează titlul prin pre_get_document_title; rulăm după el.
+add_filter('pre_get_document_title', 'magpress_fix_double_encoded_title', 9999);
+// Fallback pentru titlurile generate de WP core.
+add_filter('document_title', 'magpress_fix_double_encoded_title', 9999);
+
+/**
  * Determină tipul de publisher schema pentru site-ul curent.
  * - Customizer setting (override manual) are prioritate
  * - Altfel, auto-detect din domain (NewsMediaOrganization pe domenii news cunoscute, Organization altfel)
