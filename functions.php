@@ -1189,12 +1189,24 @@ function magpress_customize_register($wp_customize) {
 
         $wp_customize->add_setting("magpress_partner_{$i}_cat", [
             'default'           => '',
-            'sanitize_callback' => 'sanitize_title',
+            'sanitize_callback' => 'magpress_sanitize_slug_list',
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_partner_{$i}_cat", [
-            'label'       => "Sursa {$i} — categorie (slug, opțional)",
-            'description' => $i === 1 ? 'Gol = cele mai noi articole din tot site-ul.' : '',
+            'label'       => "Sursa {$i} — DOAR din categoriile (slug-uri, opțional)",
+            'description' => $i === 1 ? 'Gol = cele mai noi articole din tot site-ul. Mai multe categorii separate prin virgulă (ex: sport, auto).' : '',
+            'section'     => 'magpress_partners',
+            'type'        => 'text',
+        ]);
+
+        $wp_customize->add_setting("magpress_partner_{$i}_cat_exclude", [
+            'default'           => '',
+            'sanitize_callback' => 'magpress_sanitize_slug_list',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_partner_{$i}_cat_exclude", [
+            'label'       => "Sursa {$i} — EXCLUDE categoriile (slug-uri, opțional)",
+            'description' => $i === 1 ? 'Articolele din aceste categorii NU apar (ex: uncategorized, promo). Separate prin virgulă.' : '',
             'section'     => 'magpress_partners',
             'type'        => 'text',
         ]);
@@ -1243,36 +1255,62 @@ add_action('wp_footer', 'magpress_print_code_footer', 99);
  * și de cron-ul de 5 minute, ca vizitatorii să nu aștepte fetch-ul aproape
  * niciodată. La eroare → cache gol 10 min, pagina nu se blochează.
  */
+/** Sanitizează o listă de slug-uri separate prin virgulă („Sport, AUTO" → „sport,auto"). */
+function magpress_sanitize_slug_list($v) {
+    if (!is_string($v)) return '';
+    $slugs = preg_split('/[\s,]+/', $v, -1, PREG_SPLIT_NO_EMPTY);
+    $clean = array_filter(array_map('sanitize_title', $slugs));
+    return implode(',', array_unique($clean));
+}
+
 function magpress_partner_sources() {
     $out = [];
     for ($i = 1; $i <= 4; $i++) {
         $url = trim((string) get_theme_mod("magpress_partner_{$i}_url", ''));
         if ($url === '') continue;
         if (!preg_match('#^https?://#i', $url)) { $url = 'https://' . $url; }
-        $out[] = ['url' => rtrim($url, '/'), 'cat' => trim((string) get_theme_mod("magpress_partner_{$i}_cat", ''))];
+        $out[] = [
+            'url'     => rtrim($url, '/'),
+            'cat'     => magpress_sanitize_slug_list((string) get_theme_mod("magpress_partner_{$i}_cat", '')),
+            'exclude' => magpress_sanitize_slug_list((string) get_theme_mod("magpress_partner_{$i}_cat_exclude", '')),
+        ];
     }
     return $out;
 }
 
+/** Rezolvă o listă de slug-uri („sport,auto") în ID-uri de categorii de pe site-ul sursă. */
+function magpress_partner_resolve_cat_ids($site_url, $slug_list) {
+    if ($slug_list === '') return [];
+    $resp = wp_remote_get(
+        $site_url . '/wp-json/wp/v2/categories?per_page=100&_fields=id&slug=' . rawurlencode($slug_list),
+        ['timeout' => 4]
+    );
+    if (is_wp_error($resp) || 200 !== wp_remote_retrieve_response_code($resp)) return [];
+    $cats = json_decode(wp_remote_retrieve_body($resp), true);
+    if (!is_array($cats)) return [];
+    $ids = [];
+    foreach ($cats as $c) {
+        if (!empty($c['id'])) { $ids[] = (int) $c['id']; }
+    }
+    return $ids;
+}
+
 function magpress_partner_fetch($src, $limit = 4) {
-    $key    = 'magpress_partner_' . md5($src['url'] . '|' . $src['cat'] . '|' . $limit);
-    $cached = get_transient($key);
+    $exclude = isset($src['exclude']) ? $src['exclude'] : '';
+    $key     = 'magpress_partner_' . md5($src['url'] . '|' . $src['cat'] . '|' . $exclude . '|' . $limit);
+    $cached  = get_transient($key);
     if ($cached !== false) { return is_array($cached) ? $cached : []; }
 
     $posts = [];
     $api   = $src['url'] . '/wp-json/wp/v2/posts?per_page=' . (int) $limit . '&_embed=1';
 
-    if ($src['cat'] !== '') {
-        $cat_resp = wp_remote_get(
-            $src['url'] . '/wp-json/wp/v2/categories?slug=' . rawurlencode($src['cat']) . '&_fields=id',
-            ['timeout' => 4]
-        );
-        if (!is_wp_error($cat_resp) && 200 === wp_remote_retrieve_response_code($cat_resp)) {
-            $cats = json_decode(wp_remote_retrieve_body($cat_resp), true);
-            if (is_array($cats) && !empty($cats[0]['id'])) {
-                $api .= '&categories=' . (int) $cats[0]['id'];
-            }
-        }
+    $include_ids = magpress_partner_resolve_cat_ids($src['url'], $src['cat']);
+    if ($include_ids) {
+        $api .= '&categories=' . implode(',', $include_ids);
+    }
+    $exclude_ids = magpress_partner_resolve_cat_ids($src['url'], $exclude);
+    if ($exclude_ids) {
+        $api .= '&categories_exclude=' . implode(',', $exclude_ids);
     }
 
     $resp = wp_remote_get($api, ['timeout' => 4]);
