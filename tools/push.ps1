@@ -11,6 +11,10 @@
 # instant din wp-admin). Scriptul ăsta e necesar doar pentru bootstrap
 # (site-uri care rulează < 0.9.105) sau ca fallback manual.
 #
+# AUTOMATIZARE: deploy-ul instant la push pe main rulează prin GitHub Actions
+# (.github/workflows/deploy.yml), cu lista site-urilor stocată criptat în
+# secretul de repo MAGPRESS_FLEET (Settings → Secrets → Actions).
+#
 # Utilizare:
 #   .\push.ps1                       # citește sites.json de lângă script
 #   .\push.ps1 -SitesFile alta.json  # altă listă
