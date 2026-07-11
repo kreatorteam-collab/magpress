@@ -4643,6 +4643,33 @@ function magpress_fix_double_encoded_title($title) {
 add_filter('pre_get_document_title', 'magpress_fix_double_encoded_title', 9999);
 // Fallback pentru titlurile generate de WP core.
 add_filter('document_title', 'magpress_fix_double_encoded_title', 9999);
+// SEOPress: filtrul lui de titlu (dacă pluginul e activ).
+add_filter('seopress_titles_title', 'magpress_fix_double_encoded_title', 9999);
+
+/**
+ * BULLETPROOF: SEOPress escapează separatorul DUPĂ filtrele de mai sus, așa că
+ * uneori „&amp;raquo;" ajunge totuși în <title>. Prindem tag-ul <title> direct
+ * în output-ul din <head>, indiferent cine îl generează, și decodăm dublu-
+ * codările DOAR în interiorul lui. Bufferul înfășoară tot <head>-ul: pornit
+ * la prioritate -100 (înaintea oricărui alt buffer din head) și închis la 1000
+ * (DUPĂ bufferul de schema homepage, care e 1→999), ca nesting-ul să rămână
+ * corect (LIFO) pe toate paginile.
+ */
+function magpress_title_buffer_start() { ob_start(); }
+add_action('wp_head', 'magpress_title_buffer_start', -100);
+
+function magpress_title_buffer_end() {
+    if (!ob_get_level()) { return; }
+    $html = ob_get_clean();
+    if ($html === false) { return; }
+    $html = preg_replace_callback('#<title\b[^>]*>(.*?)</title>#is', function ($m) {
+        $fixed = preg_replace('/&amp;(#?[a-zA-Z0-9]+;)/', '&$1', $m[1]);
+        if ($fixed === $m[1]) { return $m[0]; }
+        return str_replace('>' . $m[1] . '<', '>' . $fixed . '<', $m[0]);
+    }, $html, 1);
+    echo $html;
+}
+add_action('wp_head', 'magpress_title_buffer_end', 1000);
 
 /**
  * Determină tipul de publisher schema pentru site-ul curent.
