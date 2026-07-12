@@ -1061,6 +1061,18 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'textarea',
     ]);
 
+    $wp_customize->add_setting('magpress_article_ad_mid2', [
+        'default'           => '',
+        'sanitize_callback' => function($v) { return is_string($v) ? $v : ''; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_article_ad_mid2', [
+        'label'       => 'A doua reclamă în articol (pe la 60%)',
+        'description' => 'Cod pentru a DOUA reclamă din corpul articolului, mai jos (doar pe articole lungi, ≥10 paragrafe). ATENȚIE la MGID/AdsKeeper: pune aici un widget cu ALT widget-id decât cel de sus, altfel rămâne gol. Lasă gol pentru a nu afișa a doua reclamă.',
+        'section'     => 'magpress_article_ads',
+        'type'        => 'textarea',
+    ]);
+
     $wp_customize->add_setting('magpress_article_ad_end', [
         'default'           => '',
         'sanitize_callback' => function($v) { return is_string($v) ? $v : ''; },
@@ -1614,24 +1626,33 @@ function magpress_homepage_slots() {
  */
 function magpress_inject_mid_article_ad($content) {
     if (!is_singular('post') || !in_the_loop() || !is_main_query()) return $content;
-    $ad = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
-    if ($ad === '') return $content;
+    $ad  = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
+    $ad2 = trim((string) get_theme_mod('magpress_article_ad_mid2', ''));
+    if ($ad === '' && $ad2 === '') return $content;
 
     $parts = explode('</p>', $content);
     $n = count($parts);
     if ($n < 5) return $content; // <4 paragrafe — nicio reclamă
 
-    $ad_html = magpress_render_ad_html($ad, 'mid-article');
+    // Poziția 1: după paragraful 3. Poziția 2: pe la 60%, doar pe articole lungi.
+    // Map poziție→HTML (fiecare cu contextul lui). A doua reclamă e un COD SEPARAT
+    // (widget-id diferit) dacă e configurată; altfel, pentru non-MGID, dublăm primul.
+    $insertions = [];
+    if ($ad !== '') { $insertions[3] = magpress_render_ad_html($ad, 'mid-article'); }
 
-    // Poziții de inserare (după al K-lea paragraf). Prima după 3. A DOUA reclamă doar pe
-    // articole LUNGI și distanțată (ca să nu fie două reclame lipite). Refolosește același cod.
-    // EXCEPȚIE MGID/AdsKeeper: același widget-id NU poate apărea de două ori pe pagină —
-    // rețeaua umple doar prima instanță, a doua rămâne goală. Deci NU duplicăm acele reclame.
-    $is_mgid = (bool) preg_match('/_mgwidget|_mgq\b|adskeeper|mgid\.com|jsc\.mgid/i', $ad);
-    $positions = [3];
-    if (!$is_mgid && $n >= 10) {
+    if ($n >= 10) {
         $second = (int) floor($n * 0.6);
-        if ($second >= 6 && $second <= $n - 2) { $positions[] = $second; }
+        if ($second >= 6 && $second <= $n - 2 && !isset($insertions[$second])) {
+            if ($ad2 !== '') {
+                // A doua reclamă distinctă (recomandat pt MGID/AdsKeeper — widget-id propriu).
+                $insertions[$second] = magpress_render_ad_html($ad2, 'mid-article-2');
+            } elseif ($ad !== '') {
+                // Fără a doua reclamă configurată: dublăm primul DOAR dacă NU e MGID/AdsKeeper
+                // (acelea nu se umplu de două ori cu același widget-id).
+                $is_mgid = (bool) preg_match('/_mgwidget|_mgq\b|adskeeper|mgid\.com|jsc\.mgid/i', $ad);
+                if (!$is_mgid) { $insertions[$second] = magpress_render_ad_html($ad, 'mid-article'); }
+            }
+        }
     }
 
     $out = '';
@@ -1639,7 +1660,7 @@ function magpress_inject_mid_article_ad($content) {
         $out .= $parts[$i];
         if ($i < $n - 1) {
             $out .= '</p>';
-            if (in_array($i + 1, $positions, true)) { $out .= $ad_html; }
+            if (isset($insertions[$i + 1])) { $out .= $insertions[$i + 1]; }
         }
     }
     return $out;
