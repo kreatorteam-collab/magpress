@@ -1337,9 +1337,12 @@ function magpress_partner_fetch($src, $limit = 4) {
                 ];
             }
         }
-        set_transient($key, $posts, 30 * MINUTE_IN_SECONDS);
+        // Cache 12h (reglabil via filter). Reîmprospătat în fundal de cron.
+        $ttl = (int) apply_filters('magpress_partners_cache_ttl', 12 * HOUR_IN_SECONDS);
+        set_transient($key, $posts, max(300, $ttl));
     } else {
-        set_transient($key, [], 10 * MINUTE_IN_SECONDS);
+        // La eroare (sursă picată) reîncercăm mai des — 30 min.
+        set_transient($key, [], 30 * MINUTE_IN_SECONDS);
     }
     return $posts;
 }
