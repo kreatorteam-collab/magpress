@@ -1780,6 +1780,15 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     $html = trim((string) $html);
     if ($html === '') return '';
 
+    // MGID native widgets: integrarea lor oficială cere ca div-ul (data-type="_mgwidget")
+    // + scriptul (_mgq.push(["_mgc.load"])) să fie în HTML-ul INIȚIAL — loader-ul MGID din
+    // <head> procesează coada _mgq la load. Dacă le injectăm lazy (la scroll), ne bazăm pe un
+    // re-scan al loader-ului care nu e garantat și widget-ul rămâne gol. Deci le emitem RAW,
+    // indiferent de setarea de lazy-loading. (Scriptul e definit de administrator — sigur.)
+    if (preg_match('/_mgwidget|_mgq\b|jsc\.mgid|servicer\.mgid|mgid\.com/i', $html)) {
+        return '<div class="ad-slot ad-slot--mgid ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
+    }
+
     // Detect & cache Publisher ID — caută în scriptul async loader SAU în data-ad-client pe <ins>.
     // Îl emitem o singură dată în <head> ca să evităm race conditions per-slot.
     $pub_found = '';
