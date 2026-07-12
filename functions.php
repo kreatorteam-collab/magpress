@@ -1296,6 +1296,49 @@ function magpress_serve_ads_txt() {
 add_action('init', 'magpress_serve_ads_txt', 0);
 
 /**
+ * Auto-colapsare sloturi MGID/AdsKeeper goale.
+ * Când rețeaua nu umple un widget (fill mic / cont nou), div-ul rămâne gol
+ * dar cu înălțimea rezervată (min-height din codul lor) → gol urât în pagină.
+ * JS-ul verifică widget-urile de câteva ori (încărcarea e async) și ascunde
+ * slotul rămas gol; un MutationObserver îl dezvăluie la loc dacă se umple mai
+ * târziu. Nu atinge reclamele care s-au umplut.
+ */
+function magpress_collapse_empty_ads_script() {
+    ?>
+<script id="magpress-collapse-empty-ads">
+(function(){
+  function filled(w){
+    if(!w) return true;
+    if(w.querySelector('iframe,img,ins,a[href],video,picture')) return true;
+    for(var i=0;i<w.children.length;i++){ if(w.children[i].offsetHeight>10) return true; }
+    return (w.textContent||'').trim().length>0 && w.children.length>0;
+  }
+  function slotOf(w){ return w.closest ? w.closest('.ad-slot') : null; }
+  function apply(){
+    var ws=document.querySelectorAll('[data-type="_mgwidget"]');
+    for(var i=0;i<ws.length;i++){
+      var w=ws[i], s=slotOf(w);
+      if(filled(w)){ if(s) s.style.display=''; }
+      else { w.style.minHeight='0'; if(s) s.style.display='none'; }
+    }
+  }
+  if(!document.querySelector('[data-type="_mgwidget"]')) return;
+  // Dezvăluie automat dacă widget-ul se umple târziu.
+  try{
+    var ws=document.querySelectorAll('[data-type="_mgwidget"]');
+    for(var i=0;i<ws.length;i++){(function(w){
+      var mo=new MutationObserver(function(){ if(filled(w)){ var s=slotOf(w); if(s) s.style.display=''; }});
+      mo.observe(w,{childList:true,subtree:true});
+    })(ws[i]);}
+  }catch(e){}
+  [5000,9000,14000].forEach(function(t){ setTimeout(apply,t); });
+})();
+</script>
+    <?php
+}
+add_action('wp_footer', 'magpress_collapse_empty_ads_script', 100);
+
+/**
  * ============================================================
  * PARTENERI — feed de articole din alte site-uri (stil Libertatea)
  * ============================================================
