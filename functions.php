@@ -1625,8 +1625,11 @@ function magpress_inject_mid_article_ad($content) {
 
     // Poziții de inserare (după al K-lea paragraf). Prima după 3. A DOUA reclamă doar pe
     // articole LUNGI și distanțată (ca să nu fie două reclame lipite). Refolosește același cod.
+    // EXCEPȚIE MGID/AdsKeeper: același widget-id NU poate apărea de două ori pe pagină —
+    // rețeaua umple doar prima instanță, a doua rămâne goală. Deci NU duplicăm acele reclame.
+    $is_mgid = (bool) preg_match('/_mgwidget|_mgq\b|adskeeper|mgid\.com|jsc\.mgid/i', $ad);
     $positions = [3];
-    if ($n >= 10) {
+    if (!$is_mgid && $n >= 10) {
         $second = (int) floor($n * 0.6);
         if ($second >= 6 && $second <= $n - 2) { $positions[] = $second; }
     }
