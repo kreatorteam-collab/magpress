@@ -1134,6 +1134,20 @@ function magpress_customize_register($wp_customize) {
         'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: chat widget, remarketing... -->"],
     ]);
 
+    // ads.txt — servit automat de temă la /ads.txt (fără fișier manual per site).
+    $wp_customize->add_setting('magpress_ads_txt', [
+        'default'           => '',
+        'sanitize_callback' => 'magpress_sanitize_custom_code',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_ads_txt', [
+        'label'       => 'Conținut ads.txt',
+        'description' => 'Liniile ads.txt cerute de rețelele de reclame (AdsKeeper, AdSense etc.). Tema le servește automat la adresa /ads.txt — NU trebuie să creezi fișier pe server. Copiază liniile din dashboard-ul fiecărei rețele. Lasă gol pentru a nu servi ads.txt din temă. Nu funcționează dacă există deja un fișier fizic ads.txt pe server (acela are prioritate).',
+        'section'     => 'magpress_custom_code',
+        'type'        => 'textarea',
+        'input_attrs' => ['rows' => 8, 'placeholder' => "google.com, pub-XXXXXXXX, DIRECT, f08c47fec0942fa0\nadskeeper.com, 1103871, DIRECT"],
+    ]);
+
     // ---------- Sectiune: Parteneri (feed din alte site-uri) ----------
     $wp_customize->add_section('magpress_partners', [
         'title'       => 'Magpress: Parteneri (feed extern)',
@@ -1244,6 +1258,30 @@ function magpress_print_code_footer() {
     if (trim($code) !== '') { echo "\n" . $code . "\n"; }
 }
 add_action('wp_footer', 'magpress_print_code_footer', 99);
+
+/**
+ * Servește /ads.txt din setarea Customizer (Authorized Digital Sellers).
+ * Astfel nu trebuie creat fișier fizic pe fiecare din cele 64 de site-uri —
+ * rețelele de reclame (AdsKeeper, AdSense) îl citesc de la {site}/ads.txt.
+ * NB: dacă există un fișier fizic ads.txt în root, serverul îl servește pe
+ * acela direct și PHP nu mai rulează — atunci setarea din temă e ignorată.
+ */
+function magpress_serve_ads_txt() {
+    $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if (strtolower(trim($path, '/')) !== 'ads.txt') { return; }
+
+    $content = trim((string) get_theme_mod('magpress_ads_txt', ''));
+    if ($content === '') { return; } // lasă WP să dea 404 normal
+
+    if (!headers_sent()) {
+        header('Content-Type: text/plain; charset=utf-8');
+        header('X-Robots-Tag: noindex');
+        header('Cache-Control: max-age=86400');
+    }
+    echo $content . "\n";
+    exit;
+}
+add_action('init', 'magpress_serve_ads_txt', 0);
 
 /**
  * ============================================================
