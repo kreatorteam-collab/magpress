@@ -5800,6 +5800,7 @@ function magpress_curs_topbar_output() {
 .mp-curs-bar__item b{color:#fff;font-weight:700}
 .mp-curs-bar__dir--up{color:#4cc26a}.mp-curs-bar__dir--down{color:#ef5b5b}
 .mp-curs-bar__date{color:#8b91a0;white-space:nowrap}
+@media(max-width:768px){.mp-curs-bar{display:none!important}}
 </style>
 <div class="mp-curs-bar mp-curs-bar--<?php echo esc_attr(get_theme_mod('magpress_topbar_curs_align', 'left')); ?>" role="complementary" aria-label="Curs valutar BNR">
   <div class="mp-curs-bar__inner container">
