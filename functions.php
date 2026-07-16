@@ -5559,3 +5559,137 @@ var y=g.querySelector('[data-age="yes"]'),n=g.querySelector('[data-age="no"]');
 if(y)y.addEventListener('click',ok);if(n)n.addEventListener('click',no);})();</script>
     <?php
 });
+
+/* =========================================================================
+ * CURS VALUTAR BNR — widget + shortcode [curs_bnr]
+ * Sursa: feed-ul oficial BNR (10 zile, ca să putem arăta direcția față de
+ * ziua precedentă). Cache transient 6h; complet inert până e plasat widgetul.
+ * ========================================================================= */
+
+/**
+ * Cursurile BNR pe ultimele zile publicate.
+ * @return array ['dates' => ['2026-07-16', ...desc], 'rates' => ['2026-07-16' => ['EUR' => ['value'=>5.2414,'multiplier'=>1], ...]]]
+ */
+function magpress_bnr_rates() {
+    $cached = get_transient('magpress_bnr_rates_v1');
+    if (is_array($cached) && !empty($cached['dates'])) return $cached;
+
+    $resp = wp_remote_get('https://www.bnr.ro/nbrfxrates10days.xml', ['timeout' => 10]);
+    if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
+        // Nu suprascriem cache-ul bun cu un eșec; reîncercăm peste 30 min.
+        $stale = get_transient('magpress_bnr_rates_stale');
+        if (is_array($stale)) { set_transient('magpress_bnr_rates_v1', $stale, 30 * MINUTE_IN_SECONDS); return $stale; }
+        return ['dates' => [], 'rates' => []];
+    }
+
+    $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
+    if (!$xml || empty($xml->Body->Cube)) return ['dates' => [], 'rates' => []];
+
+    $rates = [];
+    foreach ($xml->Body->Cube as $cube) {
+        $date = (string) $cube['date'];
+        if (!$date) continue;
+        foreach ($cube->Rate as $r) {
+            $cur = strtoupper((string) $r['currency']);
+            $mul = max(1, (int) $r['multiplier']);
+            $val = (float) $r;
+            if ($cur && $val > 0) $rates[$date][$cur] = ['value' => $val, 'multiplier' => $mul];
+        }
+    }
+    if (!$rates) return ['dates' => [], 'rates' => []];
+    krsort($rates); // cele mai noi primele
+    $out = ['dates' => array_keys($rates), 'rates' => $rates];
+    set_transient('magpress_bnr_rates_v1', $out, 6 * HOUR_IN_SECONDS);
+    set_transient('magpress_bnr_rates_stale', $out, 7 * DAY_IN_SECONDS); // fallback la eșec de fetch
+    return $out;
+}
+
+/**
+ * Randează lista de cursuri (stil rânduri gri + săgeată direcție vs ziua anterioară).
+ * $currencies: array de coduri ISO (ex. ['EUR','USD','GBP','CHF']).
+ */
+function magpress_render_curs_bnr($currencies = ['CHF', 'EUR', 'GBP', 'USD'], $show_date = true) {
+    $data = magpress_bnr_rates();
+    if (empty($data['dates'])) return '';
+    $today = $data['dates'][0];
+    $prev  = isset($data['dates'][1]) ? $data['dates'][1] : null;
+
+    static $css_done = false;
+    $css = '';
+    if (!$css_done) {
+        $css_done = true;
+        $css = '<style id="mp-curs-css">.mp-curs{font-family:var(--f-sans,system-ui,sans-serif)}'
+            . '.mp-curs__row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:#f5f5f5;padding:.85rem 1.1rem;margin-bottom:2px;font-size:1rem;color:#1a1a1a}'
+            . '.mp-curs__row b{font-weight:800}'
+            . '.mp-curs__dir{font-weight:800;font-size:1.05rem;line-height:1}'
+            . '.mp-curs__dir--up{color:#1a8a1a}.mp-curs__dir--down{color:#d33}.mp-curs__dir--flat{color:#999}'
+            . '.mp-curs__date{margin-top:.5rem;font-size:.8rem;color:#888;text-align:right}</style>';
+    }
+
+    $rows = '';
+    foreach ($currencies as $cur) {
+        $cur = strtoupper(trim($cur));
+        if (!isset($data['rates'][$today][$cur])) continue;
+        $now = $data['rates'][$today][$cur];
+        $dir = 'flat'; $sym = '→';
+        if ($prev && isset($data['rates'][$prev][$cur])) {
+            $old = $data['rates'][$prev][$cur];
+            if ($now['value'] > $old['value'])      { $dir = 'up';   $sym = '↑'; }
+            elseif ($now['value'] < $old['value'])  { $dir = 'down'; $sym = '↓'; }
+        }
+        $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
+        $rows .= '<div class="mp-curs__row"><span>' . (int) $now['multiplier'] . ' ' . esc_html($cur)
+            . ' = <b>' . esc_html($val) . '</b></span>'
+            . '<span class="mp-curs__dir mp-curs__dir--' . $dir . '" aria-hidden="true">' . $sym . '</span></div>';
+    }
+    if ($rows === '') return '';
+
+    $date_html = '';
+    if ($show_date) {
+        $date_html = '<div class="mp-curs__date">Curs BNR — ' . esc_html(date_i18n('j F Y', strtotime($today))) . '</div>';
+    }
+    return $css . '<div class="mp-curs">' . $rows . $date_html . '</div>';
+}
+
+// Shortcode: [curs_bnr currencies="EUR,USD,GBP,CHF" date="1"]
+add_shortcode('curs_bnr', function ($atts) {
+    $atts = shortcode_atts(['currencies' => 'CHF,EUR,GBP,USD', 'date' => '1'], $atts, 'curs_bnr');
+    return magpress_render_curs_bnr(array_filter(array_map('trim', explode(',', $atts['currencies']))), $atts['date'] !== '0');
+});
+
+// Widget clasic (Aspect -> Widgets).
+class Magpress_Curs_BNR_Widget extends WP_Widget {
+    public function __construct() {
+        parent::__construct('magpress_curs_bnr', 'Magpress: Curs valutar BNR', [
+            'description' => 'Cursul oficial BNR cu direcția față de ziua precedentă (cache 6h).',
+        ]);
+    }
+    public function widget($args, $instance) {
+        $title = !empty($instance['title']) ? $instance['title'] : 'Curs valutar';
+        $curs  = !empty($instance['currencies']) ? $instance['currencies'] : 'CHF,EUR,GBP,USD';
+        $html  = magpress_render_curs_bnr(array_filter(array_map('trim', explode(',', $curs))));
+        if ($html === '') return; // feed indisponibil -> nu afișăm nimic stricat
+        echo $args['before_widget'];
+        if ($title) echo $args['before_title'] . esc_html($title) . $args['after_title'];
+        echo $html;
+        echo $args['after_widget'];
+    }
+    public function form($instance) {
+        $title = isset($instance['title']) ? $instance['title'] : 'Curs valutar';
+        $curs  = isset($instance['currencies']) ? $instance['currencies'] : 'CHF,EUR,GBP,USD';
+        ?>
+        <p><label for="<?php echo esc_attr($this->get_field_id('title')); ?>">Titlu:</label>
+        <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($title); ?>"></p>
+        <p><label for="<?php echo esc_attr($this->get_field_id('currencies')); ?>">Valute (coduri ISO, separate prin virgulă):</label>
+        <input class="widefat" id="<?php echo esc_attr($this->get_field_id('currencies')); ?>" name="<?php echo esc_attr($this->get_field_name('currencies')); ?>" type="text" value="<?php echo esc_attr($curs); ?>">
+        <small>Ex: EUR,USD,GBP,CHF — orice cod din feed-ul BNR (HUF, PLN, TRY, XAU...).</small></p>
+        <?php
+    }
+    public function update($new, $old) {
+        return [
+            'title'      => sanitize_text_field($new['title']),
+            'currencies' => strtoupper(preg_replace('/[^A-Za-z,\s]/', '', (string) $new['currencies'])),
+        ];
+    }
+}
+add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widget'); });
