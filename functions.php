@@ -5766,22 +5766,34 @@ function magpress_curs_topbar_output() {
             . '</span>';
     }
     if ($items === '') return;
+
+    // Data de azi (cu ziua săptămânii, în română), afișată pe partea opusă cursului.
+    $today_str = date_i18n('l, j F Y', current_time('timestamp'));
+    if (function_exists('mb_substr')) {
+        $today_str = mb_strtoupper(mb_substr($today_str, 0, 1)) . mb_substr($today_str, 1);
+    } else {
+        $today_str = ucfirst($today_str);
+    }
     ?>
 <style id="mp-curs-bar-css">
 .mp-curs-bar{background:#14161c;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1}
-.mp-curs-bar__inner{max-width:var(--container,1200px);margin:0 auto;padding:.45rem 1rem;display:flex;align-items:center;gap:1.1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.mp-curs-bar--left .mp-curs-bar__inner{justify-content:flex-start}
-.mp-curs-bar--right .mp-curs-bar__inner{justify-content:flex-end}
+.mp-curs-bar__inner{max-width:var(--container,1200px);margin:0 auto;padding:.45rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mp-curs-bar--right .mp-curs-bar__inner{flex-direction:row-reverse}
 .mp-curs-bar__inner::-webkit-scrollbar{display:none}
+.mp-curs-bar__group{display:inline-flex;align-items:center;gap:1.1rem}
 .mp-curs-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap}
 .mp-curs-bar__item{white-space:nowrap}
 .mp-curs-bar__item b{color:#fff;font-weight:700}
 .mp-curs-bar__dir--up{color:#4cc26a}.mp-curs-bar__dir--down{color:#ef5b5b}
+.mp-curs-bar__date{color:#8b91a0;white-space:nowrap}
 </style>
 <div class="mp-curs-bar mp-curs-bar--<?php echo esc_attr(get_theme_mod('magpress_topbar_curs_align', 'left')); ?>" role="complementary" aria-label="Curs valutar BNR">
   <div class="mp-curs-bar__inner">
-    <span class="mp-curs-bar__label">Curs BNR</span>
-    <?php echo $items; // construit doar din valori escapate ?>
+    <span class="mp-curs-bar__group">
+      <span class="mp-curs-bar__label">Curs BNR</span>
+      <?php echo $items; // construit doar din valori escapate ?>
+    </span>
+    <span class="mp-curs-bar__date"><?php echo esc_html($today_str); ?></span>
   </div>
 </div>
     <?php
