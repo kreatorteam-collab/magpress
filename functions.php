@@ -5768,10 +5768,10 @@ function magpress_curs_topbar_output() {
     if ($items === '') return;
     ?>
 <style id="mp-curs-bar-css">
-.mp-curs-bar{max-width:var(--container,1200px);margin:0 auto;padding:.4rem 1rem 0;display:flex;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1}
-.mp-curs-bar--left{justify-content:flex-start}
-.mp-curs-bar--right{justify-content:flex-end}
-.mp-curs-bar__inner{display:inline-flex;align-items:center;gap:1.1rem;max-width:100%;background:#14161c;color:#cfd3dc;border-radius:6px;padding:.45rem .9rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mp-curs-bar{background:#14161c;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1}
+.mp-curs-bar__inner{max-width:var(--container,1200px);margin:0 auto;padding:.45rem 1rem;display:flex;align-items:center;gap:1.1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mp-curs-bar--left .mp-curs-bar__inner{justify-content:flex-start}
+.mp-curs-bar--right .mp-curs-bar__inner{justify-content:flex-end}
 .mp-curs-bar__inner::-webkit-scrollbar{display:none}
 .mp-curs-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap}
 .mp-curs-bar__item{white-space:nowrap}
