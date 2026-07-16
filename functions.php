@@ -1498,6 +1498,9 @@ function magpress_inline_critical_css() {
          . '.site-header--centered .site-header__top{display:flex!important;justify-content:center!important;align-items:center!important;padding:2rem clamp(1rem,3vw,2rem) 1.25rem!important;text-align:center!important}'
          . '.site-header--centered .site-header__top .site-logo{max-height:110px!important;width:auto!important;display:block!important;margin:0 auto}'
          . '.site-nav-bar{background:#fff;border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6}'
+         // Meniu centered: aliniat cu .container (aceeași lățime ca meniul/conținutul). !important ca
+         // să reziste la CSS combinat/UCSS stale de la LiteSpeed (regula veche nu avea !important).
+         . '.site-nav-bar__inner{padding:.4rem clamp(1rem,3vw,2rem)!important}'
          . '.featured-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin:2rem 0 3rem;width:100%}'
          . '.featured-grid>*{min-width:0;max-width:100%}'
          . '@media(min-width:768px){.featured-grid{grid-template-columns:1fr 1fr}}'
@@ -3887,6 +3890,17 @@ function magpress_perform_deploy() {
     } elseif (has_action('litespeed_purge_all')) {
         do_action('litespeed_purge_all');
         $log_msg('LiteSpeed cache purged');
+    }
+
+    // 6b. Fallback: pe unele instalări (UCSS/QUIC.cloud) hook-urile de purge NU regenerează
+    //     fișierele CSS generate — rămân stale și modificările de stil nu apar. Ștergem fizic
+    //     directoarele generate; LiteSpeed le recreează la următorul request.
+    foreach (['css', 'ucss', 'ccss'] as $ls_sub) {
+        $ls_dir = WP_CONTENT_DIR . '/litespeed/' . $ls_sub;
+        if (is_dir($ls_dir)) {
+            _magpress_rrmdir($ls_dir);
+            $log_msg('LiteSpeed dir purged: ' . $ls_sub);
+        }
     }
 
     // 7. Citim noua versiune (din style.css proaspăt copiat)
