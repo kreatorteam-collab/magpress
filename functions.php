@@ -5512,23 +5512,19 @@ add_action('wp_head', function () {
 <style id="magpress-age-gate-css">
 body.has-age-gate{overflow:hidden}
 html.age-ok body.has-age-gate{overflow:visible}
-.magpress-age-gate{position:fixed;inset:0;z-index:100000;display:flex;justify-content:center;background:rgba(15,16,20,.6);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.magpress-age-gate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:rgba(15,16,20,.6);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 html.age-ok .magpress-age-gate{display:none}
-.magpress-age-gate__panel{background:#fff;width:min(760px,100%);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.5rem 1.5rem;box-shadow:0 0 90px rgba(0,0,0,.5);font-family:var(--f-sans,system-ui,sans-serif);animation:mpAgeIn .4s ease}
+.magpress-age-gate__panel{background:#fff;width:min(560px,100%);border-radius:14px;text-align:center;padding:2.5rem 2rem;box-shadow:0 24px 80px rgba(0,0,0,.45);font-family:var(--f-sans,system-ui,sans-serif);animation:mpAgeIn .4s ease}
 @keyframes mpAgeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-.magpress-age-gate__logo{margin:0 0 2.4rem;display:flex;justify-content:center}
-.magpress-age-gate__logo img{max-height:64px;width:auto}
-.magpress-age-gate__logo-text{font-size:2.1rem;font-weight:800;color:#111;letter-spacing:-.02em;line-height:1}
-.magpress-age-gate__panel h2{margin:0 0 1rem;font-size:1.8rem;color:#111}
-.magpress-age-gate__panel p{margin:0 0 2rem;color:#444;font-size:1.05rem;line-height:1.6;max-width:34rem}
+.magpress-age-gate__panel p{margin:0 0 1.8rem;color:#333;font-size:1.05rem;line-height:1.6}
 .magpress-age-gate__actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;width:100%}
-.magpress-age-gate__btn{cursor:pointer;border-radius:6px;padding:.95rem 1.9rem;font-size:1rem;font-weight:700;font-family:inherit;min-width:230px;transition:filter .15s,transform .1s}
+.magpress-age-gate__btn{cursor:pointer;border-radius:6px;padding:.9rem 1.5rem;font-size:1rem;font-weight:700;font-family:inherit;min-width:210px;transition:filter .15s,transform .1s}
 .magpress-age-gate__btn:hover{filter:brightness(1.07)}
 .magpress-age-gate__btn:active{transform:scale(.98)}
 .magpress-age-gate__btn--yes{background:var(--c-accent,#6fa84a);color:#fff;border:2px solid transparent}
 .magpress-age-gate__btn--no{background:#fff;color:#333;border:2px solid #d7d7d7}
 .magpress-age-gate__btn--no:hover{border-color:#aaa;filter:none}
-@media (max-width:620px){.magpress-age-gate__panel{width:100%}.magpress-age-gate__panel h2{font-size:1.45rem}.magpress-age-gate__btn{width:100%;min-width:0}}
+@media (max-width:620px){.magpress-age-gate__btn{width:100%;min-width:0}}
 </style>
 <script>(function(){try{if(document.cookie.indexOf('magpress_adult_ok=1')>-1){document.documentElement.className+=' age-ok';}}catch(e){}})();</script>
     <?php
@@ -5537,22 +5533,10 @@ html.age-ok .magpress-age-gate{display:none}
 // Overlay-ul propriu-zis, imediat după <body> (conținutul rămâne în DOM dedesubt).
 add_action('wp_body_open', function () {
     if (!magpress_is_age_gated()) return;
-    $title = apply_filters('magpress_age_gate_title', 'Bine ați venit');
-    $text  = apply_filters('magpress_age_gate_text', 'Pentru a continua, vă rugăm să vă confirmați vârsta. Aveți peste 18 ani?');
-    $logo_url = '';
-    $custom_logo_id = get_theme_mod('custom_logo');
-    if ($custom_logo_id) { $logo_url = (string) wp_get_attachment_image_url($custom_logo_id, 'full'); }
+    $text = apply_filters('magpress_age_gate_text', 'Pentru a continua, vă rugăm să vă confirmați vârsta. Aveți peste 18 ani?');
     ?>
-<div class="magpress-age-gate" id="magpress-age-gate" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr($title); ?>">
+<div class="magpress-age-gate" id="magpress-age-gate" role="dialog" aria-modal="true" aria-label="Confirmare vârstă 18+">
   <div class="magpress-age-gate__panel">
-    <div class="magpress-age-gate__logo">
-      <?php if ($logo_url): ?>
-        <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
-      <?php else: ?>
-        <span class="magpress-age-gate__logo-text"><?php echo esc_html(get_bloginfo('name')); ?></span>
-      <?php endif; ?>
-    </div>
-    <h2><?php echo esc_html($title); ?></h2>
     <p><?php echo esc_html($text); ?></p>
     <div class="magpress-age-gate__actions">
       <button type="button" class="magpress-age-gate__btn magpress-age-gate__btn--yes" data-age="yes">DA, am peste 18 ani</button>
