@@ -1189,17 +1189,6 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'checkbox',
     ]);
 
-    $wp_customize->add_setting('magpress_partners_on_single', [
-        'default'           => 1,
-        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
-        'transport'         => 'refresh',
-    ]);
-    $wp_customize->add_control('magpress_partners_on_single', [
-        'label'   => 'Afișează pe pagina de articol (înainte de comentarii)',
-        'section' => 'magpress_partners',
-        'type'    => 'checkbox',
-    ]);
-
     for ($i = 1; $i <= 4; $i++) {
         $wp_customize->add_setting("magpress_partner_{$i}_url", [
             'default'           => '',
@@ -1400,13 +1389,11 @@ function magpress_partner_fetch($src, $limit = 4) {
 /**
  * Randează secțiunea Parteneri: 4 carduri, round-robin câte un articol din
  * fiecare sursă (dacă e o singură sursă → ultimele ei 4 articole).
- * $context: 'home' | 'single' — respectă toggle-urile din Customizer.
+ * $context: 'home' | 'single' — pe home respectă toggle-ul din Customizer; pe single apare mereu.
  */
 function magpress_render_partners($context = 'home') {
-    $enabled = ($context === 'single')
-        ? get_theme_mod('magpress_partners_on_single', 1)
-        : get_theme_mod('magpress_partners_on_home', 1);
-    if (!$enabled) { return ''; }
+    // Pe articol apare mereu (înainte de comentarii); pe homepage rămâne toggle-ul din Customizer.
+    if ($context !== 'single' && !get_theme_mod('magpress_partners_on_home', 1)) { return ''; }
 
     $sources = magpress_partner_sources();
     if (!$sources) { return ''; }
