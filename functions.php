@@ -5737,15 +5737,6 @@ add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widg
  * Top bar cu cursul BNR — bandă subțire deasupra header-ului (ambele layout-uri).
  * Activare din Customizer -> „Magpress: Curs valutar BNR" (implicit OFF).
  */
-// Activare implicită pe flotă (cerută 2026-07-16): dacă site-ul nu are încă setarea,
-// pornește bara cu EUR,USD aliniat dreapta (data pe stânga). Rulează o singură dată
-// per site — dacă adminul o dezactivează ulterior, valoarea 0 salvată e respectată.
-add_action('init', function () {
-    if (get_theme_mod('magpress_topbar_curs', 'unset') !== 'unset') return;
-    set_theme_mod('magpress_topbar_curs', 1);
-    set_theme_mod('magpress_topbar_curs_align', 'right');
-}, 20);
-
 add_action('wp_body_open', 'magpress_curs_topbar_output', 5);
 function magpress_curs_topbar_output() {
     if (!get_theme_mod('magpress_topbar_curs', 0)) return;
