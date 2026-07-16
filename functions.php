@@ -1226,6 +1226,34 @@ function magpress_customize_register($wp_customize) {
             'type'        => 'text',
         ]);
     }
+
+    // ---------- Sectiune: Curs valutar BNR (top bar) ----------
+    $wp_customize->add_section('magpress_curs_bnr', [
+        'title'       => 'Magpress: Curs valutar BNR',
+        'description' => 'Bara subțire cu cursul oficial BNR, deasupra header-ului. Sursa: bnr.ro (cache 6h). Există și widget („Magpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziții.',
+        'priority'    => 162,
+    ]);
+    $wp_customize->add_setting('magpress_topbar_curs', [
+        'default'           => 0,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_curs', [
+        'label'   => 'Afișează bara cu cursul BNR (deasupra header-ului)',
+        'section' => 'magpress_curs_bnr',
+        'type'    => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_topbar_curs_list', [
+        'default'           => 'EUR,USD',
+        'sanitize_callback' => function($v) { return strtoupper(preg_replace('/[^A-Za-z,\s]/', '', (string) $v)); },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_curs_list', [
+        'label'       => 'Valute afișate (coduri ISO, separate prin virgulă)',
+        'description' => 'Ex: EUR,USD,GBP,CHF — orice cod din feed-ul BNR.',
+        'section'     => 'magpress_curs_bnr',
+        'type'        => 'text',
+    ]);
 }
 add_action('customize_register', 'magpress_customize_register');
 
@@ -5693,3 +5721,55 @@ class Magpress_Curs_BNR_Widget extends WP_Widget {
     }
 }
 add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widget'); });
+
+/**
+ * Top bar cu cursul BNR — bandă subțire deasupra header-ului (ambele layout-uri).
+ * Activare din Customizer -> „Magpress: Curs valutar BNR" (implicit OFF).
+ */
+add_action('wp_body_open', 'magpress_curs_topbar_output', 5);
+function magpress_curs_topbar_output() {
+    if (!get_theme_mod('magpress_topbar_curs', 0)) return;
+    $list = get_theme_mod('magpress_topbar_curs_list', 'EUR,USD');
+    $currencies = array_filter(array_map('trim', explode(',', strtoupper($list))));
+    if (!$currencies) return;
+
+    $data = magpress_bnr_rates();
+    if (empty($data['dates'])) return;
+    $today = $data['dates'][0];
+    $prev  = isset($data['dates'][1]) ? $data['dates'][1] : null;
+
+    $items = '';
+    foreach ($currencies as $cur) {
+        if (!isset($data['rates'][$today][$cur])) continue;
+        $now = $data['rates'][$today][$cur];
+        $dir = 'flat'; $sym = '';
+        if ($prev && isset($data['rates'][$prev][$cur])) {
+            $old = $data['rates'][$prev][$cur];
+            if ($now['value'] > $old['value'])     { $dir = 'up';   $sym = '↑'; }
+            elseif ($now['value'] < $old['value']) { $dir = 'down'; $sym = '↓'; }
+        }
+        $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
+        $mul = (int) $now['multiplier'] > 1 ? (int) $now['multiplier'] . ' ' : '';
+        $items .= '<span class="mp-curs-bar__item">' . esc_html($mul . $cur) . ' <b>' . esc_html($val) . '</b>'
+            . ($sym !== '' ? ' <span class="mp-curs-bar__dir mp-curs-bar__dir--' . $dir . '" aria-hidden="true">' . $sym . '</span>' : '')
+            . '</span>';
+    }
+    if ($items === '') return;
+    ?>
+<style id="mp-curs-bar-css">
+.mp-curs-bar{background:#14161c;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1}
+.mp-curs-bar__inner{max-width:var(--container,1200px);margin:0 auto;padding:.45rem 1rem;display:flex;align-items:center;gap:1.1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mp-curs-bar__inner::-webkit-scrollbar{display:none}
+.mp-curs-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap}
+.mp-curs-bar__item{white-space:nowrap}
+.mp-curs-bar__item b{color:#fff;font-weight:700}
+.mp-curs-bar__dir--up{color:#4cc26a}.mp-curs-bar__dir--down{color:#ef5b5b}
+</style>
+<div class="mp-curs-bar" role="complementary" aria-label="Curs valutar BNR">
+  <div class="mp-curs-bar__inner">
+    <span class="mp-curs-bar__label">Curs BNR</span>
+    <?php echo $items; // construit doar din valori escapate ?>
+  </div>
+</div>
+    <?php
+}
