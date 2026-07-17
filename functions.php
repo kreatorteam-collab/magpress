@@ -1428,11 +1428,10 @@ function magpress_partner_fetch($src, $limit = 4) {
 /**
  * Randează secțiunea Parteneri: 4 carduri, round-robin câte un articol din
  * fiecare sursă (dacă e o singură sursă → ultimele ei 4 articole).
- * $context: 'home' | 'single' — pe home respectă toggle-ul din Customizer; pe single apare mereu.
+ * Apare DOAR pe homepage (toggle în Customizer). Scoasă de pe articole la cererea userului.
  */
-function magpress_render_partners($context = 'home') {
-    // Pe articol apare mereu (înainte de comentarii); pe homepage rămâne toggle-ul din Customizer.
-    if ($context !== 'single' && !get_theme_mod('magpress_partners_on_home', 1)) { return ''; }
+function magpress_render_partners() {
+    if (!get_theme_mod('magpress_partners_on_home', 1)) { return ''; }
 
     $sources = magpress_partner_sources();
     if (!$sources) { return ''; }

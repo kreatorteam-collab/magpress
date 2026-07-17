@@ -163,7 +163,7 @@ get_header();
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
 
-  <?php echo magpress_render_partners('home'); ?>
+  <?php echo magpress_render_partners(); ?>
 
 </div>
 
