@@ -1310,7 +1310,7 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_topbar_vreme_orase', [
-        'default'           => 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu',
+        'default'           => 'București,Cluj-Napoca,Iași,Constanța',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
@@ -6056,7 +6056,7 @@ function magpress_weather_ticker($items, $scroll) {
 
 function magpress_weather_topbar_output() {
     if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
-    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu');
+    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța');
     $cities = array_filter(array_map('trim', explode(',', $list)));
 
     $items = magpress_weather_items($cities);
