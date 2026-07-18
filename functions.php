@@ -179,6 +179,13 @@ function magpress_enqueue_assets() {
                     . 'h1,h2,h3,h4,h5,h6,.article-title,.featured-card__title,.card-title,.section-header__title,.most-read-widget__title{font-family:' . $preset['heading'] . '}';
         wp_add_inline_style('magpress-main', $css_preset);
     }
+
+    // Font meniu (opțional, stil știri) — încarcă fontul + îl aplică DOAR pe navigație.
+    $menu_font = magpress_menu_font_config();
+    if ($menu_font) {
+        wp_enqueue_style('magpress-menu-font', 'https://fonts.googleapis.com/css2?family=' . $menu_font['google'] . '&display=swap', [], null);
+        wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important}');
+    }
 }
 
 /**
@@ -217,13 +224,32 @@ function magpress_news_font_preset_config() {
 }
 
 /**
+ * Font DOAR pentru meniul de navigație (stil site de știri, ex. Mediafax).
+ * Independent de preset-ul de headline/body. Returnează null dacă e 'default'.
+ */
+function magpress_menu_font_config() {
+    $key = get_theme_mod('magpress_menu_font', 'default');
+    $map = [
+        'oswald'           => ['google' => 'Oswald:wght@500;600;700',      'family' => '"Oswald",Impact,"Arial Narrow",sans-serif'],
+        'roboto-condensed' => ['google' => 'Roboto+Condensed:wght@500;700', 'family' => '"Roboto Condensed",Impact,"Arial Narrow",sans-serif'],
+        'archivo-narrow'   => ['google' => 'Archivo+Narrow:wght@600;700',   'family' => '"Archivo Narrow","Arial Narrow",sans-serif'],
+        'barlow-condensed' => ['google' => 'Barlow+Condensed:wght@600;700', 'family' => '"Barlow Condensed",Impact,"Arial Narrow",sans-serif'],
+        'bebas'            => ['google' => 'Bebas+Neue',                    'family' => '"Bebas Neue",Impact,"Arial Narrow",sans-serif'],
+        'anton'            => ['google' => 'Anton',                        'family' => '"Anton",Impact,"Arial Narrow",sans-serif'],
+        'fjalla'           => ['google' => 'Fjalla+One',                   'family' => '"Fjalla One",Impact,"Arial Narrow",sans-serif'],
+    ];
+    return isset($map[$key]) ? $map[$key] : null;
+}
+
+/**
  * Preconnect la Google Fonts (mic boost PageSpeed) — atat CSS-ul cat si fisierele woff2.
  */
 function magpress_preconnect_google_fonts($urls, $relation_type) {
     // Preset news activ → preconnect sigur
     $has_preset = (bool) magpress_news_font_preset_config();
     $has_default = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700')) !== '';
-    if (!$has_preset && !$has_default) return $urls;
+    $has_menu = (bool) magpress_menu_font_config();
+    if (!$has_preset && !$has_default && !$has_menu) return $urls;
     if ($relation_type === 'preconnect') {
         $urls[] = ['href' => 'https://fonts.googleapis.com'];
         $urls[] = ['href' => 'https://fonts.gstatic.com', 'crossorigin' => 'anonymous'];
@@ -237,7 +263,7 @@ add_filter('wp_resource_hints', 'magpress_preconnect_google_fonts', 10, 2);
  * Astfel render-ul nu mai e blocat de download-ul CSS-ului de la fonts.googleapis.com.
  */
 function magpress_defer_google_fonts($html, $handle) {
-    if ($handle === 'magpress-google-font') {
+    if ($handle === 'magpress-google-font' || $handle === 'magpress-menu-font') {
         // Inlocuim <link rel="stylesheet"> cu o varianta non-blocking
         $html = str_replace("rel='stylesheet'", "rel='stylesheet' media='print' onload=\"this.media='all'\"", $html);
         $html = str_replace('rel="stylesheet"', 'rel="stylesheet" media="print" onload="this.media=\'all\'"', $html);
@@ -4108,6 +4134,31 @@ function magpress_register_news_features($wp_customize) {
             'magazine'  => 'Magazine premium — Playfair Display + Lato',
             'digital'   => 'Modern digital — Lora + Inter',
             'compact'   => 'News compact — Roboto Slab + Roboto',
+        ],
+    ]);
+
+    // 8b. Font meniu (stil site de știri, ex. Mediafax) — DOAR navigația, independent de preset.
+    $wp_customize->add_setting('magpress_menu_font', [
+        'default'           => 'default',
+        'sanitize_callback' => function ($v) {
+            return in_array($v, ['default', 'oswald', 'roboto-condensed', 'archivo-narrow', 'barlow-condensed', 'bebas', 'anton', 'fjalla'], true) ? $v : 'default';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_menu_font', [
+        'label'       => 'Font meniu (stil știri)',
+        'description' => 'Schimbă DOAR fontul meniului de navigație (nu titlurile/textul). Ideal pentru site-urile de știri — look tip Mediafax. Lasă „Default" pentru fontul temei.',
+        'section'     => 'magpress_news',
+        'type'        => 'select',
+        'choices'     => [
+            'default'          => 'Default (fontul temei)',
+            'oswald'           => 'Oswald — condensat bold (stil Mediafax)',
+            'roboto-condensed' => 'Roboto Condensed',
+            'archivo-narrow'   => 'Archivo Narrow',
+            'barlow-condensed' => 'Barlow Condensed',
+            'bebas'            => 'Bebas Neue — majuscule display',
+            'anton'            => 'Anton — gros, impact',
+            'fjalla'           => 'Fjalla One',
         ],
     ]);
 
