@@ -1320,20 +1320,6 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_vreme_bar',
         'type'        => 'text',
     ]);
-    $wp_customize->add_setting('magpress_topbar_vreme_pozitie', [
-        'default'           => 'sub_header',
-        'sanitize_callback' => function($v) { return in_array($v, ['sub_header', 'sub_curs'], true) ? $v : 'sub_header'; },
-        'transport'         => 'refresh',
-    ]);
-    $wp_customize->add_control('magpress_topbar_vreme_pozitie', [
-        'label'   => 'Poziția benzii',
-        'section' => 'magpress_vreme_bar',
-        'type'    => 'radio',
-        'choices' => [
-            'sub_header' => 'Sub header (înainte de conținut)',
-            'sub_curs'   => 'În top bar, sub Curs BNR',
-        ],
-    ]);
     $wp_customize->add_setting('magpress_topbar_vreme_scroll', [
         'default'           => 0,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },
@@ -6000,8 +5986,8 @@ function magpress_weather_css() {
     if ($done) { return ''; }
     $done = true;
     return '<style id="mp-wx-css">'
-        . '.mp-wx-bar{background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-top:1px solid rgba(255,255,255,.06)}'
-        . '.mp-wx-bar__inner{display:flex;align-items:center;gap:1rem;padding-top:.42rem;padding-bottom:.42rem}'
+        . '.mp-wx-bar{margin:1.25rem 0}'  // spatiu vertical (intre header si continut); latimea vine din .container pe markup
+        . '.mp-wx-bar__inner{display:flex;align-items:center;gap:1rem;background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'
         . '.mp-wx-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
         . '.mp-wx-bar__ticker{flex:1 1 auto;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
         . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
@@ -6015,7 +6001,7 @@ function magpress_weather_css() {
         . '.mp-wx__link{flex:0 0 auto;color:#6db3f2;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
         . '.mp-wx__link:hover{color:#8ec5f5}'
         // Varianta DESCHISĂ (fundal gri deschis, text închis)
-        . '.mp-wx-bar--light{background:#eef1f5;color:#374151;border-top-color:#dfe3ea}'
+        . '.mp-wx-bar--light .mp-wx-bar__inner{background:#eef1f5;color:#374151;border:1px solid #e2e6ec}'
         . '.mp-wx-bar--light .mp-wx-bar__label{color:#6b7280}'
         . '.mp-wx-bar--light .mp-wx__nm{color:#374151}'
         . '.mp-wx-bar--light .mp-wx__mn{color:#6b7280}'
@@ -6053,22 +6039,8 @@ function magpress_weather_items($cities_filter = []) {
     return $items;
 }
 
-/**
- * Poziția barei, aleasă din Customizer:
- *  - 'sub_header' (default): sub header (înainte de conținut), via hook-ul magpress_after_header
- *  - 'sub_curs': în top bar, imediat sub Curs BNR, via wp_body_open prioritate 6
- * Renderul e același; doar hook-ul care rulează diferă.
- */
-add_action('wp_body_open', function () {
-    if (get_theme_mod('magpress_topbar_vreme_pozitie', 'sub_header') === 'sub_curs') {
-        magpress_weather_topbar_output();
-    }
-}, 6);
-add_action('magpress_after_header', function () {
-    if (get_theme_mod('magpress_topbar_vreme_pozitie', 'sub_header') === 'sub_header') {
-        magpress_weather_topbar_output();
-    }
-});
+/** Bara se randează ÎNTRE header și conținut (hook magpress_after_header din header.php). */
+add_action('magpress_after_header', 'magpress_weather_topbar_output');
 /**
  * Blocul ticker. $scroll=true → derulează (track dublat + animație, ~8s/oraș);
  * $scroll=false → FIX (statice, fără animație; scroll orizontal manual la overflow).
@@ -6098,8 +6070,8 @@ function magpress_weather_topbar_output() {
         : '';
 
     echo magpress_weather_css();
-    echo '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe">'
-        . '<div class="mp-wx-bar__inner container">'
+    echo '<div class="mp-wx-bar' . $light . ' container" role="complementary" aria-label="Vremea azi pe orașe">'
+        . '<div class="mp-wx-bar__inner">'
         . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
         . magpress_weather_ticker($items, $scroll)
         . $link
@@ -6121,8 +6093,8 @@ add_shortcode('vreme_bar', function ($atts) {
         }
     }
     return magpress_weather_css()
-        . '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe" style="border-radius:8px;overflow:hidden">'
-        . '<div class="mp-wx-bar__inner" style="padding-left:1rem;padding-right:1rem">'
+        . '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe">'
+        . '<div class="mp-wx-bar__inner">'
         . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
         . magpress_weather_ticker($items, $atts['scroll'] === '1')
         . $link . '</div></div>';
