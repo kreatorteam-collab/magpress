@@ -93,4 +93,6 @@ $layout = magpress_header_layout();
 
 <?php endif; ?>
 
+<?php do_action('magpress_after_header'); ?>
+
 <main id="main" class="site-main">

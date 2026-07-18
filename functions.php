@@ -1320,6 +1320,20 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_vreme_bar',
         'type'        => 'text',
     ]);
+    $wp_customize->add_setting('magpress_topbar_vreme_pozitie', [
+        'default'           => 'sub_header',
+        'sanitize_callback' => function($v) { return in_array($v, ['sub_header', 'sub_curs'], true) ? $v : 'sub_header'; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_vreme_pozitie', [
+        'label'   => 'Poziția benzii',
+        'section' => 'magpress_vreme_bar',
+        'type'    => 'radio',
+        'choices' => [
+            'sub_header' => 'Sub header (înainte de conținut)',
+            'sub_curs'   => 'În top bar, sub Curs BNR',
+        ],
+    ]);
     $wp_customize->add_setting('magpress_search_in_topbar', [
         'default'           => 0,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },
@@ -6002,8 +6016,22 @@ function magpress_weather_items($cities_filter = []) {
     return $items;
 }
 
-/** Output-ul barei în top bar (hook wp_body_open prioritate 6 -> sub Curs BNR). */
-add_action('wp_body_open', 'magpress_weather_topbar_output', 6);
+/**
+ * Poziția barei, aleasă din Customizer:
+ *  - 'sub_header' (default): sub header (înainte de conținut), via hook-ul magpress_after_header
+ *  - 'sub_curs': în top bar, imediat sub Curs BNR, via wp_body_open prioritate 6
+ * Renderul e același; doar hook-ul care rulează diferă.
+ */
+add_action('wp_body_open', function () {
+    if (get_theme_mod('magpress_topbar_vreme_pozitie', 'sub_header') === 'sub_curs') {
+        magpress_weather_topbar_output();
+    }
+}, 6);
+add_action('magpress_after_header', function () {
+    if (get_theme_mod('magpress_topbar_vreme_pozitie', 'sub_header') === 'sub_header') {
+        magpress_weather_topbar_output();
+    }
+});
 function magpress_weather_topbar_output() {
     if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
     $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu');
