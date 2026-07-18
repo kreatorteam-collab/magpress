@@ -672,7 +672,8 @@ body.page .article-body .entry-content{max-width:none}
 .footer-bottom p{margin:0}
 
 /* ===================== SEARCH MODAL ===================== */
-.search-modal-checkbox{position:absolute;left:-9999px;width:0;height:0;opacity:0}
+/* position:fixed (nu absolute) ca focusul pe checkbox la click pe label sa NU deruleze pagina la footer */
+.search-modal-checkbox{position:fixed;top:0;left:0;width:0;height:0;opacity:0;pointer-events:none}
 .search-modal{display:none;position:fixed;inset:0;z-index:1000;align-items:flex-start;justify-content:center;padding-top:15vh}
 body:has(.search-modal-checkbox:checked) .search-modal{display:flex}
 body:has(.search-modal-checkbox:checked){overflow:hidden}
