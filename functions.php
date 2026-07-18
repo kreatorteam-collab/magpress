@@ -5892,8 +5892,8 @@ function magpress_curs_topbar_output() {
   <div class="mp-curs-bar__inner container">
     <?php echo $group_html; // curs, construit doar din valori escapate ?>
     <span class="mp-curs-bar__end">
-      <?php echo $search_html; ?>
       <span class="mp-curs-bar__date"><?php echo esc_html($today_str); ?></span>
+      <?php echo $search_html; ?>
     </span>
   </div>
 </div>
