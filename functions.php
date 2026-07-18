@@ -1292,6 +1292,34 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'radio',
         'choices' => ['left' => 'Stânga', 'right' => 'Dreapta'],
     ]);
+
+    // ---------- Sectiune: Bara Vreme (top bar, sub Curs BNR) ----------
+    $wp_customize->add_section('magpress_vreme_bar', [
+        'title'       => 'Magpress: Bara Vreme',
+        'description' => 'Bandă subțire care derulează vremea pe orașe (date oficiale ANM, cache 3h), imediat sub bara Curs BNR. Există și shortcode [vreme_bar] + widget pentru alte poziții.',
+        'priority'    => 163,
+    ]);
+    $wp_customize->add_setting('magpress_topbar_vreme', [
+        'default'           => 0,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_vreme', [
+        'label'   => 'Afișează banda cu vremea (sub bara Curs BNR)',
+        'section' => 'magpress_vreme_bar',
+        'type'    => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_topbar_vreme_orase', [
+        'default'           => 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_vreme_orase', [
+        'label'       => 'Orașe afișate (separate prin virgulă)',
+        'description' => 'Disponibile din feed-ul ANM: București, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina. Gol = toate.',
+        'section'     => 'magpress_vreme_bar',
+        'type'        => 'text',
+    ]);
     $wp_customize->add_setting('magpress_search_in_topbar', [
         'default'           => 0,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },
@@ -5817,6 +5845,250 @@ add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widg
  * Activare din Customizer -> „Magpress: Curs valutar BNR" (implicit OFF).
  */
 add_action('wp_body_open', 'magpress_curs_topbar_output', 5);
+
+/* ============================================================
+ * BARA VREME — top bar (sub Curs BNR) + widget + shortcode [vreme_bar]
+ * Sursa: feed-ul oficial ANM (prognoza pe orașe), cache 3h + fallback stale 24h.
+ * Ticker care derulează lent orașele; link către ultimul articol de vreme.
+ * ============================================================ */
+
+/** Iconiță dedusă din descrierea ANM (text ASCII, fără diacritice). */
+function magpress_weather_icon($desc) {
+    $d = strtolower($desc);
+    if (strpos($d, 'descarcari electrice') !== false || strpos($d, 'oraj') !== false) { return '⛈️'; }
+    if (strpos($d, 'nins') !== false)                                                  { return '❄️'; }
+    if (strpos($d, 'ploaie') !== false || strpos($d, 'averse') !== false || strpos($d, 'burnita') !== false) { return '🌧️'; }
+    if (strpos($d, 'ceata') !== false)                                                 { return '🌫️'; }
+    if (strpos($d, 'senin') !== false)                                                 { return '☀️'; }
+    if (strpos($d, 'noros') !== false || strpos($d, 'innorat') !== false || strpos($d, 'acoperit') !== false) { return '☁️'; }
+    if (strpos($d, 'variabil') !== false || strpos($d, 'partial') !== false)           { return '⛅'; }
+    return '🌡️';
+}
+
+/** Diacritice în descrierea ANM (strtr, fără mbstring). */
+function magpress_weather_beautify($d) {
+    return strtr($d, [
+        ' si ' => ' și ', 'descarcari' => 'descărcări', 'slaba' => 'slabă',
+        'ceata' => 'ceață', 'innorat' => 'înnorat', 'burnita' => 'burniță',
+        'vant' => 'vânt', 'insemnate' => 'însemnate', 'moderata' => 'moderată',
+        'puternica' => 'puternică', 'ridicata' => 'ridicată', 'scazuta' => 'scăzută',
+    ]);
+}
+
+/** Normalizează un nume de oraș pentru potrivire (fără diacritice, lowercase). */
+function magpress_weather_norm($s) {
+    $s = strtr(trim($s), [
+        'ă'=>'a','Ă'=>'a','â'=>'a','Â'=>'a','î'=>'i','Î'=>'i',
+        'ș'=>'s','Ș'=>'s','ş'=>'s','Ş'=>'s','ț'=>'t','Ț'=>'t','ţ'=>'t','Ţ'=>'t',
+    ]);
+    return strtolower($s);
+}
+
+/** Link către ultimul articol de vreme; fallback pe categoria „Vremea". */
+function magpress_weather_latest_link() {
+    $q = new WP_Query([
+        'post_type' => 'post', 'posts_per_page' => 1, 'fields' => 'ids',
+        'meta_key' => '_hz_weather', 'orderby' => 'date', 'order' => 'DESC',
+        'no_found_rows' => true, 'ignore_sticky_posts' => true, 'suppress_filters' => true,
+    ]);
+    if (!empty($q->posts)) { return get_permalink($q->posts[0]); }
+    $term = get_term_by('slug', 'vremea', 'category');
+    if (!$term) { $term = get_term_by('name', 'Vremea', 'category'); }
+    if ($term && !is_wp_error($term)) {
+        $link = get_term_link($term);
+        if (!is_wp_error($link)) { return $link; }
+    }
+    return '';
+}
+
+/** Datele de vreme pentru azi (cache 3h + stale 24h), din feed-ul ANM. */
+function magpress_weather_data() {
+    $cached = get_transient('magpress_weather_v1');
+    if (is_array($cached)) { return $cached; }
+
+    $resp = wp_remote_get('https://www.meteoromania.ro/anm/prognoza-orase-xml.php', ['timeout' => 10]);
+    if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
+        $stale = get_transient('magpress_weather_stale');
+        if (is_array($stale)) { set_transient('magpress_weather_v1', $stale, 30 * MINUTE_IN_SECONDS); return $stale; }
+        return ['date' => '', 'cities' => [], 'link' => ''];
+    }
+    $body = (string) wp_remote_retrieve_body($resp);
+    $prev = libxml_use_internal_errors(true);
+    $xml  = simplexml_load_string($body);
+    libxml_use_internal_errors($prev);
+    if ($xml === false || !isset($xml->tara->localitate)) {
+        $stale = get_transient('magpress_weather_stale');
+        if (is_array($stale)) { return $stale; }
+        return ['date' => '', 'cities' => [], 'link' => ''];
+    }
+
+    $names = [
+        'Bucuresti' => 'București', 'Iasi' => 'Iași', 'Botosani' => 'Botoșani',
+        'Cluj-Napoca' => 'Cluj-Napoca', 'Sibiu' => 'Sibiu', 'Arad' => 'Arad',
+        'Craiova' => 'Craiova', 'Rm. Valcea' => 'Râmnicu Vâlcea',
+        'Constanta' => 'Constanța', 'Sulina' => 'Sulina',
+    ];
+    $today  = current_time('Y-m-d');
+    $cities = [];
+    foreach ($xml->tara->localitate as $loc) {
+        $rawn = trim((string) $loc['nume']);
+        if (!isset($names[$rawn])) { continue; }
+        $entry = null;
+        foreach ($loc->prognoza as $p) {
+            if ((string) $p['data'] === $today) { $entry = $p; break; }
+        }
+        if ($entry === null && isset($loc->prognoza[0])) { $entry = $loc->prognoza[0]; }
+        if ($entry === null) { continue; }
+        $desc = trim((string) $entry->fenomen_descriere);
+        $cities[$names[$rawn]] = [
+            'min'  => (int) $entry->temp_min,
+            'max'  => (int) $entry->temp_max,
+            'icon' => magpress_weather_icon($desc),
+            'desc' => $desc !== '' ? magpress_weather_beautify($desc) : '',
+        ];
+    }
+    $out = ['date' => $today, 'cities' => $cities, 'link' => magpress_weather_latest_link()];
+    if ($cities) {
+        set_transient('magpress_weather_v1', $out, 3 * HOUR_IN_SECONDS);
+        set_transient('magpress_weather_stale', $out, DAY_IN_SECONDS);
+    }
+    return $out;
+}
+
+/** CSS-ul barei (o singură dată pe request). */
+function magpress_weather_css() {
+    static $done = false;
+    if ($done) { return ''; }
+    $done = true;
+    return '<style id="mp-wx-css">'
+        . '.mp-wx-bar{background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-top:1px solid rgba(255,255,255,.06)}'
+        . '.mp-wx-bar__inner{display:flex;align-items:center;gap:1rem;padding-top:.42rem;padding-bottom:.42rem}'
+        . '.mp-wx-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
+        . '.mp-wx-bar__ticker{flex:1 1 auto;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
+        . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
+        . '.mp-wx-bar__ticker:hover .mp-wx__track{animation-play-state:paused}'
+        . '.mp-wx__item{display:inline-flex;align-items:center;gap:.35rem;margin-right:2rem}'
+        . '.mp-wx__ic{font-size:.95rem}.mp-wx__nm{color:#c7ccda}.mp-wx__mn{color:#8b91a0}'
+        . '.mp-wx__sep{color:#3a4054;margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
+        . '.mp-wx__link{flex:0 0 auto;color:#6db3f2;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
+        . '.mp-wx__link:hover{color:#8ec5f5}'
+        . '@keyframes mp-wx-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}'
+        . '@media(prefers-reduced-motion:reduce){.mp-wx__track{animation:none}.mp-wx-bar__ticker{overflow-x:auto}}'
+        . '@media(max-width:768px){.mp-wx-bar__label{display:none}.mp-wx-bar__inner{gap:.6rem}}'
+        . '</style>';
+}
+
+/** Construiește orașele (track) după o listă opțională de nume. Întoarce '' dacă n-are date. */
+function magpress_weather_items($cities_filter = []) {
+    $data = magpress_weather_data();
+    if (empty($data['cities'])) { return ''; }
+
+    $want = [];
+    foreach ((array) $cities_filter as $c) {
+        $c = trim($c);
+        if ($c !== '') { $want[magpress_weather_norm($c)] = true; }
+    }
+    $items = '';
+    foreach ($data['cities'] as $name => $c) {
+        if ($want && !isset($want[magpress_weather_norm($name)])) { continue; }
+        $items .= '<span class="mp-wx__item"' . ($c['desc'] !== '' ? ' title="' . esc_attr($c['desc']) . '"' : '') . '>'
+            . '<span class="mp-wx__ic" aria-hidden="true">' . $c['icon'] . '</span>'
+            . '<span class="mp-wx__nm">' . esc_html($name) . '</span> '
+            . '<span class="mp-wx__mn">' . (int) $c['min'] . '°</span>'
+            . '<span class="mp-wx__sep">/</span>'
+            . '<span class="mp-wx__mx">' . (int) $c['max'] . '°</span>'
+            . '</span>';
+    }
+    return $items;
+}
+
+/** Output-ul barei în top bar (hook wp_body_open prioritate 6 -> sub Curs BNR). */
+add_action('wp_body_open', 'magpress_weather_topbar_output', 6);
+function magpress_weather_topbar_output() {
+    if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
+    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu');
+    $cities = array_filter(array_map('trim', explode(',', $list)));
+
+    $items = magpress_weather_items($cities);
+    if ($items === '') { return; }
+
+    // Derulare lentă: durata crește cu numărul de orașe (~8s/oraș, minim 40s).
+    $count = max(1, substr_count($items, 'class="mp-wx__item"'));
+    $dur   = max(40, $count * 8);
+
+    $data = magpress_weather_data();
+    $link = !empty($data['link'])
+        ? '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>'
+        : '';
+
+    echo magpress_weather_css();
+    ?>
+<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe">
+  <div class="mp-wx-bar__inner container">
+    <span class="mp-wx-bar__label">⛅ Vremea azi</span>
+    <div class="mp-wx-bar__ticker">
+      <div class="mp-wx__track" style="animation-duration:<?php echo (int) $dur; ?>s">
+        <?php echo $items; // valori escapate în magpress_weather_items() ?>
+        <?php echo $items; // copie pentru buclă continuă ?>
+      </div>
+    </div>
+    <?php echo $link; ?>
+  </div>
+</div>
+    <?php
+}
+
+// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1"]
+add_shortcode('vreme_bar', function ($atts) {
+    $atts = shortcode_atts(['orase' => '', 'link' => '1'], $atts, 'vreme_bar');
+    $cities = array_filter(array_map('trim', explode(',', $atts['orase'])));
+    $items  = magpress_weather_items($cities);
+    if ($items === '') { return ''; }
+    $count = max(1, substr_count($items, 'class="mp-wx__item"'));
+    $dur   = max(40, $count * 8);
+    $link  = '';
+    if ($atts['link'] !== '0') {
+        $data = magpress_weather_data();
+        if (!empty($data['link'])) {
+            $link = '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>';
+        }
+    }
+    return magpress_weather_css()
+        . '<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe" style="border-radius:8px;overflow:hidden">'
+        . '<div class="mp-wx-bar__inner" style="padding-left:1rem;padding-right:1rem">'
+        . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
+        . '<div class="mp-wx-bar__ticker"><div class="mp-wx__track" style="animation-duration:' . (int) $dur . 's">'
+        . $items . $items . '</div></div>' . $link . '</div></div>';
+});
+
+// Widget clasic (Aspect -> Widgets).
+class Magpress_Vreme_Widget extends WP_Widget {
+    public function __construct() {
+        parent::__construct('magpress_vreme', 'Magpress: Bara Vreme', [
+            'description' => 'Vremea pe orașe (ticker), date oficiale ANM (cache 3h).',
+        ]);
+    }
+    public function widget($args, $instance) {
+        $orase = !empty($instance['orase']) ? $instance['orase'] : '';
+        $html  = do_shortcode('[vreme_bar orase="' . esc_attr($orase) . '"]');
+        if ($html === '') { return; }
+        echo $args['before_widget'];
+        echo $html;
+        echo $args['after_widget'];
+    }
+    public function form($instance) {
+        $orase = isset($instance['orase']) ? $instance['orase'] : '';
+        ?>
+        <p><label for="<?php echo esc_attr($this->get_field_id('orase')); ?>">Orașe (separate prin virgulă, gol = toate):</label>
+        <input class="widefat" id="<?php echo esc_attr($this->get_field_id('orase')); ?>" name="<?php echo esc_attr($this->get_field_name('orase')); ?>" type="text" value="<?php echo esc_attr($orase); ?>">
+        <small>București, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina.</small></p>
+        <?php
+    }
+    public function update($new, $old) {
+        return ['orase' => sanitize_text_field($new['orase'])];
+    }
+}
+add_action('widgets_init', function () { register_widget('Magpress_Vreme_Widget'); });
 function magpress_curs_topbar_output() {
     $show_curs   = (bool) get_theme_mod('magpress_topbar_curs', 0);
     $show_search = (bool) get_theme_mod('magpress_search_in_topbar', 0);
