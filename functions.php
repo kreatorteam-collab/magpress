@@ -184,7 +184,8 @@ function magpress_enqueue_assets() {
     $menu_font = magpress_menu_font_config();
     if ($menu_font) {
         wp_enqueue_style('magpress-menu-font', 'https://fonts.googleapis.com/css2?family=' . $menu_font['google'] . '&display=swap', [], null);
-        wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important}');
+        // Fonturile de tip știri sunt condensate → citesc mic; mărim ușor pt prezență (stil Mediafax).
+        wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;letter-spacing:.04em}');
     }
 }
 
