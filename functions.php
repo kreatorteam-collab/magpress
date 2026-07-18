@@ -1558,6 +1558,9 @@ function magpress_inline_critical_css() {
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
          . '.skip-link{position:absolute;left:-9999px}'
+         // Checkbox căutare fix în viewport → deschiderea modalului NU derulează pagina la footer.
+         // !important + în critical ca să bată CSS-ul combinat/UCSS stale de la LiteSpeed (admin logat).
+         . '.search-modal-checkbox{position:fixed!important;top:0!important;left:0!important}'
          // Sticky header — inline ca să reziste la UCSS/Critical CSS removal de la LiteSpeed
          . '@media(min-width:768px){'
          . '.has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-header-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
