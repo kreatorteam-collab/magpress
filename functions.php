@@ -1334,6 +1334,17 @@ function magpress_customize_register($wp_customize) {
             'sub_curs'   => 'În top bar, sub Curs BNR',
         ],
     ]);
+    $wp_customize->add_setting('magpress_topbar_vreme_scroll', [
+        'default'           => 0,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_vreme_scroll', [
+        'label'       => 'Derulează banda (ticker în mișcare)',
+        'description' => 'Nebifat = orașele stau fixe (recomandat). Bifat = banda derulează lent.',
+        'section'     => 'magpress_vreme_bar',
+        'type'        => 'checkbox',
+    ]);
     $wp_customize->add_setting('magpress_search_in_topbar', [
         'default'           => 0,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },
@@ -5981,6 +5992,9 @@ function magpress_weather_css() {
         . '.mp-wx-bar__ticker{flex:1 1 auto;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
         . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
         . '.mp-wx-bar__ticker:hover .mp-wx__track{animation-play-state:paused}'
+        . '.mp-wx-bar__ticker--static{overflow-x:auto;-webkit-overflow-scrolling:touch;-webkit-mask-image:none;mask-image:none;scrollbar-width:none}'
+        . '.mp-wx-bar__ticker--static::-webkit-scrollbar{display:none}'
+        . '.mp-wx__track--static{animation:none}'
         . '.mp-wx__item{display:inline-flex;align-items:center;gap:.35rem;margin-right:2rem}'
         . '.mp-wx__ic{font-size:.95rem}.mp-wx__nm{color:#c7ccda}.mp-wx__mn{color:#8b91a0}'
         . '.mp-wx__sep{color:#3a4054;margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
@@ -6032,6 +6046,19 @@ add_action('magpress_after_header', function () {
         magpress_weather_topbar_output();
     }
 });
+/**
+ * Blocul ticker. $scroll=true → derulează (track dublat + animație, ~8s/oraș);
+ * $scroll=false → FIX (statice, fără animație; scroll orizontal manual la overflow).
+ */
+function magpress_weather_ticker($items, $scroll) {
+    if ($scroll) {
+        $count = max(1, substr_count($items, 'class="mp-wx__item"'));
+        $dur   = max(40, $count * 8);
+        return '<div class="mp-wx-bar__ticker"><div class="mp-wx__track" style="animation-duration:' . (int) $dur . 's">' . $items . $items . '</div></div>';
+    }
+    return '<div class="mp-wx-bar__ticker mp-wx-bar__ticker--static"><div class="mp-wx__track mp-wx__track--static">' . $items . '</div></div>';
+}
+
 function magpress_weather_topbar_output() {
     if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
     $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța,Craiova,Sibiu');
@@ -6040,40 +6067,27 @@ function magpress_weather_topbar_output() {
     $items = magpress_weather_items($cities);
     if ($items === '') { return; }
 
-    // Derulare lentă: durata crește cu numărul de orașe (~8s/oraș, minim 40s).
-    $count = max(1, substr_count($items, 'class="mp-wx__item"'));
-    $dur   = max(40, $count * 8);
-
-    $data = magpress_weather_data();
-    $link = !empty($data['link'])
+    $scroll = (int) get_theme_mod('magpress_topbar_vreme_scroll', 0);
+    $data   = magpress_weather_data();
+    $link   = !empty($data['link'])
         ? '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>'
         : '';
 
     echo magpress_weather_css();
-    ?>
-<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe">
-  <div class="mp-wx-bar__inner container">
-    <span class="mp-wx-bar__label">⛅ Vremea azi</span>
-    <div class="mp-wx-bar__ticker">
-      <div class="mp-wx__track" style="animation-duration:<?php echo (int) $dur; ?>s">
-        <?php echo $items; // valori escapate în magpress_weather_items() ?>
-        <?php echo $items; // copie pentru buclă continuă ?>
-      </div>
-    </div>
-    <?php echo $link; ?>
-  </div>
-</div>
-    <?php
+    echo '<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe">'
+        . '<div class="mp-wx-bar__inner container">'
+        . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
+        . magpress_weather_ticker($items, $scroll)
+        . $link
+        . '</div></div>';
 }
 
-// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1"]
+// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1" scroll="0"]
 add_shortcode('vreme_bar', function ($atts) {
-    $atts = shortcode_atts(['orase' => '', 'link' => '1'], $atts, 'vreme_bar');
+    $atts = shortcode_atts(['orase' => '', 'link' => '1', 'scroll' => '0'], $atts, 'vreme_bar');
     $cities = array_filter(array_map('trim', explode(',', $atts['orase'])));
     $items  = magpress_weather_items($cities);
     if ($items === '') { return ''; }
-    $count = max(1, substr_count($items, 'class="mp-wx__item"'));
-    $dur   = max(40, $count * 8);
     $link  = '';
     if ($atts['link'] !== '0') {
         $data = magpress_weather_data();
@@ -6085,8 +6099,8 @@ add_shortcode('vreme_bar', function ($atts) {
         . '<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe" style="border-radius:8px;overflow:hidden">'
         . '<div class="mp-wx-bar__inner" style="padding-left:1rem;padding-right:1rem">'
         . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
-        . '<div class="mp-wx-bar__ticker"><div class="mp-wx__track" style="animation-duration:' . (int) $dur . 's">'
-        . $items . $items . '</div></div>' . $link . '</div></div>';
+        . magpress_weather_ticker($items, $atts['scroll'] === '1')
+        . $link . '</div></div>';
 });
 
 // Widget clasic (Aspect -> Widgets).
