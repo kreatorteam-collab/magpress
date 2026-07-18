@@ -1292,6 +1292,17 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'radio',
         'choices' => ['left' => 'Stânga', 'right' => 'Dreapta'],
     ]);
+    $wp_customize->add_setting('magpress_search_in_topbar', [
+        'default'           => 0,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_search_in_topbar', [
+        'label'       => 'Mută căutarea în top bar (lângă dată)',
+        'description' => 'Scoate lupa din meniu și pune un link „Caută" în top bar (deschide același modal). Eliberează spațiu în header pentru meniu mai mare. Necesită top bar-ul afișat.',
+        'section'     => 'magpress_curs_bnr',
+        'type'        => 'checkbox',
+    ]);
 }
 add_action('customize_register', 'magpress_customize_register');
 
@@ -5804,41 +5815,58 @@ add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widg
  */
 add_action('wp_body_open', 'magpress_curs_topbar_output', 5);
 function magpress_curs_topbar_output() {
-    if (!get_theme_mod('magpress_topbar_curs', 0)) return;
-    $list = get_theme_mod('magpress_topbar_curs_list', 'EUR,USD');
-    $currencies = array_filter(array_map('trim', explode(',', strtoupper($list))));
-    if (!$currencies) return;
+    $show_curs   = (bool) get_theme_mod('magpress_topbar_curs', 0);
+    $show_search = (bool) get_theme_mod('magpress_search_in_topbar', 0);
+    if (!$show_curs && !$show_search) return;
 
-    $data = magpress_bnr_rates();
-    if (empty($data['dates'])) return;
-    $today = $data['dates'][0];
-    $prev  = isset($data['dates'][1]) ? $data['dates'][1] : null;
-
+    // Cursurile (doar dacă e activat + feed disponibil).
     $items = '';
-    foreach ($currencies as $cur) {
-        if (!isset($data['rates'][$today][$cur])) continue;
-        $now = $data['rates'][$today][$cur];
-        $dir = 'flat'; $sym = '';
-        if ($prev && isset($data['rates'][$prev][$cur])) {
-            $old = $data['rates'][$prev][$cur];
-            if ($now['value'] > $old['value'])     { $dir = 'up';   $sym = '↑'; }
-            elseif ($now['value'] < $old['value']) { $dir = 'down'; $sym = '↓'; }
+    if ($show_curs) {
+        $list = get_theme_mod('magpress_topbar_curs_list', 'EUR,USD');
+        $currencies = array_filter(array_map('trim', explode(',', strtoupper($list))));
+        $data = magpress_bnr_rates();
+        if ($currencies && !empty($data['dates'])) {
+            $today = $data['dates'][0];
+            $prev  = isset($data['dates'][1]) ? $data['dates'][1] : null;
+            foreach ($currencies as $cur) {
+                if (!isset($data['rates'][$today][$cur])) continue;
+                $now = $data['rates'][$today][$cur];
+                $dir = 'flat'; $sym = '';
+                if ($prev && isset($data['rates'][$prev][$cur])) {
+                    $old = $data['rates'][$prev][$cur];
+                    if ($now['value'] > $old['value'])     { $dir = 'up';   $sym = '↑'; }
+                    elseif ($now['value'] < $old['value']) { $dir = 'down'; $sym = '↓'; }
+                }
+                $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
+                $mul = (int) $now['multiplier'] > 1 ? (int) $now['multiplier'] . ' ' : '';
+                $items .= '<span class="mp-curs-bar__item">' . esc_html($mul . $cur) . ' <b>' . esc_html($val) . '</b>'
+                    . ($sym !== '' ? ' <span class="mp-curs-bar__dir mp-curs-bar__dir--' . $dir . '" aria-hidden="true">' . $sym . '</span>' : '')
+                    . '</span>';
+            }
         }
-        $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
-        $mul = (int) $now['multiplier'] > 1 ? (int) $now['multiplier'] . ' ' : '';
-        $items .= '<span class="mp-curs-bar__item">' . esc_html($mul . $cur) . ' <b>' . esc_html($val) . '</b>'
-            . ($sym !== '' ? ' <span class="mp-curs-bar__dir mp-curs-bar__dir--' . $dir . '" aria-hidden="true">' . $sym . '</span>' : '')
-            . '</span>';
     }
-    if ($items === '') return;
+    // Nimic de arătat (curs pornit dar feed gol, și fără search).
+    if ($items === '' && !$show_search) return;
 
-    // Data de azi (cu ziua săptămânii, în română), afișată pe partea opusă cursului.
+    // Data de azi (cu ziua săptămânii, în română).
     $today_str = date_i18n('l, j F Y', current_time('timestamp'));
-    if (function_exists('mb_substr')) {
-        $today_str = mb_strtoupper(mb_substr($today_str, 0, 1)) . mb_substr($today_str, 1);
-    } else {
-        $today_str = ucfirst($today_str);
+    $today_str = function_exists('mb_substr')
+        ? mb_strtoupper(mb_substr($today_str, 0, 1)) . mb_substr($today_str, 1)
+        : ucfirst($today_str);
+
+    $align = esc_attr(get_theme_mod('magpress_topbar_curs_align', 'left'));
+
+    // Link de căutare (deschide același modal ca lupa din header — label pt #magpress-search-toggle).
+    $search_html = '';
+    if ($show_search) {
+        $search_html = '<label for="magpress-search-toggle" class="mp-curs-bar__search" role="button" tabindex="0" aria-label="Caută">'
+            . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
+            . '<span>Caută</span></label>';
     }
+
+    $group_html = $items !== ''
+        ? '<span class="mp-curs-bar__group"><span class="mp-curs-bar__label">Curs BNR</span>' . $items . '</span>'
+        : '<span class="mp-curs-bar__group"></span>';
     ?>
 <style id="mp-curs-bar-css">
 .mp-curs-bar{background:#14161c;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1}
@@ -5850,16 +5878,23 @@ function magpress_curs_topbar_output() {
 .mp-curs-bar__item{white-space:nowrap}
 .mp-curs-bar__item b{color:#fff;font-weight:700}
 .mp-curs-bar__dir--up{color:#4cc26a}.mp-curs-bar__dir--down{color:#ef5b5b}
+.mp-curs-bar__end{display:inline-flex;align-items:center;gap:1rem}
 .mp-curs-bar__date{color:#8b91a0;white-space:nowrap}
+.mp-curs-bar__search{display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;color:#cfd3dc;font-weight:600;white-space:nowrap;transition:color .15s}
+.mp-curs-bar__search:hover{color:#fff}
+.mp-curs-bar__search svg{width:14px;height:14px}
+<?php if ($show_search): // scoate lupa din header/meniu (ambele layout-uri) ?>
+.site-header .search-toggle,.site-nav-bar .search-toggle{display:none!important}
+<?php endif; ?>
 @media(max-width:768px){.mp-curs-bar{display:none!important}}
 </style>
-<div class="mp-curs-bar mp-curs-bar--<?php echo esc_attr(get_theme_mod('magpress_topbar_curs_align', 'left')); ?>" role="complementary" aria-label="Curs valutar BNR">
+<div class="mp-curs-bar mp-curs-bar--<?php echo $align; ?>" role="complementary" aria-label="Bară informativă">
   <div class="mp-curs-bar__inner container">
-    <span class="mp-curs-bar__group">
-      <span class="mp-curs-bar__label">Curs BNR</span>
-      <?php echo $items; // construit doar din valori escapate ?>
+    <?php echo $group_html; // curs, construit doar din valori escapate ?>
+    <span class="mp-curs-bar__end">
+      <?php echo $search_html; ?>
+      <span class="mp-curs-bar__date"><?php echo esc_html($today_str); ?></span>
     </span>
-    <span class="mp-curs-bar__date"><?php echo esc_html($today_str); ?></span>
   </div>
 </div>
     <?php
