@@ -1341,7 +1341,7 @@ function magpress_customize_register($wp_customize) {
         'section' => 'magpress_vreme_bar',
         'type'    => 'radio',
         'choices' => [
-            'inchis'  => 'Închis (fundal întunecat, text alb)',
+            'inchis'  => 'Colorat (preia culoarea site-ului, text alb)',
             'deschis' => 'Deschis (fundal gri deschis, text închis)',
         ],
     ]);
@@ -6048,8 +6048,8 @@ function magpress_weather_css() {
     $done = true;
     return '<style id="mp-wx-css">'
         . '.mp-wx-bar{margin:2.75rem auto -.75rem}'  // auto=centrat orizontal; 2.75rem sus / -.75rem jos = centrat vertical (compenseaza padding-top .site-content 24px + margin sectiune 32px => gol egal 44px sus/jos, verificat live)
-        . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'
-        . '.mp-wx-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
+        . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:var(--c-accent,#1f6fb2);color:#fff;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'  // „Închis" = accent plin (culoarea brandului site-ului)
+        . '.mp-wx-bar__label{color:rgba(255,255,255,.82);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
         . '.mp-wx-bar__ticker{flex:0 1 auto;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
         . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
         . '.mp-wx-bar__ticker:hover .mp-wx__track{animation-play-state:paused}'
@@ -6057,10 +6057,10 @@ function magpress_weather_css() {
         . '.mp-wx-bar__ticker--static::-webkit-scrollbar{display:none}'
         . '.mp-wx__track--static{animation:none}'
         . '.mp-wx__item{display:inline-flex;align-items:center;gap:.35rem;margin-right:2rem}'
-        . '.mp-wx__ic{font-size:.95rem}.mp-wx__nm{color:#c7ccda}.mp-wx__mn{color:#8b91a0}'
-        . '.mp-wx__sep{color:#3a4054;margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
-        . '.mp-wx__link{flex:0 0 auto;color:#6db3f2;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
-        . '.mp-wx__link:hover{color:#8ec5f5}'
+        . '.mp-wx__ic{font-size:.95rem}.mp-wx__nm{color:rgba(255,255,255,.92)}.mp-wx__mn{color:rgba(255,255,255,.6)}'
+        . '.mp-wx__sep{color:rgba(255,255,255,.4);margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
+        . '.mp-wx__link{flex:0 0 auto;color:#fff;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
+        . '.mp-wx__link:hover{color:rgba(255,255,255,.8)}'
         // Varianta DESCHISĂ (fundal gri deschis, text închis)
         . '.mp-wx-bar--light .mp-wx-bar__inner{background:#eef1f5;color:#374151;border:1px solid #e2e6ec}'
         . '.mp-wx-bar--light .mp-wx-bar__label{color:#6b7280}'
