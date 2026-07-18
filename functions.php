@@ -5986,7 +5986,7 @@ function magpress_weather_css() {
     if ($done) { return ''; }
     $done = true;
     return '<style id="mp-wx-css">'
-        . '.mp-wx-bar{margin:1.75rem auto .25rem}'  // auto = centrat orizontal (nu 0, care ar anula .container margin:0 auto); vertical echilibrat cu padding-top 1.5rem al .site-content
+        . '.mp-wx-bar{margin:2.75rem auto -.75rem}'  // auto=centrat orizontal; 2.75rem sus / -.75rem jos = centrat vertical (compenseaza padding-top .site-content 24px + margin sectiune 32px => gol egal 44px sus/jos, verificat live)
         . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'
         . '.mp-wx-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
         . '.mp-wx-bar__ticker{flex:0 1 auto;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
