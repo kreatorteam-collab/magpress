@@ -1345,6 +1345,20 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_vreme_bar',
         'type'        => 'checkbox',
     ]);
+    $wp_customize->add_setting('magpress_topbar_vreme_tema', [
+        'default'           => 'inchis',
+        'sanitize_callback' => function($v) { return in_array($v, ['inchis', 'deschis'], true) ? $v : 'inchis'; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_topbar_vreme_tema', [
+        'label'   => 'Culoarea benzii',
+        'section' => 'magpress_vreme_bar',
+        'type'    => 'radio',
+        'choices' => [
+            'inchis'  => 'Închis (fundal întunecat, text alb)',
+            'deschis' => 'Deschis (fundal gri deschis, text închis)',
+        ],
+    ]);
     $wp_customize->add_setting('magpress_search_in_topbar', [
         'default'           => 0,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },
@@ -6000,6 +6014,15 @@ function magpress_weather_css() {
         . '.mp-wx__sep{color:#3a4054;margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
         . '.mp-wx__link{flex:0 0 auto;color:#6db3f2;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
         . '.mp-wx__link:hover{color:#8ec5f5}'
+        // Varianta DESCHISĂ (fundal gri deschis, text închis)
+        . '.mp-wx-bar--light{background:#eef1f5;color:#374151;border-top-color:#dfe3ea}'
+        . '.mp-wx-bar--light .mp-wx-bar__label{color:#6b7280}'
+        . '.mp-wx-bar--light .mp-wx__nm{color:#374151}'
+        . '.mp-wx-bar--light .mp-wx__mn{color:#6b7280}'
+        . '.mp-wx-bar--light .mp-wx__mx{color:#111827}'
+        . '.mp-wx-bar--light .mp-wx__sep{color:#c2c8d2}'
+        . '.mp-wx-bar--light .mp-wx__link{color:#1f6fb2}'
+        . '.mp-wx-bar--light .mp-wx__link:hover{color:#12507f}'
         . '@keyframes mp-wx-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}'
         . '@media(prefers-reduced-motion:reduce){.mp-wx__track{animation:none}.mp-wx-bar__ticker{overflow-x:auto}}'
         . '@media(max-width:768px){.mp-wx-bar__label{display:none}.mp-wx-bar__inner{gap:.6rem}}'
@@ -6068,13 +6091,14 @@ function magpress_weather_topbar_output() {
     if ($items === '') { return; }
 
     $scroll = (int) get_theme_mod('magpress_topbar_vreme_scroll', 0);
+    $light  = get_theme_mod('magpress_topbar_vreme_tema', 'inchis') === 'deschis' ? ' mp-wx-bar--light' : '';
     $data   = magpress_weather_data();
     $link   = !empty($data['link'])
         ? '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>'
         : '';
 
     echo magpress_weather_css();
-    echo '<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe">'
+    echo '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe">'
         . '<div class="mp-wx-bar__inner container">'
         . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
         . magpress_weather_ticker($items, $scroll)
@@ -6082,12 +6106,13 @@ function magpress_weather_topbar_output() {
         . '</div></div>';
 }
 
-// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1" scroll="0"]
+// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1" scroll="0" tema="inchis"]
 add_shortcode('vreme_bar', function ($atts) {
-    $atts = shortcode_atts(['orase' => '', 'link' => '1', 'scroll' => '0'], $atts, 'vreme_bar');
+    $atts = shortcode_atts(['orase' => '', 'link' => '1', 'scroll' => '0', 'tema' => 'inchis'], $atts, 'vreme_bar');
     $cities = array_filter(array_map('trim', explode(',', $atts['orase'])));
     $items  = magpress_weather_items($cities);
     if ($items === '') { return ''; }
+    $light = $atts['tema'] === 'deschis' ? ' mp-wx-bar--light' : '';
     $link  = '';
     if ($atts['link'] !== '0') {
         $data = magpress_weather_data();
@@ -6096,7 +6121,7 @@ add_shortcode('vreme_bar', function ($atts) {
         }
     }
     return magpress_weather_css()
-        . '<div class="mp-wx-bar" role="complementary" aria-label="Vremea azi pe orașe" style="border-radius:8px;overflow:hidden">'
+        . '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe" style="border-radius:8px;overflow:hidden">'
         . '<div class="mp-wx-bar__inner" style="padding-left:1rem;padding-right:1rem">'
         . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
         . magpress_weather_ticker($items, $atts['scroll'] === '1')
