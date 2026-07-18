@@ -1310,13 +1310,13 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_topbar_vreme_orase', [
-        'default'           => 'București,Cluj-Napoca,Iași,Constanța',
+        'default'           => 'București,Timișoara,Cluj-Napoca,Iași,Constanța',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_vreme_orase', [
         'label'       => 'Orașe afișate (separate prin virgulă)',
-        'description' => 'Disponibile din feed-ul ANM: București, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina. Gol = toate.',
+        'description' => 'Se afișează în ordinea listei. Disponibile: București, Timișoara, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina. Gol = toate.',
         'section'     => 'magpress_vreme_bar',
         'type'        => 'text',
     ]);
@@ -5926,7 +5926,63 @@ function magpress_weather_latest_link() {
     return '';
 }
 
-/** Datele de vreme pentru azi (cache 3h + stale 24h), din feed-ul ANM. */
+/** Orașe care NU sunt în feed-ul ANM (nume => [lat, lon]); aduse din Open-Meteo. */
+function magpress_weather_extra_cities() {
+    return [
+        'Timișoara' => [45.7489, 21.2087],
+    ];
+}
+
+/** Iconiță din codul WMO (Open-Meteo). */
+function magpress_weather_icon_wmo($code) {
+    if ($code === 0)                    { return '☀️'; }
+    if ($code === 1 || $code === 2)     { return '⛅'; }
+    if ($code === 3)                    { return '☁️'; }
+    if ($code === 45 || $code === 48)   { return '🌫️'; }
+    if ($code >= 71 && $code <= 77)     { return '❄️'; }
+    if ($code === 85 || $code === 86)   { return '❄️'; }
+    if ($code >= 95)                    { return '⛈️'; }
+    if ($code >= 51 && $code <= 82)     { return '🌧️'; }
+    return '🌡️';
+}
+
+/** Descriere scurtă RO din codul WMO (pentru tooltip). */
+function magpress_weather_desc_wmo($code) {
+    if ($code === 0)                    { return 'Cer senin'; }
+    if ($code === 1 || $code === 2)     { return 'Variabil'; }
+    if ($code === 3)                    { return 'Înnorat'; }
+    if ($code === 45 || $code === 48)   { return 'Ceață'; }
+    if ($code >= 51 && $code <= 57)     { return 'Burniță'; }
+    if ($code >= 61 && $code <= 67)     { return 'Ploaie'; }
+    if ($code >= 71 && $code <= 77)     { return 'Ninsoare'; }
+    if ($code >= 80 && $code <= 82)     { return 'Averse'; }
+    if ($code === 85 || $code === 86)   { return 'Ninsoare'; }
+    if ($code >= 95)                    { return 'Furtună'; }
+    return '';
+}
+
+/** Prognoza de azi pentru orașele extra (Open-Meteo). Întoarce [nume => [min,max,icon,desc]]. */
+function magpress_weather_openmeteo($extra) {
+    $out = [];
+    foreach ($extra as $name => $ll) {
+        $url = 'https://api.open-meteo.com/v1/forecast?latitude=' . $ll[0] . '&longitude=' . $ll[1]
+             . '&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe%2FBucharest&forecast_days=1';
+        $resp = wp_remote_get($url, ['timeout' => 10]);
+        if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) { continue; }
+        $j = json_decode((string) wp_remote_retrieve_body($resp), true);
+        if (!isset($j['daily']['temperature_2m_max'][0], $j['daily']['temperature_2m_min'][0])) { continue; }
+        $code = isset($j['daily']['weather_code'][0]) ? (int) $j['daily']['weather_code'][0] : -1;
+        $out[$name] = [
+            'min'  => (int) round((float) $j['daily']['temperature_2m_min'][0]),
+            'max'  => (int) round((float) $j['daily']['temperature_2m_max'][0]),
+            'icon' => magpress_weather_icon_wmo($code),
+            'desc' => magpress_weather_desc_wmo($code),
+        ];
+    }
+    return $out;
+}
+
+/** Datele de vreme pentru azi (cache 3h + stale 24h): ANM + orașe extra (Open-Meteo). */
 function magpress_weather_data() {
     $cached = get_transient('magpress_weather_v1');
     if (is_array($cached)) { return $cached; }
@@ -5972,6 +6028,11 @@ function magpress_weather_data() {
             'desc' => $desc !== '' ? magpress_weather_beautify($desc) : '',
         ];
     }
+    // Orașe care NU sunt în feed-ul ANM (ex. Timișoara) — aduse din Open-Meteo.
+    foreach (magpress_weather_openmeteo(magpress_weather_extra_cities()) as $n => $d) {
+        $cities[$n] = $d;
+    }
+
     $out = ['date' => $today, 'cities' => $cities, 'link' => magpress_weather_latest_link()];
     if ($cities) {
         set_transient('magpress_weather_v1', $out, 3 * HOUR_IN_SECONDS);
@@ -6015,19 +6076,35 @@ function magpress_weather_css() {
         . '</style>';
 }
 
-/** Construiește orașele (track) după o listă opțională de nume. Întoarce '' dacă n-are date. */
+/**
+ * Construiește orașele (track). Dacă e dată o listă, RESPECTĂ ordinea din listă
+ * (nu ordinea feed-ului); listă goală = toate, în ordinea din date. '' dacă n-are date.
+ */
 function magpress_weather_items($cities_filter = []) {
     $data = magpress_weather_data();
     if (empty($data['cities'])) { return ''; }
 
-    $want = [];
-    foreach ((array) $cities_filter as $c) {
-        $c = trim($c);
-        if ($c !== '') { $want[magpress_weather_norm($c)] = true; }
-    }
-    $items = '';
+    // Index pe nume normalizat, ca să potrivim intrările din listă cu orașele disponibile.
+    $byNorm = [];
     foreach ($data['cities'] as $name => $c) {
-        if ($want && !isset($want[magpress_weather_norm($name)])) { continue; }
+        $byNorm[magpress_weather_norm($name)] = ['name' => $name, 'c' => $c];
+    }
+
+    // Ordinea de afișare: lista userului (în ordinea ei) sau toate orașele.
+    $order = [];
+    $filter = array_filter(array_map('trim', (array) $cities_filter), 'strlen');
+    if ($filter) {
+        foreach ($filter as $cf) {
+            $n = magpress_weather_norm($cf);
+            if (isset($byNorm[$n])) { $order[] = $byNorm[$n]; }
+        }
+    } else {
+        foreach ($data['cities'] as $name => $c) { $order[] = ['name' => $name, 'c' => $c]; }
+    }
+
+    $items = '';
+    foreach ($order as $e) {
+        $name = $e['name']; $c = $e['c'];
         $items .= '<span class="mp-wx__item"' . ($c['desc'] !== '' ? ' title="' . esc_attr($c['desc']) . '"' : '') . '>'
             . '<span class="mp-wx__ic" aria-hidden="true">' . $c['icon'] . '</span>'
             . '<span class="mp-wx__nm">' . esc_html($name) . '</span> '
@@ -6056,7 +6133,7 @@ function magpress_weather_ticker($items, $scroll) {
 
 function magpress_weather_topbar_output() {
     if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
-    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Cluj-Napoca,Iași,Constanța');
+    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Timișoara,Cluj-Napoca,Iași,Constanța');
     $cities = array_filter(array_map('trim', explode(',', $list)));
 
     $items = magpress_weather_items($cities);
