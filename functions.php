@@ -5986,10 +5986,10 @@ function magpress_weather_css() {
     if ($done) { return ''; }
     $done = true;
     return '<style id="mp-wx-css">'
-        . '.mp-wx-bar{margin:1.25rem 0}'  // spatiu vertical (intre header si continut); latimea vine din .container pe markup
-        . '.mp-wx-bar__inner{display:flex;align-items:center;gap:1rem;background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'
+        . '.mp-wx-bar{margin:1.75rem 0 .25rem}'  // echilibrat vertical: sub banda, .site-content adauga 1.5rem padding-top
+        . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:#191c24;color:#cfd3dc;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'
         . '.mp-wx-bar__label{color:#8b91a0;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
-        . '.mp-wx-bar__ticker{flex:1 1 auto;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
+        . '.mp-wx-bar__ticker{flex:0 1 auto;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
         . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
         . '.mp-wx-bar__ticker:hover .mp-wx__track{animation-play-state:paused}'
         . '.mp-wx-bar__ticker--static{overflow-x:auto;-webkit-overflow-scrolling:touch;-webkit-mask-image:none;mask-image:none;scrollbar-width:none}'
