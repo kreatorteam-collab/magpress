@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.3.0');
+define('MAGPRESS_VERSION', '0.9.147');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -143,24 +143,32 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
  */
 function magpress_enqueue_assets() {
     // News font preset — dacă e setat (≠ default), override-uiește magpress_google_font + adaugă CSS pentru h1-h3/body
-    $preset = magpress_news_font_preset_config();
+    $preset    = magpress_news_font_preset_config();
+    $menu_font = magpress_menu_font_config();
 
+    // UN SINGUR request Google Fonts (base preset/default + eventual fontul de meniu, combinate).
+    $font_url = '';
     if ($preset) {
-        // Preset preia controlul
-        $url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
-        wp_enqueue_style('magpress-google-font', $url, [], null);
+        $font_url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
     } else {
-        // Comportament default: Open Sans (sau ce e setat în Customizer)
         $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
         if ($google_font !== '') {
-            $url = 'https://fonts.googleapis.com/css2?' . http_build_query([
+            $font_url = 'https://fonts.googleapis.com/css2?' . http_build_query([
                 'family'  => $google_font,
                 'display' => 'swap',
             ], '', '&', PHP_QUERY_RFC3986);
             // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
-            $url = str_replace('%3A', ':', $url);
-            wp_enqueue_style('magpress-google-font', $url, [], null);
+            $font_url = str_replace('%3A', ':', $font_url);
         }
+    }
+    // Fontul de meniu intră în ACELAȘI request (nu mai e un al doilea hit la fonts.googleapis.com).
+    if ($menu_font) {
+        $font_url = ($font_url !== '')
+            ? str_replace('&display=swap', '&family=' . $menu_font['google'] . '&display=swap', $font_url)
+            : 'https://fonts.googleapis.com/css2?family=' . $menu_font['google'] . '&display=swap';
+    }
+    if ($font_url !== '') {
+        wp_enqueue_style('magpress-google-font', $font_url, [], null);
     }
 
     $css_path = MAGPRESS_DIR . '/assets/css/style.css';
@@ -180,10 +188,8 @@ function magpress_enqueue_assets() {
         wp_add_inline_style('magpress-main', $css_preset);
     }
 
-    // Font meniu (opțional, stil știri) — încarcă fontul + îl aplică DOAR pe navigație.
-    $menu_font = magpress_menu_font_config();
+    // Font meniu (opțional, stil știri) — aplică fontul DOAR pe navigație (fontul e deja în request-ul combinat de mai sus).
     if ($menu_font) {
-        wp_enqueue_style('magpress-menu-font', 'https://fonts.googleapis.com/css2?family=' . $menu_font['google'] . '&display=swap', [], null);
         // Fonturile de tip știri sunt condensate → citesc mic; mărim ușor pt prezență (stil Mediafax).
         wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;letter-spacing:.04em}');
     }
@@ -4594,28 +4600,6 @@ function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') 
 
 
 /**
- * Returnează cele 3 pagini legale (terms / cookies / privacy) DACĂ există (gestionate central de targetseo.ro).
- * Folosit în footer.php. Returnează gol dacă paginile nu sunt încă sync-uite — zero impact pe site-uri.
- */
-function magpress_get_legal_page_links() {
-    static $cache = null;
-    if ($cache !== null) return $cache;
-    $cache = [];
-    $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
-    foreach ($slugs as $slug) {
-        $page = get_page_by_path($slug, OBJECT, 'page');
-        if (!$page) continue;
-        if ($page->post_status !== 'publish') continue;
-        $cache[] = [
-            'title' => get_the_title($page),
-            'url'   => get_permalink($page),
-            'slug'  => $slug,
-        ];
-    }
-    return $cache;
-}
-
-/**
  * ============================================================
  * SCHEMA.ORG JSON-LD — articole + breadcrumb (+ homepage opțional)
  * ============================================================
@@ -4791,32 +4775,10 @@ function magpress_emit_schema_jsonld() {
     }
 
     foreach ($schemas as $s) {
-        echo '<script type="application/ld+json">' . wp_json_encode($s, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>' . "\n";
+        echo '<script type="application/ld+json">' . wp_json_encode($s, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>' . "\n";
     }
 }
 add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
-
-/**
- * Detectează dacă alt plugin (SEOPress, Rank Math, Yoast, etc.) a emis deja Organization
- * sau WebSite schema în <head>. Folosim output buffer pentru a inspecta ce s-a emis înainte
- * de priority 30 (Magpress).
- *
- * Robust independent de internalele plugin-urilor — uită-te direct la output.
- */
-function magpress_head_already_has_schema($type) {
-    $buffer = magpress_get_head_buffer();
-    if ($buffer === false) return false;
-    // Pentru tipuri Organization-family (Organization, NewsMediaOrganization, OnlineBusiness, etc.),
-    // detectie permissive — dacă există ORICE subtype Org, nu duplicăm.
-    // User-ul poate dezactiva SEOPress Organization manual pe site-urile unde vrea Magpress să emite
-    // un tip specific (ex: NewsMediaOrganization pe site-uri news).
-    $org_family = ['Organization', 'NewsMediaOrganization', 'OnlineBusiness', 'LocalBusiness', 'Corporation', 'EducationalOrganization', 'GovernmentOrganization', 'NGO'];
-    if (in_array($type, $org_family, true)) {
-        $pattern = '/"@type"\s*:\s*"(' . implode('|', $org_family) . ')"/';
-        return (bool) preg_match($pattern, $buffer);
-    }
-    return (bool) preg_match('/"@type"\s*:\s*"' . preg_quote($type, '/') . '"/', $buffer);
-}
 
 // Output buffer pe wp_head: pornim la priority 1, citim la priority 30 (Magpress), oprim la 999
 function magpress_start_head_buffer() {
@@ -5079,6 +5041,15 @@ function magpress_build_article_schema() {
             $image_url = $img[0];
             $image_w = $img[1];
             $image_h = $img[2];
+        }
+    }
+    // Fallback: fără imagine reprezentativă → logo-ul site-ului, ca Article schema să aibă mereu 'image'
+    // (recomandat de Google pentru rich results).
+    if ($image_url === '') {
+        $logo_id = (int) get_theme_mod('custom_logo');
+        if ($logo_id) {
+            $limg = wp_get_attachment_image_src($logo_id, 'full');
+            if ($limg) { $image_url = $limg[0]; $image_w = $limg[1]; $image_h = $limg[2]; }
         }
     }
 

@@ -53,6 +53,10 @@ $layout = magpress_header_layout();
 
   <?php /* Dropdown meniu mobil — apare cand hamburger e bifat */ ?>
   <nav class="mobile-menu" aria-label="Meniu mobil">
+    <label for="magpress-search-toggle" class="mobile-menu__search" role="button" tabindex="0" aria-label="Caută">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Caută</span>
+    </label>
     <?php magpress_render_primary_menu(); ?>
   </nav>
 
@@ -88,6 +92,10 @@ $layout = magpress_header_layout();
   </header>
 
   <nav class="mobile-menu" aria-label="Meniu mobil">
+    <label for="magpress-search-toggle" class="mobile-menu__search" role="button" tabindex="0" aria-label="Caută">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Caută</span>
+    </label>
     <?php magpress_render_primary_menu(); ?>
   </nav>
 

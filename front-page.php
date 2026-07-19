@@ -11,6 +11,9 @@ get_header();
 
 <div class="container site-content">
 
+  <?php /* H1 pentru SEO (homepage-ul n-avea) — invizibil vizual, numele site-ului + descriere. */ ?>
+  <h1 class="screen-reader-text"><?php echo esc_html(get_bloginfo('name')); $mp_desc = get_bloginfo('description'); if ($mp_desc) { echo ' — ' . esc_html($mp_desc); } ?></h1>
+
   <?php
   // Featured posts — layout din Customizer
   $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
