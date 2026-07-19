@@ -11,8 +11,13 @@ get_header();
 
 <div class="container site-content">
 
-  <?php /* H1 pentru SEO (homepage-ul n-avea) — invizibil vizual, numele site-ului + descriere. */ ?>
-  <h1 class="screen-reader-text"><?php echo esc_html(get_bloginfo('name')); $mp_desc = get_bloginfo('description'); if ($mp_desc) { echo ' — ' . esc_html($mp_desc); } ?></h1>
+  <?php
+  /* H1 pentru SEO (homepage-ul n-avea) — invizibil vizual. Nume site + descriere DOAR dacă adaugă info. */
+  $mp_name = get_bloginfo('name');
+  $mp_desc = trim((string) get_bloginfo('description'));
+  $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' — ' . $mp_desc : $mp_name;
+  ?>
+  <h1 class="screen-reader-text"><?php echo esc_html($mp_h1); ?></h1>
 
   <?php
   // Featured posts — layout din Customizer
