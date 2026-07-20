@@ -21,7 +21,7 @@ get_header();
   }
   if (get_theme_mod('magpress_home_h1_visible', 1)):
   ?>
-  <h1 class="home-h1" style="text-align:center"><?php echo esc_html($mp_h1); ?></h1>
+  <h1 class="home-h1" style="text-align:center;color:var(--c-accent)"><?php echo esc_html($mp_h1); ?></h1>
   <?php else: /* ascuns pentru SEO — hiding INLINE (rezistă la UCSS, care poate strippa .screen-reader-text) */ ?>
   <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
   <?php endif; ?>
