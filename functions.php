@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.150');
+define('MAGPRESS_VERSION', '0.9.151');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -906,6 +906,30 @@ function magpress_customize_register($wp_customize) {
         'title'       => 'Magpress: Homepage',
         'description' => '30 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă). Default: doar primele 4 sunt active (categorii); restul sunt „Gol".',
         'priority'    => 27,
+    ]);
+
+    // Titlu H1 homepage — editabil + vizibil (centrat) sau ascuns pentru SEO.
+    $wp_customize->add_setting('magpress_home_h1_text', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_home_h1_text', [
+        'label'       => 'Titlu H1 homepage',
+        'description' => 'Textul titlului principal (H1) de pe prima pagină. Lasă gol = numele site-ului + descrierea.',
+        'section'     => 'magpress_homepage',
+        'type'        => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_home_h1_visible', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_home_h1_visible', [
+        'label'       => 'Afișează titlul H1 vizibil (centrat)',
+        'description' => 'Debifat = titlul rămâne DOAR pentru SEO (invizibil pe pagină).',
+        'section'     => 'magpress_homepage',
+        'type'        => 'checkbox',
     ]);
 
     $slot_types = [

@@ -12,12 +12,19 @@ get_header();
 <div class="container site-content">
 
   <?php
-  /* H1 pentru SEO (homepage-ul n-avea) — invizibil vizual. Nume site + descriere DOAR dacă adaugă info. */
-  $mp_name = get_bloginfo('name');
-  $mp_desc = trim((string) get_bloginfo('description'));
-  $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' — ' . $mp_desc : $mp_name;
+  /* Titlu H1 homepage — text editabil din Customizer (gol = nume site + descriere); vizibil+centrat SAU ascuns pt SEO. */
+  $mp_h1 = trim((string) get_theme_mod('magpress_home_h1_text', ''));
+  if ($mp_h1 === '') {
+      $mp_name = get_bloginfo('name');
+      $mp_desc = trim((string) get_bloginfo('description'));
+      $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' — ' . $mp_desc : $mp_name;
+  }
+  if (get_theme_mod('magpress_home_h1_visible', 1)):
   ?>
-  <h1 class="screen-reader-text"><?php echo esc_html($mp_h1); ?></h1>
+  <h1 class="home-h1"><?php echo esc_html($mp_h1); ?></h1>
+  <?php else: /* ascuns pentru SEO — hiding INLINE (rezistă la UCSS, care poate strippa .screen-reader-text) */ ?>
+  <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
+  <?php endif; ?>
 
   <?php
   // Featured posts — layout din Customizer
