@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.148');
+define('MAGPRESS_VERSION', '0.9.149');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1576,6 +1576,20 @@ function magpress_render_partners() {
 add_action('magpress_auto_deploy_check', function () {
     foreach (magpress_partner_sources() as $src) { magpress_partner_fetch($src, 4); }
 }, 20);
+
+// Pre-warm bare Curs BNR + Vreme: refetch în FUNDAL (cron) ÎNAINTE de expirarea cache-ului,
+// ca vizitatorii să nu prindă niciodată cache rece. Doar pe site-urile unde bara e activată.
+// Un transient-marker limitează refetch-ul (sub TTL-ul de serving), deși cronul e la 5 min.
+add_action('magpress_auto_deploy_check', function () {
+    if (get_theme_mod('magpress_topbar_curs', 0) && get_transient('magpress_bnr_prewarm') === false) {
+        set_transient('magpress_bnr_prewarm', 1, 4 * HOUR_IN_SECONDS); // < 6h TTL serving
+        magpress_bnr_rates(true);
+    }
+    if (get_theme_mod('magpress_topbar_vreme', 0) && get_transient('magpress_wx_prewarm') === false) {
+        set_transient('magpress_wx_prewarm', 1, 2 * HOUR_IN_SECONDS); // < 3h TTL serving
+        magpress_weather_data(true);
+    }
+}, 30);
 
 /**
  * Inline critical CSS — minimul absolut pentru above-the-fold (header + container + featured).
@@ -3438,11 +3452,8 @@ function magpress_rest_diag($req) {
     @unlink($tmp);
 
     // Diagnostic cache: WP_CACHE + drop-in-uri + object cache (read-only).
+    // NU mai returnăm căi absolute / conținut de fișiere (evităm fingerprinting server dacă gate-ul e slab).
     $adv = WP_CONTENT_DIR . '/advanced-cache.php';
-    $adv_hint = '';
-    if (@file_exists($adv)) {
-        $adv_hint = trim(preg_replace('/\s+/', ' ', (string) @file_get_contents($adv, false, null, 0, 200)));
-    }
 
     return [
         'theme_version'   => wp_get_theme()->get('Version'),
@@ -3456,12 +3467,10 @@ function magpress_rest_diag($req) {
         'opcache_reset'   => function_exists('opcache_reset'),
         'session_auto_start' => (int) ini_get('session.auto_start'),
         'session_status'  => function_exists('session_status') ? session_status() : -1, // 0=off,1=none,2=ACTIVA(lock)
-        'session_save_path' => ini_get('session.save_path'),
         'img_test'        => $img_test,
         'cache' => [
             'WP_CACHE'           => defined('WP_CACHE') ? (WP_CACHE ? 'true' : 'false') : 'undefined',
             'advanced_cache_php' => @file_exists($adv),
-            'advanced_cache_hint'=> $adv_hint,
             'object_cache_php'   => @file_exists(WP_CONTENT_DIR . '/object-cache.php'),
             'ext_object_cache'   => function_exists('wp_using_ext_object_cache') && wp_using_ext_object_cache(),
             'object_cache_impl'  => (isset($GLOBALS['wp_object_cache']) && is_object($GLOBALS['wp_object_cache'])) ? get_class($GLOBALS['wp_object_cache']) : null,
@@ -3922,6 +3931,18 @@ function magpress_perform_deploy() {
     }
     if (!is_dir($tmp_extract)) {
         @mkdir($tmp_extract, 0755, true);
+    }
+    // Gardă zip-slip: refuzăm orice intrare care iese din directorul țintă (../, cale absolută)
+    // înainte de a extrage — o arhivă coruptă/malițioasă nu poate scrie în afara $tmp_extract.
+    for ($zi = 0; $zi < $zip->numFiles; $zi++) {
+        $entry = $zip->getNameIndex($zi);
+        if ($entry === false || $entry === '') { continue; }
+        $entry = str_replace('\\', '/', $entry);
+        if (preg_match('#^(/|[A-Za-z]:)#', $entry) || strpos($entry, '../') !== false || $entry === '..') {
+            $zip->close();
+            @unlink($tmp_zip);
+            return ['ok' => false, 'error' => 'zip_unsafe_entry', 'log' => $log];
+        }
     }
     $zip->extractTo($tmp_extract);
     $zip->close();
@@ -5712,9 +5733,11 @@ if(y)y.addEventListener('click',ok);if(n)n.addEventListener('click',no);})();</s
  * Cursurile BNR pe ultimele zile publicate.
  * @return array ['dates' => ['2026-07-16', ...desc], 'rates' => ['2026-07-16' => ['EUR' => ['value'=>5.2414,'multiplier'=>1], ...]]]
  */
-function magpress_bnr_rates() {
-    $cached = get_transient('magpress_bnr_rates_v1');
-    if (is_array($cached) && !empty($cached['dates'])) return $cached;
+function magpress_bnr_rates($force = false) {
+    if (!$force) {
+        $cached = get_transient('magpress_bnr_rates_v1');
+        if (is_array($cached) && !empty($cached['dates'])) return $cached;
+    }
 
     $resp = wp_remote_get('https://www.bnr.ro/nbrfxrates10days.xml', ['timeout' => 10]);
     if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
@@ -5954,9 +5977,11 @@ function magpress_weather_openmeteo($extra) {
 }
 
 /** Datele de vreme pentru azi (cache 3h + stale 24h): ANM + orașe extra (Open-Meteo). */
-function magpress_weather_data() {
-    $cached = get_transient('magpress_weather_v1');
-    if (is_array($cached)) { return $cached; }
+function magpress_weather_data($force = false) {
+    if (!$force) {
+        $cached = get_transient('magpress_weather_v1');
+        if (is_array($cached)) { return $cached; }
+    }
 
     $resp = wp_remote_get('https://www.meteoromania.ro/anm/prognoza-orase-xml.php', ['timeout' => 10]);
     if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
