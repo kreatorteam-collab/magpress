@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.149');
+define('MAGPRESS_VERSION', '0.9.150');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -3377,9 +3377,9 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
     register_rest_route('magpress/v1', '/diag', [
-        'methods'             => 'GET',
+        'methods'             => 'POST',
         'callback'            => 'magpress_rest_diag',
-        'permission_callback' => '__return_true',
+        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
     ]);
     register_rest_route('magpress/v1', '/errorlog', [
         'methods'             => 'POST',
@@ -3414,11 +3414,15 @@ add_action('rest_api_init', function () {
 
 /**
  * Diagnostic imagini — ce editor alege WP pentru JPEG, ce extensii există, memorie, opcache.
- * Gate slab cu ping secret (info puțin sensibilă). Folosit la debugging fleet multi-site.
+ * Auth: HMAC-SHA256 pe body cu deploy_secret PER-SITE (ca /errorlog, /deploy) — NU mai folosim
+ * secretul comun hardcodat (care ajunge public la release). Folosit la debugging fleet multi-site.
  */
 function magpress_rest_diag($req) {
-    if ((string) $req->get_param('key') !== MAGPRESS_PING_SECRET) {
-        return new WP_REST_Response(['error' => 'forbidden'], 403);
+    $body     = (string) $req->get_body();
+    $sig      = (string) $req->get_header('X-Magpress-Signature');
+    $expected = hash_hmac('sha256', $body, magpress_get_deploy_secret());
+    if ($sig === '' || !hash_equals($expected, $sig)) {
+        return new WP_REST_Response(['error' => 'bad_signature'], 403);
     }
     $args = ['mime_type' => 'image/jpeg'];
     $chosen = function_exists('_wp_image_editor_choose') ? _wp_image_editor_choose($args) : 'unknown';
