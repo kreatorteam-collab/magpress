@@ -17,7 +17,7 @@ get_header();
   if ($mp_h1 === '') {
       $mp_name = get_bloginfo('name');
       $mp_desc = trim((string) get_bloginfo('description'));
-      $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' — ' . $mp_desc : $mp_name;
+      $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' - ' . $mp_desc : $mp_name;
   }
   if (get_theme_mod('magpress_home_h1_visible', 1)):
   ?>
