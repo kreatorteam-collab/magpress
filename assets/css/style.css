@@ -56,7 +56,7 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .container{max-width:var(--container);margin:0 auto;padding:0 clamp(1rem,3vw,2rem);width:100%}
 .site-content{padding-top:1.5rem;padding-bottom:3rem}
 /* Titlu H1 homepage (vizibil) — centrat, la fel ca textul din meniu */
-.home-h1{text-align:center;font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.4;margin:.75rem 0 1.25rem}
+.home-h1{text-align:center;color:#2c2c2c;font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.4;margin:.75rem 0 1.25rem}
 
 .skip-link{position:absolute;left:-9999px}
 .skip-link:focus{position:fixed;top:1rem;left:1rem;background:var(--c-primary);color:#fff;padding:.5rem 1rem;z-index:9999;border-radius:6px}
