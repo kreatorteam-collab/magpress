@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.158');
+define('MAGPRESS_VERSION', '0.9.159');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1390,6 +1390,27 @@ function magpress_customize_register($wp_customize) {
     ]);
 }
 add_action('customize_register', 'magpress_customize_register');
+
+/**
+ * Golește cache-ul LiteSpeed la SALVAREA Customizer-ului.
+ * Fără asta, schimbările (font meniu, culori, bare, titlu H1) NU se văd: CSS-ul generat de temă e
+ * inline în HTML-ul paginii, deci rămâne „copt" în pagina din cache. Hook-urile de purge nu
+ * regenerează mereu UCSS/CSS-combinat → ștergem și fizic directoarele generate (ca la deploy).
+ */
+add_action('customize_save_after', function () {
+    if (defined('LSCWP_V') || has_action('litespeed_purge_all')) {
+        do_action('litespeed_purge_all');
+        do_action('litespeed_purge_all_cssjs');
+        do_action('litespeed_purge_all_ccss');
+        do_action('litespeed_purge_all_ucss');
+    }
+    foreach (['css', 'ucss', 'ccss'] as $ls_sub) {
+        $ls_dir = WP_CONTENT_DIR . '/litespeed/' . $ls_sub;
+        if (is_dir($ls_dir) && function_exists('_magpress_rrmdir')) {
+            _magpress_rrmdir($ls_dir);
+        }
+    }
+});
 
 /**
  * Sanitizare pentru codurile personalizate (analytics/scripts) din Customizer.
