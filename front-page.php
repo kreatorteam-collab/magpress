@@ -12,28 +12,6 @@ get_header();
 <div class="container site-content">
 
   <?php
-  /* Titlu H1 homepage — text editabil din Customizer (gol = nume site + descriere); vizibil+centrat SAU ascuns pt SEO. */
-  $mp_h1 = trim((string) get_theme_mod('magpress_home_h1_text', ''));
-  if ($mp_h1 === '') {
-      $mp_name = get_bloginfo('name');
-      $mp_desc = trim((string) get_bloginfo('description'));
-      $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' - ' . $mp_desc : $mp_name;
-  }
-  if (get_theme_mod('magpress_home_h1_visible', 1)):
-      // Stil IDENTIC cu linkurile din meniu (font, mărime, majuscule, spațiere) + culoarea de accent.
-      // Inline ca să reziste la UCSS / CSS combinat stale de la LiteSpeed.
-      $mp_mf = function_exists('magpress_menu_font_config') ? magpress_menu_font_config() : null;
-      $mp_h1_style = 'text-align:center;color:#2c2c2c;text-transform:uppercase;line-height:1.4;margin:.75rem 0 1.25rem;'
-          . ($mp_mf
-              ? 'font-family:' . $mp_mf['family'] . ';font-size:1rem;font-weight:600;letter-spacing:.08em'
-              : 'font-family:inherit;font-size:.9rem;font-weight:700;letter-spacing:.04em');
-  ?>
-  <h1 class="home-h1" style="<?php echo esc_attr($mp_h1_style); ?>"><?php echo esc_html($mp_h1); ?></h1>
-  <?php else: /* ascuns pentru SEO — hiding INLINE (rezistă la UCSS, care poate strippa .screen-reader-text) */ ?>
-  <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
-  <?php endif; ?>
-
-  <?php
   // Featured posts — layout din Customizer
   $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
   if ($featured_layout !== 'hidden'):
@@ -107,6 +85,29 @@ get_header();
   endif; ?>
 
   <?php echo magpress_render_web_stories_carousel(8); // News feature toggle ?>
+
+  <?php
+  /* Titlu H1 homepage — plasat DEASUPRA bannerului Google Discover (cerință user).
+     Text editabil din Customizer (gol = nume site + descriere); vizibil+centrat SAU ascuns pt SEO. */
+  $mp_h1 = trim((string) get_theme_mod('magpress_home_h1_text', ''));
+  if ($mp_h1 === '') {
+      $mp_name = get_bloginfo('name');
+      $mp_desc = trim((string) get_bloginfo('description'));
+      $mp_h1 = ($mp_desc && strcasecmp($mp_desc, $mp_name) !== 0) ? $mp_name . ' - ' . $mp_desc : $mp_name;
+  }
+  if (get_theme_mod('magpress_home_h1_visible', 1)):
+      // Stil IDENTIC cu linkurile din meniu (font, mărime, majuscule, spațiere).
+      // Inline ca să reziste la UCSS / CSS combinat stale de la LiteSpeed.
+      $mp_mf = function_exists('magpress_menu_font_config') ? magpress_menu_font_config() : null;
+      $mp_h1_style = 'text-align:center;color:#2c2c2c;text-transform:uppercase;line-height:1.4;margin:.75rem 0 1.25rem;'
+          . ($mp_mf
+              ? 'font-family:' . $mp_mf['family'] . ';font-size:1rem;font-weight:600;letter-spacing:.08em'
+              : 'font-family:inherit;font-size:.9rem;font-weight:700;letter-spacing:.04em');
+  ?>
+  <h1 class="home-h1" style="<?php echo esc_attr($mp_h1_style); ?>"><?php echo esc_html($mp_h1); ?></h1>
+  <?php else: /* ascuns pentru SEO — hiding INLINE (rezistă la UCSS, care poate strippa .screen-reader-text) */ ?>
+  <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
+  <?php endif; ?>
 
   <?php get_template_part('template-parts/google-discover'); ?>
 
