@@ -23,8 +23,10 @@ get_header();
       // Stil IDENTIC cu linkurile din meniu (font, mărime, majuscule, spațiere) + culoarea de accent.
       // Inline ca să reziste la UCSS / CSS combinat stale de la LiteSpeed.
       $mp_mf = function_exists('magpress_menu_font_config') ? magpress_menu_font_config() : null;
-      $mp_h1_style = 'text-align:center;color:#2c2c2c;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.4;margin:.75rem 0 1.25rem;'
-          . ($mp_mf ? 'font-family:' . $mp_mf['family'] . ';font-size:1rem' : 'font-family:inherit;font-size:.9rem');
+      $mp_h1_style = 'text-align:center;color:#2c2c2c;text-transform:uppercase;line-height:1.4;margin:.75rem 0 1.25rem;'
+          . ($mp_mf
+              ? 'font-family:' . $mp_mf['family'] . ';font-size:1rem;font-weight:600;letter-spacing:.08em'
+              : 'font-family:inherit;font-size:.9rem;font-weight:700;letter-spacing:.04em');
   ?>
   <h1 class="home-h1" style="<?php echo esc_attr($mp_h1_style); ?>"><?php echo esc_html($mp_h1); ?></h1>
   <?php else: /* ascuns pentru SEO — hiding INLINE (rezistă la UCSS, care poate strippa .screen-reader-text) */ ?>

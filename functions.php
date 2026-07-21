@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.156');
+define('MAGPRESS_VERSION', '0.9.157');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -191,7 +191,9 @@ function magpress_enqueue_assets() {
     // Font meniu (opțional, stil știri) — aplică fontul DOAR pe navigație (fontul e deja în request-ul combinat de mai sus).
     if ($menu_font) {
         // Fonturile de tip știri sunt condensate → citesc mic; mărim ușor pt prezență (stil Mediafax).
-        wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;letter-spacing:.04em}');
+        // Fonturile condensate (Oswald etc.) la weight 700 + spațiere mică „își lipesc" literele pe
+        // fundal colorat → weight 600 + letter-spacing dublu = vizibil mai lizibil, același look de știri.
+        wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;font-weight:600!important;letter-spacing:.08em}');
     }
 }
 
