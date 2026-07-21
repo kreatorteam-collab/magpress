@@ -77,10 +77,12 @@ if (!defined('ABSPATH')) { exit; }
   </div>
 </div>
 
-<?php /* Back-to-top */ ?>
-<a class="back-to-top" href="#main" aria-label="Înapoi sus" title="Înapoi sus">
+<?php /* Back-to-top — href="#" = fallback fără JS (sare sus); JS-ul de mai jos face scroll lin
+     ȘI previne adăugarea fragmentului în URL (înainte era "#main", care oprea sub header). */ ?>
+<a class="back-to-top" href="#" aria-label="Înapoi sus" title="Înapoi sus">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
 </a>
+<script>(function(){var b=document.querySelector('.back-to-top');if(!b)return;b.addEventListener('click',function(e){e.preventDefault();window.scrollTo({top:0,behavior:'smooth'});});})();</script>
 
 <?php wp_footer(); ?>
 </body>
