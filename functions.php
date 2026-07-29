@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.162');
+define('MAGPRESS_VERSION', '0.9.163');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -2791,6 +2791,30 @@ function magpress_block_foreign_update($transient) {
     return $transient;
 }
 add_filter('site_transient_update_themes', 'magpress_block_foreign_update');
+
+/**
+ * INSTALĂRI NOI: dacă permalink-urile sunt pe „Plain" (structură goală, default-ul
+ * unui WP proaspăt), TOT REST-ul pretty (/wp-json/*) dă 404 la nivel de server →
+ * site-ul apare „offline" în dashboardul TargetSEO și Sync/legal-status nu merg.
+ * La activarea temei setăm standardul flotei /%postname%/ + hard flush (.htaccess).
+ * Nu atingem NICIODATĂ o structură deja setată (ex. /%category%/%postname%/).
+ */
+function magpress_setup_permalinks_on_activation() {
+    if (get_option('permalink_structure')) {
+        return; // structură deja aleasă — nu ne băgăm
+    }
+    global $wp_rewrite;
+    update_option('permalink_structure', '/%postname%/');
+    $wp_rewrite->init();
+    $wp_rewrite->set_permalink_structure('/%postname%/');
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    add_filter('filesystem_method', function () { return 'direct'; });
+    WP_Filesystem();
+    flush_rewrite_rules(true);
+}
+add_action('after_switch_theme', 'magpress_setup_permalinks_on_activation');
 
 /**
  * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
