@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.161');
+define('MAGPRESS_VERSION', '0.9.162');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -2767,6 +2767,30 @@ function magpress_check_for_update($transient) {
 // push.ps1. Astfel WP nu mai detectează o versiune nouă și nu mai declanșează auto-instalarea
 // (care intră în maintenance mode 503 → heartbeat-ul pică → „Conexiune pierdută").
 // add_filter('pre_set_site_transient_update_themes', 'magpress_check_for_update');
+
+/**
+ * BLOCHEAZĂ update-ul FALS de pe wordpress.org (coliziune de slug).
+ * Pe wordpress.org există o temă STRĂINĂ numită tot „MagPress" (Sensational Theme,
+ * v1.1.1). WP compară doar slug-ul folderului + versiunea → oferă „Actualizează acum"
+ * care ar ÎNLOCUI tema noastră cu cea străină. Filtrul rulează la CITIREA
+ * transient-ului, deci ascunde și ofertele deja cache-uite: orice ofertă de update
+ * pentru slug-ul nostru care nu vine din repo-ul propriu GitHub este eliminată.
+ */
+function magpress_block_foreign_update($transient) {
+    if (!is_object($transient) || empty($transient->response)) {
+        return $transient;
+    }
+    $slug = get_stylesheet();
+    if (isset($transient->response[$slug])) {
+        $offer   = $transient->response[$slug];
+        $package = is_array($offer) ? ($offer['package'] ?? '') : ($offer->package ?? '');
+        if (false === strpos((string) $package, 'github.com/kreatorteam-collab/')) {
+            unset($transient->response[$slug]);
+        }
+    }
+    return $transient;
+}
+add_filter('site_transient_update_themes', 'magpress_block_foreign_update');
 
 /**
  * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
