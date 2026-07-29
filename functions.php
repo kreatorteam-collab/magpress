@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.163');
+define('MAGPRESS_VERSION', '0.9.164');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -3760,12 +3760,32 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
     // și o schimbăm la slug-ul canonic. WP păstrează automat _wp_old_slug → redirect 301 vechi → nou.
     $existing = magpress_find_legal_page($slug);
     if (!$existing) {
+        // CREATE (v0.9.164): pe instalări noi pagina nu există deloc — o creăm direct
+        // publicată cu slug-ul canonic + marcaj managed, în loc să refuzăm cu 404.
+        $new_id = wp_insert_post([
+            'post_title'   => $title,
+            'post_name'    => $slug,
+            'post_content' => $content,
+            'post_type'    => 'page',
+            'post_status'  => 'publish',
+            'meta_input'   => [
+                '_magpress_managed' => '1',
+            ],
+        ], true);
+        if (is_wp_error($new_id)) {
+            return new WP_REST_Response([
+                'ok'    => false,
+                'error' => 'wp_post_error',
+                'msg'   => $new_id->get_error_message(),
+            ], 500);
+        }
         return new WP_REST_Response([
-            'ok'      => false,
-            'error'   => 'page_not_found',
-            'message' => 'Nu am găsit pagina pentru „' . $slug . '" pe acest site (nici cu slug variants, nici după titlu). Creați manual din WP-Admin → Pagini → Adaugă.',
+            'ok'      => true,
+            'action'  => 'created',
+            'page_id' => (int) $new_id,
             'slug'    => $slug,
-        ], 404);
+            'url'     => get_permalink((int) $new_id),
+        ], 200);
     }
 
     $old_slug = $existing->post_name;
