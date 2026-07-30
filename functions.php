@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.164');
+define('MAGPRESS_VERSION', '0.9.165');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -458,12 +458,22 @@ function magpress_get_branding_css() {
         $css .= '.site-header--inline .site-header__inner{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
     }
 
-    // Logo max-height
+    // Logo max-height — SCALARE PROPORȚIONALĂ (v0.9.165). Valoarea e o ancoră: 60 =
+    // mărimea standard. Defaulturile reale diferă pe layout (inline 48px, centered
+    // 110px desktop / 54px mobil), deci emiterea valorii BRUTE făcea saltul 110→50
+    // („foarte mic") la o schimbare de 10. Acum scalăm toate cele 3 mărimi cu
+    // factorul valoare/60, deci 50 = ~17% mai mic peste tot, liniar, fără salt la 60.
     $logo_h = max(20, min(200, (int) get_theme_mod('magpress_logo_max_height', 60)));
     if ($logo_h !== 60) {
-        $css .= '.site-branding .site-logo{max-height:' . $logo_h . 'px !important}';
-        // Pe centered, default e 110 — daca user a setat ceva, folosim valoarea lui
-        $css .= '.site-header--centered .site-header__top .site-logo{max-height:' . $logo_h . 'px !important}';
+        $f = $logo_h / 60;
+        $inline_h  = (int) round(48 * $f);
+        $cent_desk = (int) round(110 * $f);
+        $cent_mob  = (int) round(54 * $f);
+        $css .= '.site-branding .site-logo{max-height:' . $inline_h . 'px !important}';
+        $css .= '.site-header--centered .site-header__top .site-logo{max-height:' . $cent_desk . 'px !important}';
+        // Mobilul centered are propriul default (54px) — media query DUPĂ regula de
+        // desktop ca să câștige prin ordine (aceeași specificitate + !important).
+        $css .= '@media (max-width:768px){.site-header--centered .site-header__top .site-logo{max-height:' . $cent_mob . 'px !important}}';
     }
 
     return trim($css) === ':root{}' ? '' : $css;
@@ -792,8 +802,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_logo_max_height', [
-        'label'       => 'Înălțime maximă logo (px)',
-        'description' => 'Limită superioară pentru logo. Default 60px. Pe centered layout default e 110px (override).',
+        'label'       => 'Mărime logo (60 = standard)',
+        'description' => 'Scalare proporțională: 60 = mărimea standard a layoutului; sub 60 = mai mic, peste 60 = mai mare (ex. 50 ≈ −17%, 90 = +50%). Se aplică pe desktop și mobil, pe ambele layouturi.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 20, 'max' => 200, 'step' => 2],
