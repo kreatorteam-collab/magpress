@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.175');
+define('MAGPRESS_VERSION', '0.9.176');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1523,6 +1523,45 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_nlbar',
         'type'        => 'checkbox',
     ]);
+    $wp_customize->add_setting('magpress_nlbar_send_mode', [
+        'default'           => 'instant',
+        'sanitize_callback' => 'sanitize_key',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_send_mode', [
+        'label'       => 'Când pleacă emailurile',
+        'description' => 'Rezumat zilnic = UN singur email pe zi, cu toate articolele publicate de la ultimul rezumat.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'select',
+        'choices'     => [
+            'instant' => 'La fiecare articol publicat',
+            'daily'   => 'Un singur email pe zi (rezumat)',
+        ],
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_daily_hour', [
+        'default'           => 8,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_daily_hour', [
+        'label'       => 'Ora rezumatului zilnic',
+        'description' => 'Ora locală a site-ului (0–23). Implicit 8 dimineața. Necesită modul „Un singur email pe zi".',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 0, 'max' => 23, 'step' => 1],
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_digest_subject', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_digest_subject', [
+        'label'       => 'Rezumat zilnic — subiect email',
+        'description' => 'Gol = „' . get_bloginfo('name') . ' — 3 articole noi". Poți folosi {site}, {nr}, {data}, {titlu}.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+
     $wp_customize->add_setting('magpress_nlbar_post_subject', [
         'default'           => '',
         'sanitize_callback' => 'sanitize_text_field',
@@ -3699,6 +3738,9 @@ function magpress_nl_on_publish($new_status, $old_status, $post) {
     if (!($post instanceof WP_Post) || $post->post_type !== 'post') return;
     if (!get_theme_mod('magpress_nlbar_enabled', 0)) return;
     if (!get_theme_mod('magpress_nlbar_autopost', 1)) return;
+    // În modul „rezumat zilnic" nu trimitem la publicare — articolul intră în
+    // digestul de dimineață.
+    if (get_theme_mod('magpress_nlbar_send_mode', 'instant') !== 'instant') return;
     if (get_post_meta($post->ID, '_magpress_nl_sent', true)) return;
 
     update_post_meta($post->ID, '_magpress_nl_sent', current_time('mysql'));
@@ -3733,6 +3775,134 @@ function magpress_nl_send_batch($post_id) {
     }
 }
 add_action('magpress_nl_send_batch', 'magpress_nl_send_batch', 10, 1);
+
+/* ---------------------------------------------------------------------------
+ * REZUMAT ZILNIC (v0.9.176) — UN singur email pe zi, la ora aleasă, cu toate
+ * articolele publicate de la ultimul rezumat. Cron zilnic în fusul orar al
+ * site-ului; trimiterea se face tot în loturi.
+ * ------------------------------------------------------------------------- */
+
+/** Următorul timestamp pentru ora dată, în fusul orar al site-ului. */
+function magpress_nl_next_run_ts($hour) {
+    $now = current_datetime();
+    $run = $now->setTime((int) $hour, 0, 0);
+    if ($run <= $now) $run = $run->modify('+1 day');
+    return $run->getTimestamp();
+}
+
+/** Ține cronul zilnic sincronizat cu setările (pornit/oprit + ora). */
+function magpress_nl_sync_daily_cron() {
+    $on = get_theme_mod('magpress_nlbar_enabled', 0)
+        && get_theme_mod('magpress_nlbar_autopost', 1)
+        && get_theme_mod('magpress_nlbar_send_mode', 'instant') === 'daily';
+
+    $scheduled = wp_next_scheduled('magpress_nl_daily');
+
+    if (!$on) {
+        if ($scheduled) wp_unschedule_event($scheduled, 'magpress_nl_daily');
+        return;
+    }
+
+    $hour = max(0, min(23, (int) get_theme_mod('magpress_nlbar_daily_hour', 8)));
+    if ($scheduled) {
+        if ((int) wp_date('G', $scheduled) === $hour) return; // deja la ora corectă
+        wp_unschedule_event($scheduled, 'magpress_nl_daily');
+    }
+    wp_schedule_event(magpress_nl_next_run_ts($hour), 'daily', 'magpress_nl_daily');
+}
+add_action('init', 'magpress_nl_sync_daily_cron', 21);
+
+/** Rulează rezumatul: strânge articolele noi și pornește trimiterea în loturi. */
+function magpress_nl_daily_digest($force = false) {
+    if (!$force && get_theme_mod('magpress_nlbar_send_mode', 'instant') !== 'daily') return 0;
+
+    $last  = (string) get_option('magpress_nl_last_digest', '');
+    $after = $last !== '' ? $last : date('Y-m-d H:i:s', current_time('timestamp') - DAY_IN_SECONDS);
+
+    $posts = get_posts([
+        'post_status'      => 'publish',
+        'numberposts'      => 25,
+        'orderby'          => 'date',
+        'order'            => 'ASC',
+        'suppress_filters' => false,
+        'date_query'       => [[ 'after' => $after, 'inclusive' => false, 'column' => 'post_date' ]],
+    ]);
+
+    update_option('magpress_nl_last_digest', current_time('mysql'), false);
+    if (!$posts) return 0;
+
+    $ids = array_map(function ($p) { return (int) $p->ID; }, $posts);
+    update_option('magpress_nl_digest', ['ids' => $ids, 'offset' => 0], false);
+    magpress_nl_digest_batch();
+    return count($ids);
+}
+add_action('magpress_nl_daily', 'magpress_nl_daily_digest');
+
+/** Trimite un lot din rezumatul curent; se reprogramează dacă mai sunt abonați. */
+function magpress_nl_digest_batch() {
+    global $wpdb;
+    $run = get_option('magpress_nl_digest', []);
+    if (empty($run['ids'])) return;
+
+    $table = magpress_subs_table();
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) return;
+
+    $offset = (int) ($run['offset'] ?? 0);
+    $rows   = $wpdb->get_results($wpdb->prepare(
+        "SELECT email, name FROM {$table} ORDER BY id ASC LIMIT %d OFFSET %d",
+        MAGPRESS_NL_BATCH, $offset
+    ), ARRAY_A);
+    if (!$rows) return;
+
+    $posts = array_filter(array_map('get_post', $run['ids']));
+    foreach ($rows as $r) {
+        magpress_nl_send_digest_to($posts, $r['email'], $r['name']);
+    }
+
+    $run['offset'] = $offset + count($rows);
+    update_option('magpress_nl_digest', $run, false);
+    if (count($rows) === MAGPRESS_NL_BATCH) {
+        wp_schedule_single_event(time() + 120, 'magpress_nl_digest_batch');
+    }
+}
+add_action('magpress_nl_digest_batch', 'magpress_nl_digest_batch');
+
+/** Emailul-rezumat cu mai multe articole, către un abonat. */
+function magpress_nl_send_digest_to($posts, $email, $name = '') {
+    if (!$posts) return false;
+    list($from_email, $from_name) = magpress_nlbar_from();
+    $unsub = magpress_unsub_url($email);
+    $count = count($posts);
+
+    $subject = trim((string) get_theme_mod('magpress_nlbar_digest_subject', ''));
+    $subject = $subject !== ''
+        ? strtr($subject, [
+            '{site}'  => get_bloginfo('name'),
+            '{nr}'    => $count,
+            '{data}'  => wp_date('j F Y'),
+            '{titlu}' => $posts[array_key_first($posts)]->post_title,
+          ])
+        : get_bloginfo('name') . ' — ' . ($count === 1 ? 'articolul de azi' : $count . ' articole noi');
+
+    $body = 'Salut' . ($name !== '' ? ' ' . $name : '') . ",\n\n"
+          . ($count === 1 ? "Articolul publicat azi pe {$from_name}:" : "Articolele publicate azi pe {$from_name}:") . "\n\n";
+    foreach ($posts as $p) {
+        $excerpt = has_excerpt($p)
+            ? get_the_excerpt($p)
+            : wp_trim_words(wp_strip_all_tags(strip_shortcodes($p->post_content)), 28, '…');
+        $body .= '• ' . $p->post_title . "\n" . $excerpt . "\n" . get_permalink($p) . "\n\n";
+    }
+    $body .= get_bloginfo('name') . "\n" . home_url('/') . "\n\n"
+          . "---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub;
+
+    return wp_mail($email, $subject, $body, [
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Reply-To: ' . $from_name . ' <' . $from_email . '>',
+        'Content-Type: text/plain; charset=UTF-8',
+        'List-Unsubscribe: <' . $unsub . '>',
+        'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+    ]);
+}
 
 /** Emailul cu un articol, către un abonat. */
 function magpress_nl_send_post_to(WP_Post $post, $email, $name = '') {
@@ -3831,6 +4001,13 @@ function magpress_render_subs_page() {
         }
     }
 
+    if (isset($_POST['mgp_send_digest']) && check_admin_referer('magpress_subs_digest')) {
+        $n = magpress_nl_daily_digest(true);
+        echo $n
+            ? '<div class="notice notice-success is-dismissible"><p>Rezumat trimis cu ' . (int) $n . ' articole.</p></div>'
+            : '<div class="notice notice-warning is-dismissible"><p>Niciun articol nou de la ultimul rezumat — nu am trimis nimic.</p></div>';
+    }
+
     list($from_email, $from_name) = magpress_nlbar_from();
 
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
@@ -3864,6 +4041,25 @@ function magpress_render_subs_page() {
             <?php endforeach; ?>
           </select>
           <button class="button button-primary" type="submit">Trimite abonaților</button>
+        </form>
+        <?php
+        $mgp_mode = get_theme_mod('magpress_nlbar_send_mode', 'instant');
+        $mgp_next = wp_next_scheduled('magpress_nl_daily');
+        ?>
+        <hr style="margin:.85rem 0" />
+        <p style="margin:0 0 .5rem">
+          <strong>Rezumat zilnic:</strong>
+          <?php if ($mgp_mode === 'daily'): ?>
+            pornit, ora <?php echo (int) get_theme_mod('magpress_nlbar_daily_hour', 8); ?>:00.
+            <?php if ($mgp_next): ?>Următorul: <?php echo esc_html(wp_date('j M Y, H:i', $mgp_next)); ?>.<?php endif; ?>
+          <?php else: ?>
+            oprit — acum se trimite câte un email la fiecare articol. Schimbi din Personalizare.
+          <?php endif; ?>
+        </p>
+        <form method="post" style="margin:0" onsubmit="return confirm('Trimiți acum rezumatul cu articolele noi?')">
+          <?php wp_nonce_field('magpress_subs_digest'); ?>
+          <input type="hidden" name="mgp_send_digest" value="1" />
+          <button class="button" type="submit">Trimite rezumatul acum</button>
         </form>
       </div>
       <?php endif; ?>
