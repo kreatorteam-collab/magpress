@@ -874,3 +874,12 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 .nlpop__msg{margin:.25rem 0 0;font-size:.85rem;min-height:1.2em}
 .nlpop__msg.is-ok{color:#1d9e75}
 .nlpop__msg.is-err{color:#d84a4a}
+
+/* ===================== PAGINA DEZABONARE (v0.9.174) ===================== */
+.nlunsub{max-width:560px;margin:4rem auto;text-align:center;padding:2.5rem 1.5rem}
+.nlunsub__icon{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:var(--c-surface);color:var(--c-accent);margin-bottom:1rem}
+.nlunsub__icon svg{width:34px;height:34px}
+.nlunsub__title{font-size:1.6rem;margin:0 0 .75rem;color:var(--c-heading-h1)}
+.nlunsub__desc{font-size:1rem;line-height:1.6;color:var(--c-text-muted);margin:0 0 1.5rem}
+.nlunsub__btn{display:inline-block;padding:.75rem 1.6rem;border-radius:8px;background:var(--c-accent);color:#fff;font-weight:700;text-decoration:none}
+.nlunsub__btn:hover{color:#fff;opacity:.9}

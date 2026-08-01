@@ -51,7 +51,7 @@ $follow_url = 'https://www.google.com/preferences/source?q=' . rawurlencode(home
       <div class="nlbar__form nlbar__form--custom"><?php echo do_shortcode($shortcode); ?></div>
     <?php elseif ($action !== ''): ?>
       <form class="nlbar__form" action="<?php echo esc_url($action); ?>" method="post" target="_blank" rel="noopener">
-        <label class="screen-reader-text" for="nlbar-email">Adresa ta de email</label>
+        <label style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0" for="nlbar-email">Adresa ta de email</label>
         <input class="nlbar__input" type="email" id="nlbar-email" name="<?php echo esc_attr($field); ?>" placeholder="adresa@email.ro" required />
         <button class="nlbar__btn" type="submit"><?php echo esc_html($btn); ?></button>
       </form>
@@ -87,10 +87,10 @@ $follow_url = 'https://www.google.com/preferences/source?q=' . rawurlencode(home
     <?php if ($pop_desc !== ''): ?><p class="nlpop__desc"><?php echo wp_kses_post($pop_desc); ?></p><?php endif; ?>
     <form class="nlpop__form" id="nlpop-form">
       <?php if ($ask_name): ?>
-        <label class="screen-reader-text" for="nlpop-name">Numele tău</label>
+        <label style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0" for="nlpop-name">Numele tău</label>
         <input class="nlpop__input" type="text" id="nlpop-name" name="name" placeholder="Numele tău" autocomplete="name" />
       <?php endif; ?>
-      <label class="screen-reader-text" for="nlpop-email">Adresa ta de email</label>
+      <label style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0" for="nlpop-email">Adresa ta de email</label>
       <input class="nlpop__input" type="email" id="nlpop-email" name="email" placeholder="adresa@email.ro" autocomplete="email" required />
       <div class="nlpop__hp" aria-hidden="true">
         <label for="nlpop-website">Lasă gol</label>

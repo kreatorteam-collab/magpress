@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.173');
+define('MAGPRESS_VERSION', '0.9.174');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1508,7 +1508,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_nlbar_welcome_body', [
         'label'       => 'Bun venit — mesaj',
-        'description' => 'Gol = text implicit. Poți folosi {nume}, {site}, {url}, {email}.',
+        'description' => 'Gol = text implicit. Poți folosi {nume}, {site}, {url}, {email} și {dezabonare} (linkul de dezabonare — dacă nu îl pui, se adaugă automat la final).',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -3494,6 +3494,67 @@ function magpress_nlbar_from() {
     return [$email, $name];
 }
 
+/**
+ * DEZABONARE (v0.9.174) — link semnat, fără cont și fără parolă.
+ * Token = HMAC pe email cu sarea de auth a site-ului: nu stocăm nimic în plus,
+ * nu poate fi ghicit și nimeni nu poate dezabona pe altcineva.
+ */
+function magpress_unsub_token($email) {
+    return substr(hash_hmac('sha256', strtolower(trim((string) $email)), wp_salt('auth') . '|magpress-unsub'), 0, 32);
+}
+
+function magpress_unsub_url($email) {
+    return add_query_arg([
+        'mgp_unsub' => rawurlencode($email),
+        'k'         => magpress_unsub_token($email),
+    ], home_url('/'));
+}
+
+/** Interceptează linkul de dezabonare și șterge abonatul din listă. */
+function magpress_handle_unsubscribe() {
+    if (!isset($_GET['mgp_unsub'])) return;
+
+    nocache_headers();
+    do_action('litespeed_control_set_nocache', 'magpress unsubscribe');
+
+    $email = sanitize_email((string) wp_unslash($_GET['mgp_unsub']));
+    $token = isset($_GET['k']) ? sanitize_text_field((string) wp_unslash($_GET['k'])) : '';
+    $ok    = ($email && is_email($email) && $token && hash_equals(magpress_unsub_token($email), $token));
+
+    if ($ok) {
+        global $wpdb;
+        $table = magpress_subs_table();
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            $wpdb->delete($table, ['email' => $email], ['%s']);
+        }
+    }
+
+    get_header();
+    ?>
+    <div class="container site-content">
+      <div class="nlunsub">
+        <span class="nlunsub__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="5" width="19" height="14" rx="2"/>
+            <path d="m3 6.5 9 6.5 9-6.5"/>
+          </svg>
+        </span>
+        <?php if ($ok): ?>
+          <h1 class="nlunsub__title">Te-ai dezabonat</h1>
+          <p class="nlunsub__desc">Adresa <strong><?php echo esc_html($email); ?></strong> a fost ștearsă din listă. Nu mai primești niciun email de la noi.</p>
+        <?php else: ?>
+          <h1 class="nlunsub__title">Link invalid</h1>
+          <p class="nlunsub__desc">Linkul de dezabonare nu este valid sau a fost deja folosit. Dacă tot primești emailuri, scrie-ne și te scoatem manual din listă.</p>
+        <?php endif; ?>
+        <p><a class="nlunsub__btn" href="<?php echo esc_url(home_url('/')); ?>">Înapoi pe site</a></p>
+      </div>
+    </div>
+    <?php
+    get_footer();
+    exit;
+}
+add_action('template_redirect', 'magpress_handle_unsubscribe');
+
 /** Emailul de bun venit către un abonat nou (+ opțional notificare la admin). */
 function magpress_nlbar_send_welcome($email, $name) {
     list($from_email, $from_name) = magpress_nlbar_from();
@@ -3503,6 +3564,13 @@ function magpress_nlbar_send_welcome($email, $name) {
         'Content-Type: text/plain; charset=UTF-8',
     ];
 
+    // Antet standard: Gmail/Outlook afișează un buton „Unsubscribe" lângă expeditor
+    // și tratează mai bine reputația domeniului.
+    $sub_headers = array_merge($headers, [
+        'List-Unsubscribe: <' . magpress_unsub_url($email) . '>',
+        'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+    ]);
+
     if (get_theme_mod('magpress_nlbar_welcome', 1)) {
         $subject = trim((string) get_theme_mod('magpress_nlbar_welcome_subject', ''));
         if ($subject === '') $subject = 'Bine ai venit la newsletterul ' . get_bloginfo('name');
@@ -3511,17 +3579,25 @@ function magpress_nlbar_send_welcome($email, $name) {
         if ($body === '') {
             $body = "Salut{nume},\n\nÎți mulțumim că te-ai abonat la newsletterul {site}. "
                   . "De acum primești pe email articolele noastre noi.\n\n"
-                  . "Dacă nu mai vrei să primești mesaje, răspunde la acest email cu „dezabonare\".\n\n"
                   . "{site}\n{url}";
         }
+        $unsub_url = magpress_unsub_url($email);
+        $has_token = (strpos($body, '{dezabonare}') !== false || strpos($body, '{unsubscribe}') !== false);
         $body = strtr($body, [
-            '{nume}'  => $name !== '' ? ' ' . $name : '',
-            '{name}'  => $name,
-            '{site}'  => get_bloginfo('name'),
-            '{url}'   => home_url('/'),
-            '{email}' => $email,
+            '{nume}'        => $name !== '' ? ' ' . $name : '',
+            '{name}'        => $name,
+            '{site}'        => get_bloginfo('name'),
+            '{url}'         => home_url('/'),
+            '{email}'       => $email,
+            '{dezabonare}'  => $unsub_url,
+            '{unsubscribe}' => $unsub_url,
         ]);
-        wp_mail($email, $subject, $body, $headers);
+        // Dacă textul nu conține deja linkul, îl adăugăm la final — dezabonarea
+        // trebuie să existe în ORICE email, chiar dacă userul rescrie mesajul.
+        if (!$has_token) {
+            $body .= "\n\n---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub_url;
+        }
+        wp_mail($email, $subject, $body, $sub_headers);
     }
 
     if (get_theme_mod('magpress_nlbar_notify', 0)) {
