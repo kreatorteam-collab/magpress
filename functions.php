@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.166');
+define('MAGPRESS_VERSION', '0.9.167');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -465,11 +465,21 @@ function magpress_get_branding_css() {
     $menu_active = magpress_color('menu_link_active');
     if ($menu_active) {
         $ma = esc_attr($menu_active);
+        // Culoare pe desktop + mobil; liniuța = ::after DREPT (nu box-shadow, care
+        // urmărește border-radius-ul link-ului și iese curbată la colțuri).
         $css .= '.primary-nav .menu > li.current-menu-item > a,'
               . '.primary-nav .menu > li.current-menu-ancestor > a,'
               . '.primary-nav .menu > li.current_page_item > a,'
               . '.mobile-menu .menu li.current-menu-item > a{'
-              . 'color:' . $ma . ' !important;box-shadow:inset 0 -2px 0 0 ' . $ma . '}';
+              . 'color:' . $ma . ' !important}';
+        $css .= '.primary-nav .menu > li.current-menu-item > a,'
+              . '.primary-nav .menu > li.current-menu-ancestor > a,'
+              . '.primary-nav .menu > li.current_page_item > a{position:relative}';
+        $css .= '.primary-nav .menu > li.current-menu-item > a::after,'
+              . '.primary-nav .menu > li.current-menu-ancestor > a::after,'
+              . '.primary-nav .menu > li.current_page_item > a::after{'
+              . 'content:"";position:absolute;left:.9rem;right:.9rem;bottom:1px;'
+              . 'height:2px;background:' . $ma . '}';
     }
 
     // Logo max-height — SCALARE PROPORȚIONALĂ (v0.9.165). Valoarea e o ancoră: 60 =
