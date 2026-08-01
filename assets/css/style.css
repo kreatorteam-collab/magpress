@@ -850,3 +850,27 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
   .nlbar__actions{flex-direction:column;align-items:stretch}
   .nlbar__gbtn{justify-content:center}
 }
+
+/* ===================== POPUP NEWSLETTER (v0.9.172) ===================== */
+.nlpop[hidden]{display:none}
+.nlpop{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem}
+.nlpop__backdrop{position:absolute;inset:0;background:rgba(15,17,22,.62)}
+.nlpop__box{position:relative;z-index:1;width:100%;max-width:420px;background:var(--c-bg);border-radius:14px;padding:2rem 1.75rem 1.5rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+.nlpop__x{position:absolute;top:.5rem;right:.75rem;background:none;border:0;font-size:1.6rem;line-height:1;color:var(--c-text-muted);cursor:pointer;padding:.25rem .5rem}
+.nlpop__x:hover{color:var(--c-text)}
+.nlpop__icon{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:var(--c-surface);color:var(--c-accent);margin-bottom:.85rem}
+.nlpop__icon svg{width:30px;height:30px}
+.nlpop__title{margin:0 0 .5rem;font-size:1.25rem;font-weight:800;color:var(--c-text)}
+.nlpop__desc{margin:0 0 1.25rem;font-size:.9rem;line-height:1.55;color:var(--c-text-muted)}
+.nlpop__form{display:flex;flex-direction:column;gap:.6rem}
+.nlpop__input{width:100%;padding:.75rem .9rem;border:1px solid var(--c-border);border-radius:8px;font-size:.95rem;font-family:inherit;background:#fff;color:#1a1a1a}
+.nlpop__input:focus{outline:2px solid var(--c-accent);outline-offset:1px}
+.nlpop__hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.nlpop__consent{display:flex;align-items:flex-start;gap:.5rem;text-align:left;font-size:.8rem;line-height:1.45;color:var(--c-text-muted)}
+.nlpop__consent input{margin-top:.2rem;flex-shrink:0}
+.nlpop__submit{padding:.8rem 1.5rem;border:0;border-radius:8px;background:var(--c-accent);color:#fff;font-weight:700;font-size:.95rem;font-family:inherit;cursor:pointer;transition:opacity .15s}
+.nlpop__submit:hover{opacity:.9}
+.nlpop__submit:disabled{opacity:.6;cursor:default}
+.nlpop__msg{margin:.25rem 0 0;font-size:.85rem;min-height:1.2em}
+.nlpop__msg.is-ok{color:#1d9e75}
+.nlpop__msg.is-err{color:#d84a4a}

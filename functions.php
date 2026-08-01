@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.171');
+define('MAGPRESS_VERSION', '0.9.172');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1385,14 +1385,84 @@ function magpress_customize_register($wp_customize) {
         'section' => 'magpress_nlbar',
         'type'    => 'text',
     ]);
+    $wp_customize->add_setting('magpress_nlbar_mode', [
+        'default'           => 'popup',
+        'sanitize_callback' => 'sanitize_key',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_mode', [
+        'label'       => 'Cum se abonează cititorul',
+        'description' => 'Popup = buton care deschide o fereastră cu formularul temei (abonații se salvează în site: Aspect → Abonați). Inline = câmp de email direct în bară, trimis către un serviciu extern.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'select',
+        'choices'     => [
+            'popup'  => 'Buton + popup cu formularul temei (recomandat)',
+            'inline' => 'Câmp de email direct în bară (serviciu extern)',
+        ],
+    ]);
+
+    // --- Texte popup ---
+    $wp_customize->add_setting('magpress_nlbar_pop_title', [
+        'default'           => 'Abonează-te la newsletter',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_pop_title', [
+        'label'   => 'Popup — titlu',
+        'section' => 'magpress_nlbar',
+        'type'    => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_pop_desc', [
+        'default'           => 'Primești articolele noastre pe email. Fără spam, te poți dezabona oricând.',
+        'sanitize_callback' => 'wp_kses_post',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_pop_desc', [
+        'label'   => 'Popup — descriere',
+        'section' => 'magpress_nlbar',
+        'type'    => 'textarea',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_ask_name', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_ask_name', [
+        'label'   => 'Popup — cere și numele',
+        'section' => 'magpress_nlbar',
+        'type'    => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_consent', [
+        'default'           => '',
+        'sanitize_callback' => 'wp_kses_post',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_consent', [
+        'label'       => 'Popup — text acord (GDPR)',
+        'description' => 'Gol = fără bifă. Ex: Sunt de acord cu &lt;a href="/politica-confidentialitate/"&gt;politica de confidențialitate&lt;/a&gt;.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'textarea',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_success', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_success', [
+        'label'       => 'Popup — mesaj după abonare',
+        'description' => 'Gol = mesaj implicit.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+
     $wp_customize->add_setting('magpress_nlbar_action', [
         'default'           => '',
         'sanitize_callback' => 'esc_url_raw',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_action', [
-        'label'       => 'URL formular (unde se trimite emailul)',
-        'description' => 'Adresa de „action" de la Mailchimp / Brevo / etc. Gol + fără shortcode = bara arată doar textul și butonul Google.',
+        'label'       => 'Inline — URL formular (unde se trimite emailul)',
+        'description' => 'Doar pentru modul „inline": adresa de „action" de la Mailchimp / Brevo / etc.',
         'section'     => 'magpress_nlbar',
         'type'        => 'url',
     ]);
@@ -1402,8 +1472,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_field', [
-        'label'       => 'Numele câmpului de email',
-        'description' => 'Mailchimp = EMAIL, Brevo = email. Doar dacă folosești URL-ul de mai sus.',
+        'label'       => 'Inline — numele câmpului de email',
+        'description' => 'Mailchimp = EMAIL, Brevo = email.',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
     ]);
@@ -1413,8 +1483,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_shortcode', [
-        'label'       => 'SAU shortcode formular (plugin newsletter)',
-        'description' => 'Ex. [mc4wp_form id="123"] sau [newsletter_form]. Dacă e completat, înlocuiește formularul simplu.',
+        'label'       => 'Inline — SAU shortcode formular (plugin newsletter)',
+        'description' => 'Ex. [mc4wp_form id="123"]. Dacă e completat, înlocuiește câmpul simplu.',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -3287,6 +3357,166 @@ function magpress_run_auto_deploy() {
     return $result;
 }
 
+/* ============================================================================
+ * NEWSLETTER NATIV (v0.9.172) — formular propriu în popup, abonați în DB.
+ * Fără plugin extern: tabel {prefix}magpress_subscribers, endpoint public REST
+ * /magpress/v1/subscribe (FĂRĂ nonce — paginile sunt cache-uite de LiteSpeed și
+ * un nonce cache-uit e mort; protecția e honeypot + rate-limit pe IP + validare
+ * email + UNIQUE pe email), listă + export CSV în Aspect → Abonați.
+ * ========================================================================== */
+
+define('MAGPRESS_SUBS_DB_VERSION', 1);
+
+function magpress_subs_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'magpress_subscribers';
+}
+
+function magpress_subs_install() {
+    global $wpdb;
+    $table   = magpress_subs_table();
+    $collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta("CREATE TABLE {$table} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        email varchar(190) NOT NULL,
+        name varchar(120) NOT NULL DEFAULT '',
+        ip varchar(45) NOT NULL DEFAULT '',
+        source varchar(60) NOT NULL DEFAULT '',
+        created_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY email (email)
+    ) {$collate};");
+    update_option('magpress_subs_db_version', MAGPRESS_SUBS_DB_VERSION, false);
+}
+add_action('after_switch_theme', 'magpress_subs_install');
+
+/** Creează tabelul la nevoie (site-urile primesc tema prin deploy, fără switch). */
+function magpress_subs_maybe_install() {
+    if ((int) get_option('magpress_subs_db_version', 0) === MAGPRESS_SUBS_DB_VERSION) return;
+    if (!get_theme_mod('magpress_nlbar_enabled', 0)) return; // doar dacă bara e pornită
+    magpress_subs_install();
+}
+add_action('init', 'magpress_subs_maybe_install', 20);
+
+function magpress_rest_subscribe(WP_REST_Request $request) {
+    $data = $request->get_json_params();
+    if (!is_array($data)) $data = $request->get_params();
+
+    // Honeypot: câmp ascuns care trebuie să rămână gol (boții îl completează).
+    if (!empty($data['website'])) {
+        return new WP_REST_Response(['ok' => true, 'message' => 'Gata!'], 200);
+    }
+
+    $email = isset($data['email']) ? sanitize_email((string) $data['email']) : '';
+    $name  = isset($data['name']) ? sanitize_text_field((string) $data['name']) : '';
+    if (!$email || !is_email($email)) {
+        return new WP_REST_Response(['ok' => false, 'message' => 'Adresa de email nu pare validă.'], 400);
+    }
+
+    // Rate-limit: max 5 înscrieri / oră / IP.
+    $ip   = isset($_SERVER['REMOTE_ADDR']) ? substr((string) $_SERVER['REMOTE_ADDR'], 0, 45) : '';
+    $key  = 'mgp_sub_' . md5($ip);
+    $hits = (int) get_transient($key);
+    if ($hits >= 5) {
+        return new WP_REST_Response(['ok' => false, 'message' => 'Prea multe încercări. Reîncearcă mai târziu.'], 429);
+    }
+    set_transient($key, $hits + 1, HOUR_IN_SECONDS);
+
+    global $wpdb;
+    if ((int) get_option('magpress_subs_db_version', 0) !== MAGPRESS_SUBS_DB_VERSION) {
+        magpress_subs_install();
+    }
+    $table = magpress_subs_table();
+    $wpdb->query($wpdb->prepare(
+        "INSERT INTO {$table} (email, name, ip, source, created_at) VALUES (%s, %s, %s, %s, %s)
+         ON DUPLICATE KEY UPDATE name = IF(VALUES(name) <> '', VALUES(name), name)",
+        $email, $name, $ip, 'popup', current_time('mysql')
+    ));
+
+    $msg = trim((string) get_theme_mod('magpress_nlbar_success', ''));
+    if ($msg === '') $msg = 'Gata! Ți-am notat adresa — urmează articolele noastre.';
+    return new WP_REST_Response(['ok' => true, 'message' => $msg], 200);
+}
+
+/** Aspect → Abonați: listă + export CSV + ștergere. */
+function magpress_subs_admin_menu() {
+    add_theme_page('Abonați newsletter', 'Abonați', 'manage_options', 'magpress-subscribers', 'magpress_render_subs_page');
+}
+add_action('admin_menu', 'magpress_subs_admin_menu');
+
+function magpress_subs_export_csv() {
+    if (!current_user_can('manage_options')) wp_die('Nu ai permisiunea.');
+    check_admin_referer('magpress_subs_export');
+    global $wpdb;
+    $table = magpress_subs_table();
+    $rows  = $wpdb->get_results("SELECT email, name, created_at FROM {$table} ORDER BY id DESC", ARRAY_A);
+    nocache_headers();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=abonati-' . sanitize_file_name((string) parse_url(home_url(), PHP_URL_HOST)) . '-' . gmdate('Y-m-d') . '.csv');
+    $out = fopen('php://output', 'w');
+    fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM: Excel + diacritice
+    fputcsv($out, ['Email', 'Nume', 'Data']);
+    foreach ((array) $rows as $r) fputcsv($out, [$r['email'], $r['name'], $r['created_at']]);
+    fclose($out);
+    exit;
+}
+add_action('admin_post_magpress_subs_export', 'magpress_subs_export_csv');
+
+function magpress_render_subs_page() {
+    if (!current_user_can('manage_options')) return;
+    global $wpdb;
+    $table = magpress_subs_table();
+
+    if (isset($_POST['mgp_del']) && check_admin_referer('magpress_subs_del')) {
+        $wpdb->delete($table, ['id' => (int) $_POST['mgp_del']], ['%d']);
+        echo '<div class="notice notice-success is-dismissible"><p>Abonat șters.</p></div>';
+    }
+
+    $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+    $rows   = $exists ? $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC LIMIT 500", ARRAY_A) : [];
+    $total  = $exists ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}") : 0;
+    ?>
+    <div class="wrap">
+      <h1>Abonați newsletter</h1>
+      <?php if (!$exists): ?>
+        <p>Tabelul se creează automat când pornești bara din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.</p>
+      <?php else: ?>
+        <p>
+          <strong><?php echo (int) $total; ?></strong> abonați.
+          <?php if ($total): ?>
+            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=magpress_subs_export'), 'magpress_subs_export')); ?>">Descarcă CSV</a>
+          <?php endif; ?>
+        </p>
+        <?php if (!$rows): ?>
+          <p>Niciun abonat încă.</p>
+        <?php else: ?>
+        <table class="widefat striped">
+          <thead><tr><th>Email</th><th>Nume</th><th>Data</th><th></th></tr></thead>
+          <tbody>
+          <?php foreach ($rows as $r): ?>
+            <tr>
+              <td><?php echo esc_html($r['email']); ?></td>
+              <td><?php echo esc_html($r['name']); ?></td>
+              <td><?php echo esc_html($r['created_at']); ?></td>
+              <td>
+                <form method="post" style="margin:0" onsubmit="return confirm('Ștergi acest abonat?')">
+                  <?php wp_nonce_field('magpress_subs_del'); ?>
+                  <input type="hidden" name="mgp_del" value="<?php echo (int) $r['id']; ?>" />
+                  <button class="button-link button-link-delete" type="submit">Șterge</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <?php if ($total > 500): ?><p><em>Se afișează ultimii 500. Exportul CSV conține tot.</em></p><?php endif; ?>
+        <?php endif; ?>
+      <?php endif; ?>
+    </div>
+    <?php
+}
+
 /**
  * Pagină admin "Magpress" cu buton "Verifică update acum".
  * Aspect → Magpress.
@@ -3770,6 +4000,13 @@ add_action('rest_api_init', function () {
     register_rest_route('magpress/v1', '/legal-status', [
         'methods'             => 'GET',
         'callback'            => 'magpress_rest_legal_status',
+        'permission_callback' => '__return_true',
+    ]);
+    // Abonare newsletter (public; honeypot + rate-limit în callback, fără nonce
+    // fiindcă paginile sunt cache-uite de LiteSpeed).
+    register_rest_route('magpress/v1', '/subscribe', [
+        'methods'             => 'POST',
+        'callback'            => 'magpress_rest_subscribe',
         'permission_callback' => '__return_true',
     ]);
     // Instalare/upgrade plugin fleet-wide — broadcast semnat HMAC (push-plugin.ps1).
