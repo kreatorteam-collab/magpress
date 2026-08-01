@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.170');
+define('MAGPRESS_VERSION', '0.9.171');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1334,6 +1334,114 @@ function magpress_customize_register($wp_customize) {
     }
 
     // ---------- Sectiune: Curs valutar BNR (top bar) ----------
+    // ---------- Sectiune: Bara newsletter (homepage) ----------
+    $wp_customize->add_section('magpress_nlbar', [
+        'title'    => 'Magpress: Bara newsletter',
+        'priority' => 45,
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_enabled', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_enabled', [
+        'label'       => 'Afișează bara de newsletter pe homepage',
+        'description' => 'Bară orizontală: plic + text + formular email, opțional cu butonul „sursă preferată în Google".',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_skin', [
+        'default'           => 'dark',
+        'sanitize_callback' => 'sanitize_key',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_skin', [
+        'label'   => 'Aspect',
+        'section' => 'magpress_nlbar',
+        'type'    => 'select',
+        'choices' => [
+            'dark'  => 'Închis (fundal închis, text alb)',
+            'light' => 'Deschis (fundal deschis, text închis)',
+        ],
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_text', [
+        'default'           => '',
+        'sanitize_callback' => 'wp_kses_post',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_text', [
+        'label'       => 'Textul din bară',
+        'description' => 'Gol = text implicit cu numele site-ului. Poți folosi &lt;strong&gt;.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'textarea',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_btn', [
+        'default'           => 'Abonează-te',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_btn', [
+        'label'   => 'Text buton abonare',
+        'section' => 'magpress_nlbar',
+        'type'    => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_action', [
+        'default'           => '',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_action', [
+        'label'       => 'URL formular (unde se trimite emailul)',
+        'description' => 'Adresa de „action" de la Mailchimp / Brevo / etc. Gol + fără shortcode = bara arată doar textul și butonul Google.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'url',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_field', [
+        'default'           => 'EMAIL',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_field', [
+        'label'       => 'Numele câmpului de email',
+        'description' => 'Mailchimp = EMAIL, Brevo = email. Doar dacă folosești URL-ul de mai sus.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_shortcode', [
+        'default'           => '',
+        'sanitize_callback' => 'wp_kses_post',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_shortcode', [
+        'label'       => 'SAU shortcode formular (plugin newsletter)',
+        'description' => 'Ex. [mc4wp_form id="123"] sau [newsletter_form]. Dacă e completat, înlocuiește formularul simplu.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'textarea',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_discover', [
+        'default'           => 1,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_discover', [
+        'label'       => 'Include butonul „sursă preferată în Google"',
+        'description' => 'Dacă îl bifezi aici, poți dezactiva boxul mare Google Discover din secțiunea Layout.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_position', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_position', [
+        'label'       => 'După ce slot apare',
+        'description' => '0 = deasupra sloturilor. 1 = după Slot 1, 2 = după Slot 2 etc. Număr mai mare decât sloturile active = jos de tot.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
+    ]);
+
     // ---------- Sectiune: Categorii populare (grila carduri pe homepage) ----------
     $wp_customize->add_section('magpress_popcats', [
         'title'    => 'Magpress: Categorii populare',
@@ -1725,14 +1833,18 @@ function magpress_render_popular_categories() {
 function magpress_homepage_after_slot($i, $total = null) {
     $pop = (int) get_theme_mod('magpress_popcats_position', 0);
     $dis = (int) get_theme_mod('magpress_discover_position', 0);
+    $nlb = (int) get_theme_mod('magpress_nlbar_position', 0);
+    $has_nl = (int) get_theme_mod('magpress_nlbar_enabled', 0);
     if ($total !== null) {
         // finalul listei: randează tot ce țintea un slot inexistent
         if ($pop > $total) magpress_render_popular_categories();
         if ($dis > $total) get_template_part('template-parts/google-discover');
+        if ($has_nl && $nlb > $total) get_template_part('template-parts/newsletter-bar');
         return;
     }
     if ($pop === $i) magpress_render_popular_categories();
     if ($dis === $i && $i > 0) get_template_part('template-parts/google-discover');
+    if ($has_nl && $nlb === $i) get_template_part('template-parts/newsletter-bar');
 }
 
 function magpress_render_partners() {

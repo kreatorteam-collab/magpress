@@ -814,3 +814,39 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 .popcats__card:hover .popcats__name{color:var(--c-accent)}
 @media (max-width:900px){.popcats__grid{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:600px){.popcats__grid{grid-template-columns:repeat(2,1fr)}.popcats__card{min-height:56px}}
+
+/* ===================== BARA NEWSLETTER (v0.9.171) ===================== */
+.nlbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.25rem;margin:2rem 0;padding:1.15rem 1.5rem;border-radius:10px}
+.nlbar--dark{background:#232936;color:#fff}
+.nlbar--light{background:var(--c-surface);color:var(--c-text);border:1px solid var(--c-border)}
+.nlbar__icon{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px}
+.nlbar__icon svg{width:38px;height:38px}
+.nlbar--dark .nlbar__icon{color:#fff}
+.nlbar--light .nlbar__icon{color:var(--c-accent)}
+.nlbar__text{margin:0;font-size:.95rem;font-weight:700;line-height:1.45}
+.nlbar__actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:flex-end}
+.nlbar__form{display:flex;align-items:center;gap:.5rem}
+.nlbar__input{min-width:200px;padding:.62rem .9rem;border-radius:6px;border:1px solid var(--c-border);font-size:.9rem;font-family:inherit;background:#fff;color:#1a1a1a}
+.nlbar__input:focus{outline:2px solid var(--c-accent);outline-offset:1px}
+.nlbar__btn{padding:.68rem 1.6rem;border:0;border-radius:6px;background:var(--c-accent);color:#fff;font-weight:700;font-size:.9rem;font-family:inherit;cursor:pointer;white-space:nowrap;transition:opacity .15s,transform .15s}
+.nlbar__btn:hover{opacity:.9;transform:translateY(-1px)}
+.nlbar__gbtn{display:inline-flex;align-items:center;gap:.55rem;padding:.6rem 1.15rem;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s}
+.nlbar--dark .nlbar__gbtn{border:1px solid rgba(255,255,255,.45);color:#fff}
+.nlbar--dark .nlbar__gbtn:hover{background:rgba(255,255,255,.1);color:#fff}
+.nlbar--light .nlbar__gbtn{border:1px solid var(--c-border);color:var(--c-text);background:#fff}
+.nlbar--light .nlbar__gbtn:hover{background:var(--c-surface);color:var(--c-text)}
+.nlbar__gicon{display:inline-flex;width:18px;height:18px}
+.nlbar__gicon svg{width:18px;height:18px}
+@media (max-width:900px){
+  .nlbar{grid-template-columns:auto 1fr;gap:.85rem 1rem;padding:1.1rem 1.15rem}
+  .nlbar__actions{grid-column:1 / -1;justify-content:flex-start}
+  .nlbar__form{flex:1;min-width:100%}
+  .nlbar__input{flex:1;min-width:0}
+}
+@media (max-width:600px){
+  .nlbar__text{font-size:.88rem}
+  .nlbar__icon{width:34px;height:34px}
+  .nlbar__icon svg{width:30px;height:30px}
+  .nlbar__actions{flex-direction:column;align-items:stretch}
+  .nlbar__gbtn{justify-content:center}
+}
