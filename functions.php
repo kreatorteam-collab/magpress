@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.168');
+define('MAGPRESS_VERSION', '0.9.169');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -746,9 +746,21 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_show_google_discover', [
         'label'       => 'Box „Google Discover" (sursă preferată)',
-        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare pe homepage (după ultimul slot) și pe articol (înainte de comentarii).',
+        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare pe homepage (poziția de mai jos) și pe articol (înainte de comentarii).',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_discover_position', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_discover_position', [
+        'label'       => 'Box Google Discover — după ce slot apare (homepage)',
+        'description' => '0 = poziția standard (sub titlul H1, deasupra sloturilor). 1 = după Slot 1, 2 = după Slot 2 etc. (sloturile de reclamă se numără și ele). Număr mai mare decât sloturile active = jos de tot.',
+        'section'     => 'magpress_layout',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
     ]);
 
     // Featured posts — layout selector
@@ -1359,19 +1371,16 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_popcats',
     ]));
     $wp_customize->add_setting('magpress_popcats_position', [
-        'default'           => 'middle',
-        'sanitize_callback' => 'sanitize_key',
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_popcats_position', [
-        'label'   => 'Poziția pe homepage',
-        'section' => 'magpress_popcats',
-        'type'    => 'select',
-        'choices' => [
-            'top'    => 'Sus — imediat după articolele promovate',
-            'middle' => 'Mijloc — înainte de rândurile de categorii',
-            'bottom' => 'Jos — după rândurile de categorii',
-        ],
+        'label'       => 'După ce slot apare',
+        'description' => '0 = deasupra sloturilor (sub articolele promovate). 1 = după Slot 1, 2 = după Slot 2 etc. (sloturile de reclamă se numără și ele). Număr mai mare decât sloturile active = jos de tot.',
+        'section'     => 'magpress_popcats',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
     ]);
 
     $wp_customize->add_section('magpress_curs_bnr', [
@@ -1662,14 +1671,14 @@ function magpress_partner_fetch($src, $limit = 4) {
  * Apare DOAR pe homepage (toggle în Customizer). Scoasă de pe articole la cererea userului.
  */
 /**
- * Grila „Categorii populare" pe homepage (v0.9.168) — carduri text fără iconițe.
- * Config în Customizer (secțiunea „Magpress: Categorii populare"): on/off (OFF
- * implicit pe flotă), titlu, categoriile bifate (CSV de ID-uri), poziția.
- * Apelată din front-page.php în cele 3 ancore; randează doar la poziția aleasă.
+ * Grila „Categorii populare" pe homepage (v0.9.168, poziționare pe slot din
+ * v0.9.169) — carduri text fără iconițe. Config în Customizer (secțiunea
+ * „Magpress: Categorii populare"): on/off (OFF implicit pe flotă), titlu,
+ * categoriile bifate (CSV de ID-uri), „după ce slot apare".
+ * Plasarea o face front-page.php prin magpress_homepage_after_slot().
  */
-function magpress_render_popular_categories($position) {
+function magpress_render_popular_categories() {
     if (!get_theme_mod('magpress_popcats_enabled', 0)) return;
-    if (get_theme_mod('magpress_popcats_position', 'middle') !== $position) return;
 
     $csv = (string) get_theme_mod('magpress_popcats_cat', '');
     $ids = [];
@@ -1705,6 +1714,25 @@ function magpress_render_popular_categories($position) {
       </div>
     </section>
     <?php
+}
+
+/**
+ * Inserții poziționate pe slot (v0.9.169): apelată de front-page.php după fiecare
+ * slot randat ($i = 1..N, în ordinea afișării, incl. sloturile de reclamă), cu
+ * $i = 0 la ancorele de dinaintea sloturilor și $total la final pentru „jos de tot"
+ * (poziții mai mari decât sloturile active).
+ */
+function magpress_homepage_after_slot($i, $total = null) {
+    $pop = (int) get_theme_mod('magpress_popcats_position', 0);
+    $dis = (int) get_theme_mod('magpress_discover_position', 0);
+    if ($total !== null) {
+        // finalul listei: randează tot ce țintea un slot inexistent
+        if ($pop > $total) magpress_render_popular_categories();
+        if ($dis > $total) get_template_part('template-parts/google-discover');
+        return;
+    }
+    if ($pop === $i) magpress_render_popular_categories();
+    if ($dis === $i && $i > 0) get_template_part('template-parts/google-discover');
 }
 
 function magpress_render_partners() {

@@ -84,8 +84,6 @@ get_header();
     <?php endif; wp_reset_postdata();
   endif; ?>
 
-  <?php magpress_render_popular_categories('top'); ?>
-
   <?php echo magpress_render_web_stories_carousel(8); // News feature toggle ?>
 
   <?php
@@ -111,14 +109,15 @@ get_header();
   <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
   <?php endif; ?>
 
-  <?php get_template_part('template-parts/google-discover'); ?>
+  <?php if ((int) get_theme_mod('magpress_discover_position', 0) === 0) get_template_part('template-parts/google-discover'); ?>
 
   <?php echo magpress_render_most_read(5); // News feature toggle ?>
 
-  <?php magpress_render_popular_categories('middle'); ?>
+  <?php magpress_homepage_after_slot(0); // insertii pozitionate PE 0 = deasupra sloturilor ?>
 
   <?php
   // Sloturi homepage — configurate in Customizer (24 max, mix category + ad)
+  $mp_slot_i = 0;
   foreach (magpress_homepage_slots() as $slot):
       if ($slot['type'] === 'ad'):
         $ad_title    = $slot['title']    ?? '';
@@ -130,6 +129,8 @@ get_header();
           </div>
         <?php endif;
         echo magpress_render_ad_html($slot['html'], 'homepage');
+        $mp_slot_i++;
+        magpress_homepage_after_slot($mp_slot_i);
         continue;
       endif;
 
@@ -188,9 +189,9 @@ get_header();
         <p class="no-results-slot" style="padding:1rem;color:var(--c-text-muted);font-style:italic;">Categoria „<?php echo esc_html($cat->name); ?>" nu are articole publicate încă.</p>
       <?php endif; ?>
     </section>
-  <?php wp_reset_postdata(); endforeach; ?>
+  <?php wp_reset_postdata(); $mp_slot_i++; magpress_homepage_after_slot($mp_slot_i); endforeach; ?>
 
-  <?php magpress_render_popular_categories('bottom'); ?>
+  <?php magpress_homepage_after_slot(-1, $mp_slot_i); // pozitii peste numarul de sloturi = jos de tot ?>
 
   <?php echo magpress_render_partners(); ?>
 
