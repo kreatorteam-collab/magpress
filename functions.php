@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.165');
+define('MAGPRESS_VERSION', '0.9.166');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -397,6 +397,7 @@ function magpress_default_colors() {
         'menu_link'       => '#1a1a1a',
         'menu_link_hover' => '#6fa84a',
         'menu_hover_bg'   => '#f6f7f5',
+        'menu_link_active' => '',
         'search_color'    => '#1a1a1a',
         'badge_bg'        => '#6fa84a',
         'badge_text'      => '#ffffff',
@@ -456,6 +457,19 @@ function magpress_get_branding_css() {
     if ($pad_top !== 32 || $pad_bottom !== 20) {
         $css .= '.site-header--centered .site-header__top{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
         $css .= '.site-header--inline .site-header__inner{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
+    }
+
+    // Link ACTIV în meniu (v0.9.166) — culoare + liniuță sub pagina curentă.
+    // OPT-IN per site: emitem regula DOAR dacă site-ul a ales o culoare în Customizer,
+    // altfel meniul rămâne exact ca înainte pe toată flota.
+    $menu_active = magpress_color('menu_link_active');
+    if ($menu_active) {
+        $ma = esc_attr($menu_active);
+        $css .= '.primary-nav .menu > li.current-menu-item > a,'
+              . '.primary-nav .menu > li.current-menu-ancestor > a,'
+              . '.primary-nav .menu > li.current_page_item > a,'
+              . '.mobile-menu .menu li.current-menu-item > a{'
+              . 'color:' . $ma . ' !important;box-shadow:inset 0 -2px 0 0 ' . $ma . '}';
     }
 
     // Logo max-height — SCALARE PROPORȚIONALĂ (v0.9.165). Valoarea e o ancoră: 60 =
@@ -847,6 +861,7 @@ function magpress_customize_register($wp_customize) {
         'menu_link'       => ['Meniu — culoare link',                        '#1a1a1a'],
         'menu_link_hover' => ['Meniu — culoare link hover',                  '#6fa84a'],
         'menu_hover_bg'   => ['Meniu — background link hover',               '#f6f7f5'],
+        'menu_link_active' => ['Meniu — link ACTIV (pagina curentă) + liniuță', ''],
         'search_color'    => ['Search — culoare icon + border',               '#1a1a1a'],
         'badge_bg'        => ['Badge categorie — background',                 '#6fa84a'],
         'badge_text'      => ['Badge categorie — text',                       '#ffffff'],
