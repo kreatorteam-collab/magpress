@@ -26,7 +26,7 @@ $show_gd   = (int) get_theme_mod('magpress_nlbar_discover', 1);
 $pop_title = trim((string) get_theme_mod('magpress_nlbar_pop_title', 'Abonează-te la newsletter'));
 $pop_desc  = trim((string) get_theme_mod('magpress_nlbar_pop_desc', 'Primești articolele noastre pe email. Fără spam, te poți dezabona oricând.'));
 $ask_name  = (int) get_theme_mod('magpress_nlbar_ask_name', 0);
-$consent   = trim((string) get_theme_mod('magpress_nlbar_consent', ''));
+$consent   = trim((string) get_theme_mod('magpress_nlbar_consent', magpress_nlbar_default_consent()));
 
 $site_name = get_bloginfo('name');
 if ($text === '') {

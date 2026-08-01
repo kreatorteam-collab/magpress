@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.176');
+define('MAGPRESS_VERSION', '0.9.177');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1433,13 +1433,13 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_nlbar_consent', [
-        'default'           => '',
+        'default'           => magpress_nlbar_default_consent(),
         'sanitize_callback' => 'wp_kses_post',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_consent', [
         'label'       => 'Popup — text acord (GDPR)',
-        'description' => 'Gol = fără bifă. Ex: Sunt de acord cu &lt;a href="/politica-confidentialitate/"&gt;politica de confidențialitate&lt;/a&gt;.',
+        'description' => 'Vine completat cu textul standard (link către politica de confidențialitate). Șterge tot dacă nu vrei bifă.',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -3539,6 +3539,11 @@ function magpress_subs_maybe_install() {
     magpress_subs_install();
 }
 add_action('init', 'magpress_subs_maybe_install', 20);
+
+/** Textul standard de acord GDPR din popup (gol în Customizer = fără bifă). */
+function magpress_nlbar_default_consent() {
+    return 'Sunt de acord ca datele mele să fie folosite pentru trimiterea newsletterului, conform <a href="/politica-confidentialitate/" target="_blank" rel="noopener">politicii de confidențialitate</a>. Mă pot dezabona oricând.';
+}
 
 /**
  * Expeditorul emailurilor de newsletter: [email, nume].
