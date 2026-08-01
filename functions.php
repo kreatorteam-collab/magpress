@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.174');
+define('MAGPRESS_VERSION', '0.9.175');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1512,6 +1512,29 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
+    $wp_customize->add_setting('magpress_nlbar_autopost', [
+        'default'           => 1,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_autopost', [
+        'label'       => 'Trimite automat articolele noi către abonați',
+        'description' => 'La publicarea unui articol, abonații primesc titlul, un rezumat și linkul. Trimiterea se face în fundal, în loturi.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_post_subject', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_post_subject', [
+        'label'       => 'Articol nou — subiect email',
+        'description' => 'Gol = titlul articolului. Poți folosi {titlu} și {site}, ex: „{site}: {titlu}".',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+
     $wp_customize->add_setting('magpress_nlbar_notify', [
         'default'           => 0,
         'sanitize_callback' => 'absint',
@@ -3663,6 +3686,84 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     return new WP_REST_Response(['ok' => true, 'message' => $msg], 200);
 }
 
+/* ---------------------------------------------------------------------------
+ * ARTICOLE NOI PE EMAIL (v0.9.175). La publicare trimitem articolul către
+ * abonați, în loturi prin cron — ca să nu blocăm salvarea și să nu depășim
+ * limita de trimitere a hostingului.
+ * ------------------------------------------------------------------------- */
+
+define('MAGPRESS_NL_BATCH', 40); // abonați per rulare
+
+function magpress_nl_on_publish($new_status, $old_status, $post) {
+    if ($new_status !== 'publish' || $old_status === 'publish') return;
+    if (!($post instanceof WP_Post) || $post->post_type !== 'post') return;
+    if (!get_theme_mod('magpress_nlbar_enabled', 0)) return;
+    if (!get_theme_mod('magpress_nlbar_autopost', 1)) return;
+    if (get_post_meta($post->ID, '_magpress_nl_sent', true)) return;
+
+    update_post_meta($post->ID, '_magpress_nl_sent', current_time('mysql'));
+    update_post_meta($post->ID, '_magpress_nl_offset', 0);
+    wp_schedule_single_event(time() + 30, 'magpress_nl_send_batch', [(int) $post->ID]);
+}
+add_action('transition_post_status', 'magpress_nl_on_publish', 10, 3);
+
+/** Trimite un lot pentru articolul dat; se reprogramează dacă mai sunt abonați. */
+function magpress_nl_send_batch($post_id) {
+    global $wpdb;
+    $post = get_post((int) $post_id);
+    if (!$post || $post->post_status !== 'publish') return;
+
+    $table = magpress_subs_table();
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) return;
+
+    $offset = (int) get_post_meta($post->ID, '_magpress_nl_offset', true);
+    $rows   = $wpdb->get_results($wpdb->prepare(
+        "SELECT email, name FROM {$table} ORDER BY id ASC LIMIT %d OFFSET %d",
+        MAGPRESS_NL_BATCH, $offset
+    ), ARRAY_A);
+    if (!$rows) return;
+
+    foreach ($rows as $r) {
+        magpress_nl_send_post_to($post, $r['email'], $r['name']);
+    }
+
+    update_post_meta($post->ID, '_magpress_nl_offset', $offset + count($rows));
+    if (count($rows) === MAGPRESS_NL_BATCH) {
+        wp_schedule_single_event(time() + 120, 'magpress_nl_send_batch', [(int) $post->ID]);
+    }
+}
+add_action('magpress_nl_send_batch', 'magpress_nl_send_batch', 10, 1);
+
+/** Emailul cu un articol, către un abonat. */
+function magpress_nl_send_post_to(WP_Post $post, $email, $name = '') {
+    list($from_email, $from_name) = magpress_nlbar_from();
+    $unsub = magpress_unsub_url($email);
+
+    $excerpt = has_excerpt($post)
+        ? get_the_excerpt($post)
+        : wp_trim_words(wp_strip_all_tags(strip_shortcodes($post->post_content)), 45, '…');
+
+    $subject = trim((string) get_theme_mod('magpress_nlbar_post_subject', ''));
+    $subject = $subject !== ''
+        ? strtr($subject, ['{titlu}' => $post->post_title, '{site}' => get_bloginfo('name')])
+        : $post->post_title;
+
+    $body = 'Salut' . ($name !== '' ? ' ' . $name : '') . ",\n\n"
+          . $post->post_title . "\n\n"
+          . $excerpt . "\n\n"
+          . "Citește articolul:\n" . get_permalink($post) . "\n\n"
+          . get_bloginfo('name') . "\n" . home_url('/') . "\n\n"
+          . "---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub;
+
+    return wp_mail($email, $subject, $body, [
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Reply-To: ' . $from_name . ' <' . $from_email . '>',
+        'Content-Type: text/plain; charset=UTF-8',
+        'List-Unsubscribe: <' . $unsub . '>',
+        'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+    ]);
+}
+
 /** Aspect → Abonați: listă + export CSV + ștergere. */
 function magpress_subs_admin_menu() {
     add_theme_page('Abonați newsletter', 'Abonați', 'manage_options', 'magpress-subscribers', 'magpress_render_subs_page');
@@ -3715,6 +3816,21 @@ function magpress_render_subs_page() {
         }
     }
 
+    // Trimitere manuală a unui articol (pentru articole publicate înainte de
+    // activarea newsletterului sau pentru retrimitere).
+    if (isset($_POST['mgp_send_post']) && check_admin_referer('magpress_subs_send')) {
+        $pid  = (int) $_POST['mgp_send_post'];
+        $post = get_post($pid);
+        if (!$post || $post->post_status !== 'publish') {
+            echo '<div class="notice notice-error is-dismissible"><p>Articol invalid.</p></div>';
+        } else {
+            update_post_meta($pid, '_magpress_nl_sent', current_time('mysql'));
+            update_post_meta($pid, '_magpress_nl_offset', 0);
+            magpress_nl_send_batch($pid);
+            echo '<div class="notice notice-success is-dismissible"><p>Am trimis „' . esc_html($post->post_title) . '" către abonați (primii ' . (int) MAGPRESS_NL_BATCH . ' acum, restul în fundal).</p></div>';
+        }
+    }
+
     list($from_email, $from_name) = magpress_nlbar_from();
 
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
@@ -3735,6 +3851,22 @@ function magpress_render_subs_page() {
           <button class="button" type="submit">Trimite test</button>
         </form>
       </div>
+      <?php
+      $recent = get_posts(['numberposts' => 15, 'post_status' => 'publish']);
+      if ($recent): ?>
+      <div class="notice notice-info inline" style="padding:.75rem 1rem;margin:1rem 0">
+        <p style="margin:0 0 .5rem"><strong>Trimite un articol acum</strong> — util pentru articolele publicate înainte de a porni newsletterul.</p>
+        <form method="post" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0" onsubmit="return confirm('Trimiți acest articol tuturor abonaților?')">
+          <?php wp_nonce_field('magpress_subs_send'); ?>
+          <select name="mgp_send_post">
+            <?php foreach ($recent as $p): ?>
+              <option value="<?php echo (int) $p->ID; ?>"><?php echo esc_html($p->post_title); ?><?php echo get_post_meta($p->ID, '_magpress_nl_sent', true) ? ' (deja trimis)' : ''; ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button class="button button-primary" type="submit">Trimite abonaților</button>
+        </form>
+      </div>
+      <?php endif; ?>
       <?php if (!$exists): ?>
         <p>Tabelul se creează automat când pornești bara din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.</p>
       <?php else: ?>
