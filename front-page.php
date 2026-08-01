@@ -84,6 +84,8 @@ get_header();
     <?php endif; wp_reset_postdata();
   endif; ?>
 
+  <?php magpress_render_popular_categories('top'); ?>
+
   <?php echo magpress_render_web_stories_carousel(8); // News feature toggle ?>
 
   <?php
@@ -112,6 +114,8 @@ get_header();
   <?php get_template_part('template-parts/google-discover'); ?>
 
   <?php echo magpress_render_most_read(5); // News feature toggle ?>
+
+  <?php magpress_render_popular_categories('middle'); ?>
 
   <?php
   // Sloturi homepage — configurate in Customizer (24 max, mix category + ad)
@@ -185,6 +189,8 @@ get_header();
       <?php endif; ?>
     </section>
   <?php wp_reset_postdata(); endforeach; ?>
+
+  <?php magpress_render_popular_categories('bottom'); ?>
 
   <?php echo magpress_render_partners(); ?>
 

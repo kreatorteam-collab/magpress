@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.167');
+define('MAGPRESS_VERSION', '0.9.168');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1322,6 +1322,58 @@ function magpress_customize_register($wp_customize) {
     }
 
     // ---------- Sectiune: Curs valutar BNR (top bar) ----------
+    // ---------- Sectiune: Categorii populare (grila carduri pe homepage) ----------
+    $wp_customize->add_section('magpress_popcats', [
+        'title'    => 'Magpress: Categorii populare',
+        'priority' => 46,
+    ]);
+    $wp_customize->add_setting('magpress_popcats_enabled', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_popcats_enabled', [
+        'label'       => 'Afișează grila de categorii pe homepage',
+        'description' => 'Carduri simple cu numele categoriei (fără iconițe), hover în culoarea de accent.',
+        'section'     => 'magpress_popcats',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_popcats_title', [
+        'default'           => 'Categorii populare',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_popcats_title', [
+        'label'   => 'Titlul secțiunii',
+        'section' => 'magpress_popcats',
+        'type'    => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_popcats_cat', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control(new Magpress_Slot_Cats_Control($wp_customize, 'magpress_popcats_cat', [
+        'label'       => 'Categoriile afișate',
+        'description' => 'Bifează categoriile care apar în grilă (în ordinea alfabetică a numelui).',
+        'section'     => 'magpress_popcats',
+    ]));
+    $wp_customize->add_setting('magpress_popcats_position', [
+        'default'           => 'middle',
+        'sanitize_callback' => 'sanitize_key',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_popcats_position', [
+        'label'   => 'Poziția pe homepage',
+        'section' => 'magpress_popcats',
+        'type'    => 'select',
+        'choices' => [
+            'top'    => 'Sus — imediat după articolele promovate',
+            'middle' => 'Mijloc — înainte de rândurile de categorii',
+            'bottom' => 'Jos — după rândurile de categorii',
+        ],
+    ]);
+
     $wp_customize->add_section('magpress_curs_bnr', [
         'title'       => 'Magpress: Curs valutar BNR',
         'description' => 'Bara subțire cu cursul oficial BNR, deasupra header-ului. Sursa: bnr.ro (cache 6h). Există și widget („Magpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziții.',
@@ -1609,6 +1661,52 @@ function magpress_partner_fetch($src, $limit = 4) {
  * fiecare sursă (dacă e o singură sursă → ultimele ei 4 articole).
  * Apare DOAR pe homepage (toggle în Customizer). Scoasă de pe articole la cererea userului.
  */
+/**
+ * Grila „Categorii populare" pe homepage (v0.9.168) — carduri text fără iconițe.
+ * Config în Customizer (secțiunea „Magpress: Categorii populare"): on/off (OFF
+ * implicit pe flotă), titlu, categoriile bifate (CSV de ID-uri), poziția.
+ * Apelată din front-page.php în cele 3 ancore; randează doar la poziția aleasă.
+ */
+function magpress_render_popular_categories($position) {
+    if (!get_theme_mod('magpress_popcats_enabled', 0)) return;
+    if (get_theme_mod('magpress_popcats_position', 'middle') !== $position) return;
+
+    $csv = (string) get_theme_mod('magpress_popcats_cat', '');
+    $ids = [];
+    foreach (preg_split('/[\s,]+/', $csv, -1, PREG_SPLIT_NO_EMPTY) as $v) {
+        $id = (int) $v;
+        if ($id > 0) $ids[] = $id;
+    }
+    if (!$ids) return;
+
+    $cats = [];
+    foreach ($ids as $id) {
+        $c = get_category($id);
+        if ($c && !is_wp_error($c)) $cats[] = $c;
+    }
+    if (!$cats) return;
+    usort($cats, function ($a, $b) { return strcoll($a->name, $b->name); });
+
+    $title = trim((string) get_theme_mod('magpress_popcats_title', 'Categorii populare'));
+    ?>
+    <section class="popcats">
+      <?php if ($title !== ''): ?>
+      <header class="section-header">
+        <span class="section-header__icon" aria-hidden="true"></span>
+        <h2 class="section-header__title"><?php echo esc_html($title); ?></h2>
+      </header>
+      <?php endif; ?>
+      <div class="popcats__grid">
+        <?php foreach ($cats as $c): ?>
+        <a class="popcats__card" href="<?php echo esc_url(get_category_link($c)); ?>">
+          <span class="popcats__name"><?php echo esc_html($c->name); ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php
+}
+
 function magpress_render_partners() {
     if (!get_theme_mod('magpress_partners_on_home', 1)) { return ''; }
 
