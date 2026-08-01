@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.172');
+define('MAGPRESS_VERSION', '0.9.173');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1453,6 +1453,85 @@ function magpress_customize_register($wp_customize) {
         'description' => 'Gol = mesaj implicit.',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
+    ]);
+
+    // --- Expeditor + email de bun venit ---
+    $mgp_nl_host = preg_replace('/^www\./i', '', (string) parse_url(home_url(), PHP_URL_HOST));
+    $wp_customize->add_setting('magpress_nlbar_from_email', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_email',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_from_email', [
+        'label'       => 'Email expeditor (de pe ce adresă pleacă)',
+        'description' => 'Gol = contact@' . $mgp_nl_host . '. Folosește o adresă de pe domeniul site-ului — una de Gmail/Yahoo pusă aici ajunge în spam sau e respinsă.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'email',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_from_name', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_from_name', [
+        'label'       => 'Nume expeditor',
+        'description' => 'Gol = numele site-ului.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_welcome', [
+        'default'           => 1,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_welcome', [
+        'label'       => 'Trimite email de bun venit la abonare',
+        'description' => 'Confirmă abonatului că s-a înscris. Se trimite o singură dată, la prima abonare.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_welcome_subject', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_welcome_subject', [
+        'label'       => 'Bun venit — subiect',
+        'description' => 'Gol = „Bine ai venit la newsletterul ' . get_bloginfo('name') . '".',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'text',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_welcome_body', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_welcome_body', [
+        'label'       => 'Bun venit — mesaj',
+        'description' => 'Gol = text implicit. Poți folosi {nume}, {site}, {url}, {email}.',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'textarea',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_notify', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_notify', [
+        'label'   => 'Anunță-mă pe email la fiecare abonat nou',
+        'section' => 'magpress_nlbar',
+        'type'    => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_nlbar_notify_to', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_email',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_nlbar_notify_to', [
+        'label'       => 'Unde primesc anunțul',
+        'description' => 'Gol = adresa de administrator a site-ului (' . esc_html(get_option('admin_email')) . ').',
+        'section'     => 'magpress_nlbar',
+        'type'        => 'email',
     ]);
 
     $wp_customize->add_setting('magpress_nlbar_action', [
@@ -3399,6 +3478,64 @@ function magpress_subs_maybe_install() {
 }
 add_action('init', 'magpress_subs_maybe_install', 20);
 
+/**
+ * Expeditorul emailurilor de newsletter: [email, nume].
+ * Implicit contact@<domeniu> — adresa TREBUIE să fie pe domeniul site-ului,
+ * altfel Gmail/Yahoo resping mesajul (SPF/DKIM al domeniului tău nu acoperă
+ * adrese de gmail.com/yahoo.com puse ca From).
+ */
+function magpress_nlbar_from() {
+    $host  = (string) parse_url(home_url(), PHP_URL_HOST);
+    $host  = preg_replace('/^www\./i', '', $host);
+    $email = trim((string) get_theme_mod('magpress_nlbar_from_email', ''));
+    if ($email === '' || !is_email($email)) $email = 'contact@' . $host;
+    $name  = trim((string) get_theme_mod('magpress_nlbar_from_name', ''));
+    if ($name === '') $name = get_bloginfo('name');
+    return [$email, $name];
+}
+
+/** Emailul de bun venit către un abonat nou (+ opțional notificare la admin). */
+function magpress_nlbar_send_welcome($email, $name) {
+    list($from_email, $from_name) = magpress_nlbar_from();
+    $headers = [
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Reply-To: ' . $from_name . ' <' . $from_email . '>',
+        'Content-Type: text/plain; charset=UTF-8',
+    ];
+
+    if (get_theme_mod('magpress_nlbar_welcome', 1)) {
+        $subject = trim((string) get_theme_mod('magpress_nlbar_welcome_subject', ''));
+        if ($subject === '') $subject = 'Bine ai venit la newsletterul ' . get_bloginfo('name');
+
+        $body = trim((string) get_theme_mod('magpress_nlbar_welcome_body', ''));
+        if ($body === '') {
+            $body = "Salut{nume},\n\nÎți mulțumim că te-ai abonat la newsletterul {site}. "
+                  . "De acum primești pe email articolele noastre noi.\n\n"
+                  . "Dacă nu mai vrei să primești mesaje, răspunde la acest email cu „dezabonare\".\n\n"
+                  . "{site}\n{url}";
+        }
+        $body = strtr($body, [
+            '{nume}'  => $name !== '' ? ' ' . $name : '',
+            '{name}'  => $name,
+            '{site}'  => get_bloginfo('name'),
+            '{url}'   => home_url('/'),
+            '{email}' => $email,
+        ]);
+        wp_mail($email, $subject, $body, $headers);
+    }
+
+    if (get_theme_mod('magpress_nlbar_notify', 0)) {
+        $to = trim((string) get_theme_mod('magpress_nlbar_notify_to', ''));
+        if ($to === '' || !is_email($to)) $to = get_option('admin_email');
+        wp_mail(
+            $to,
+            'Abonat nou la newsletter — ' . get_bloginfo('name'),
+            "Adresă: {$email}\nNume: " . ($name !== '' ? $name : '—') . "\n\nToți abonații: " . admin_url('themes.php?page=magpress-subscribers'),
+            $headers
+        );
+    }
+}
+
 function magpress_rest_subscribe(WP_REST_Request $request) {
     $data = $request->get_json_params();
     if (!is_array($data)) $data = $request->get_params();
@@ -3427,12 +3564,23 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     if ((int) get_option('magpress_subs_db_version', 0) !== MAGPRESS_SUBS_DB_VERSION) {
         magpress_subs_install();
     }
-    $table = magpress_subs_table();
-    $wpdb->query($wpdb->prepare(
-        "INSERT INTO {$table} (email, name, ip, source, created_at) VALUES (%s, %s, %s, %s, %s)
-         ON DUPLICATE KEY UPDATE name = IF(VALUES(name) <> '', VALUES(name), name)",
-        $email, $name, $ip, 'popup', current_time('mysql')
-    ));
+    $table    = magpress_subs_table();
+    $existing = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE email = %s", $email));
+    if ($existing) {
+        // Deja abonat: actualizăm doar numele dacă acum l-a completat. Fără email repetat.
+        if ($name !== '') {
+            $wpdb->update($table, ['name' => $name], ['id' => (int) $existing], ['%s'], ['%d']);
+        }
+    } else {
+        $wpdb->insert($table, [
+            'email'      => $email,
+            'name'       => $name,
+            'ip'         => $ip,
+            'source'     => 'popup',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%s', '%s']);
+        magpress_nlbar_send_welcome($email, $name);
+    }
 
     $msg = trim((string) get_theme_mod('magpress_nlbar_success', ''));
     if ($msg === '') $msg = 'Gata! Ți-am notat adresa — urmează articolele noastre.';
@@ -3473,12 +3621,44 @@ function magpress_render_subs_page() {
         echo '<div class="notice notice-success is-dismissible"><p>Abonat șters.</p></div>';
     }
 
+    if (isset($_POST['mgp_test_to']) && check_admin_referer('magpress_subs_test')) {
+        $to = sanitize_email((string) $_POST['mgp_test_to']);
+        if (!$to || !is_email($to)) {
+            echo '<div class="notice notice-error is-dismissible"><p>Adresă de test invalidă.</p></div>';
+        } else {
+            list($fe, $fn) = magpress_nlbar_from();
+            $sent = wp_mail(
+                $to,
+                'Test newsletter — ' . get_bloginfo('name'),
+                "Acesta e un email de test trimis de pe {$fe}.\n\nDacă l-ai primit (și NU în Spam), expeditorul e configurat corect.",
+                ['From: ' . $fn . ' <' . $fe . '>', 'Reply-To: ' . $fn . ' <' . $fe . '>', 'Content-Type: text/plain; charset=UTF-8']
+            );
+            echo $sent
+                ? '<div class="notice notice-success is-dismissible"><p>Test trimis către ' . esc_html($to) . ' de pe <code>' . esc_html($fe) . '</code>. Verifică și folderul Spam.</p></div>'
+                : '<div class="notice notice-error is-dismissible"><p>Serverul nu a putut trimite emailul (wp_mail a eșuat). Verifică setările de mail ale hostingului sau folosește un plugin SMTP.</p></div>';
+        }
+    }
+
+    list($from_email, $from_name) = magpress_nlbar_from();
+
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
     $rows   = $exists ? $wpdb->get_results("SELECT * FROM {$table} ORDER BY id DESC LIMIT 500", ARRAY_A) : [];
     $total  = $exists ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}") : 0;
     ?>
     <div class="wrap">
       <h1>Abonați newsletter</h1>
+      <div class="notice notice-info inline" style="padding:.75rem 1rem;margin:1rem 0">
+        <p style="margin:0 0 .5rem">
+          Emailurile pleacă de pe <code><?php echo esc_html($from_email); ?></code> (<?php echo esc_html($from_name); ?>).
+          Schimbi din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.
+        </p>
+        <form method="post" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0">
+          <?php wp_nonce_field('magpress_subs_test'); ?>
+          <label for="mgp_test_to">Trimite un email de test către:</label>
+          <input type="email" id="mgp_test_to" name="mgp_test_to" value="<?php echo esc_attr(get_option('admin_email')); ?>" class="regular-text" />
+          <button class="button" type="submit">Trimite test</button>
+        </form>
+      </div>
       <?php if (!$exists): ?>
         <p>Tabelul se creează automat când pornești bara din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.</p>
       <?php else: ?>
