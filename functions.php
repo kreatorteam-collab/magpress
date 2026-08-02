@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.177');
+define('MAGPRESS_VERSION', '0.9.178');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -2138,6 +2138,16 @@ function magpress_inline_critical_css() {
          . '.site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1rem clamp(1rem,3vw,2rem)}'
          . '.site-header--centered .site-header__top{display:flex!important;justify-content:center!important;align-items:center!important;padding:2rem clamp(1rem,3vw,2rem) 1.25rem!important;text-align:center!important}'
          . '.site-header--centered .site-header__top .site-logo{max-height:110px!important;width:auto!important;display:block!important;margin:0 auto}'
+         // Mobil (v0.9.178): logo STÂNGA, hamburger DREAPTA. Regula de mai sus e
+         // necondiționată și cu !important, deci o anulăm explicit aici — altfel,
+         // dacă LiteSpeed servește criticul după stylesheet, headerul rămâne centrat.
+         . '@media(max-width:768px){'
+         . '.site-header--centered .site-header__top{display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important;text-align:left!important;padding:.85rem clamp(1rem,3vw,2rem)!important}'
+         . '.site-header--centered .site-header__top .site-branding{order:1;justify-self:start!important;margin:0!important}'
+         . '.site-header--centered .site-header__top .site-logo{margin:0!important}'
+         . '.site-header--centered .site-header__top .menu-toggle--mobile{order:2;justify-self:end}'
+         . '.site-header--centered .header-spacer{display:none!important}'
+         . '}'
          . '.site-nav-bar{background:#fff;border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6}'
          // Meniu centered: aliniat cu .container (aceeași lățime ca meniul/conținutul). !important ca
          // să reziste la CSS combinat/UCSS stale de la LiteSpeed (regula veche nu avea !important).
