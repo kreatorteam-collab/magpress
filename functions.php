@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.178');
+define('MAGPRESS_VERSION', '0.9.179');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1524,7 +1524,7 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_nlbar_send_mode', [
-        'default'           => 'instant',
+        'default'           => 'daily',
         'sanitize_callback' => 'sanitize_key',
         'transport'         => 'refresh',
     ]);
@@ -3755,7 +3755,7 @@ function magpress_nl_on_publish($new_status, $old_status, $post) {
     if (!get_theme_mod('magpress_nlbar_autopost', 1)) return;
     // În modul „rezumat zilnic" nu trimitem la publicare — articolul intră în
     // digestul de dimineață.
-    if (get_theme_mod('magpress_nlbar_send_mode', 'instant') !== 'instant') return;
+    if (get_theme_mod('magpress_nlbar_send_mode', 'daily') !== 'instant') return;
     if (get_post_meta($post->ID, '_magpress_nl_sent', true)) return;
 
     update_post_meta($post->ID, '_magpress_nl_sent', current_time('mysql'));
@@ -3809,7 +3809,7 @@ function magpress_nl_next_run_ts($hour) {
 function magpress_nl_sync_daily_cron() {
     $on = get_theme_mod('magpress_nlbar_enabled', 0)
         && get_theme_mod('magpress_nlbar_autopost', 1)
-        && get_theme_mod('magpress_nlbar_send_mode', 'instant') === 'daily';
+        && get_theme_mod('magpress_nlbar_send_mode', 'daily') === 'daily';
 
     $scheduled = wp_next_scheduled('magpress_nl_daily');
 
@@ -3829,7 +3829,7 @@ add_action('init', 'magpress_nl_sync_daily_cron', 21);
 
 /** Rulează rezumatul: strânge articolele noi și pornește trimiterea în loturi. */
 function magpress_nl_daily_digest($force = false) {
-    if (!$force && get_theme_mod('magpress_nlbar_send_mode', 'instant') !== 'daily') return 0;
+    if (!$force && get_theme_mod('magpress_nlbar_send_mode', 'daily') !== 'daily') return 0;
 
     $last  = (string) get_option('magpress_nl_last_digest', '');
     $after = $last !== '' ? $last : date('Y-m-d H:i:s', current_time('timestamp') - DAY_IN_SECONDS);
@@ -4058,7 +4058,7 @@ function magpress_render_subs_page() {
           <button class="button button-primary" type="submit">Trimite abonaților</button>
         </form>
         <?php
-        $mgp_mode = get_theme_mod('magpress_nlbar_send_mode', 'instant');
+        $mgp_mode = get_theme_mod('magpress_nlbar_send_mode', 'daily');
         $mgp_next = wp_next_scheduled('magpress_nl_daily');
         ?>
         <hr style="margin:.85rem 0" />
