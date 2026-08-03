@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.180');
+define('MAGPRESS_VERSION', '0.9.181');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -2204,16 +2204,38 @@ function magpress_breadcrumbs() {
     echo '<nav class="breadcrumbs" aria-label="Breadcrumb">';
     echo '<a href="' . esc_url(home_url('/')) . '">Acasă</a>';
 
+    // Categoriile PĂRINTE, de sus în jos (ex. Afaceri / Piețe și industrii).
+    $ancestors = function ($term) {
+        if (!$term || empty($term->term_id)) return;
+        foreach (array_reverse(get_ancestors($term->term_id, $term->taxonomy)) as $aid) {
+            $a = get_term($aid, $term->taxonomy);
+            if ($a && !is_wp_error($a)) {
+                echo '<span class="sep">/</span>';
+                echo '<a href="' . esc_url(get_term_link($a)) . '">' . esc_html($a->name) . '</a>';
+            }
+        }
+    };
+
     if (is_singular('post')) {
         $cats = get_the_category();
         if ($cats) {
+            $ancestors($cats[0]);
             echo '<span class="sep">/</span>';
             echo '<a href="' . esc_url(get_category_link($cats[0])) . '">' . esc_html($cats[0]->name) . '</a>';
         }
+        // v0.9.181: titlul articolului lipsea, deși schema BreadcrumbList îl emitea
+        // deja — firimiturile vizibile se opreau la categorie.
+        echo '<span class="sep">/</span>';
+        echo '<span class="current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_category() || is_tag() || is_tax()) {
+        $ancestors(get_queried_object());
         echo '<span class="sep">/</span>';
         echo '<span class="current">' . esc_html(single_term_title('', false)) . '</span>';
     } elseif (is_page()) {
+        foreach (array_reverse(get_post_ancestors(get_the_ID())) as $pid) {
+            echo '<span class="sep">/</span>';
+            echo '<a href="' . esc_url(get_permalink($pid)) . '">' . esc_html(get_the_title($pid)) . '</a>';
+        }
         echo '<span class="sep">/</span>';
         echo '<span class="current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_search()) {
@@ -6398,6 +6420,19 @@ function magpress_build_breadcrumb_schema_single() {
     $cats = get_the_category($post->ID);
     if ($cats && !is_wp_error($cats)) {
         $cat = $cats[0];
+        // Categoriile părinte, de sus în jos — schema trebuie să reflecte exact
+        // firimiturile vizibile (v0.9.181).
+        foreach (array_reverse(get_ancestors($cat->term_id, 'category')) as $aid) {
+            $a = get_term($aid, 'category');
+            if ($a && !is_wp_error($a)) {
+                $items[] = [
+                    '@type'    => 'ListItem',
+                    'position' => $position++,
+                    'name'     => $a->name,
+                    'item'     => get_category_link($a),
+                ];
+            }
+        }
         $items[] = [
             '@type'    => 'ListItem',
             'position' => $position++,
@@ -6431,9 +6466,21 @@ function magpress_build_breadcrumb_schema_archive() {
     if (is_category()) {
         $term = get_queried_object();
         if ($term) {
+            $pos = 2;
+            foreach (array_reverse(get_ancestors($term->term_id, 'category')) as $aid) {
+                $a = get_term($aid, 'category');
+                if ($a && !is_wp_error($a)) {
+                    $items[] = [
+                        '@type'    => 'ListItem',
+                        'position' => $pos++,
+                        'name'     => $a->name,
+                        'item'     => get_category_link($a),
+                    ];
+                }
+            }
             $items[] = [
                 '@type'    => 'ListItem',
-                'position' => 2,
+                'position' => $pos,
                 'name'     => $term->name,
                 'item'     => get_category_link($term),
             ];

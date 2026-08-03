@@ -468,6 +468,10 @@ body.magpress-lightbox-open{overflow:hidden}
 .breadcrumbs a:hover{color:var(--c-accent)}
 .breadcrumbs .sep{color:var(--c-border)}
 .breadcrumbs .current{color:var(--c-text-muted)}
+/* Titlul articolului (ultima firimitură) poate fi lung — îl tăiem elegant
+   ca să rămână pe un singur rând, mai ales pe mobil (v0.9.181). */
+.breadcrumbs .current{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:600px){.breadcrumbs .current{max-width:60vw}}
 
 /* ===================== ARCHIVE ===================== */
 .archive-header{margin:1rem 0 2rem}
