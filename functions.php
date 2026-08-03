@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.179');
+define('MAGPRESS_VERSION', '0.9.180');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -3901,11 +3901,10 @@ function magpress_nl_send_digest_to($posts, $email, $name = '') {
 
     $body = 'Salut' . ($name !== '' ? ' ' . $name : '') . ",\n\n"
           . ($count === 1 ? "Articolul publicat azi pe {$from_name}:" : "Articolele publicate azi pe {$from_name}:") . "\n\n";
+    // v0.9.180: DOAR titlu + link (fără rezumat) — cerință user: cu 20+ articole
+    // pe zi, rezumatele făceau emailul interminabil.
     foreach ($posts as $p) {
-        $excerpt = has_excerpt($p)
-            ? get_the_excerpt($p)
-            : wp_trim_words(wp_strip_all_tags(strip_shortcodes($p->post_content)), 28, '…');
-        $body .= '• ' . $p->post_title . "\n" . $excerpt . "\n" . get_permalink($p) . "\n\n";
+        $body .= '• ' . $p->post_title . "\n" . get_permalink($p) . "\n\n";
     }
     $body .= get_bloginfo('name') . "\n" . home_url('/') . "\n\n"
           . "---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub;
