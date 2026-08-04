@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.181');
+define('MAGPRESS_VERSION', '0.9.182');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -4209,8 +4209,13 @@ function magpress_render_settings_page() {
                 $message_type = 'success';
             }
         } else {
-            $message = '⚠️ Nu am putut contacta GitHub. Reîncearcă în câteva minute.';
-            $message_type = 'warning';
+            // Repo-ul stă PRIVAT între release-uri (politică asumată), deci verificarea
+            // pe GitHub returnează 404 în mod normal. Nu e o defecțiune → mesaj neutru,
+            // nu avertisment galben pe fiecare site din flotă. (v0.9.182)
+            $message = 'ℹ️ Verificarea pe GitHub nu a răspuns — normal cât timp repo-ul e privat între release-uri. '
+                     . 'Update-urile se livrează centralizat, nu din această pagină. Versiune instalată: <strong>'
+                     . esc_html(wp_get_theme()->get('Version')) . '</strong>.';
+            $message_type = 'info';
         }
     }
 
