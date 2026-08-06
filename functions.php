@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.185');
+define('MAGPRESS_VERSION', '0.9.186');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -328,6 +328,31 @@ function magpress_preload_lcp_image() {
 }
 add_action('wp_head', 'magpress_preload_lcp_image', 2);
 add_action('wp_enqueue_scripts', 'magpress_enqueue_assets');
+
+/**
+ * PRAG MINIM pentru intervalele de cron (v0.9.186).
+ *
+ * Unele pluginuri își declară joburi la 30–60 de secunde (ex. `nsi_check_pending_images`
+ * la 30s, `pinpilot_tick` la 60s). Pe site-urile unde WP-cron NU e mutat pe cron de
+ * server, WordPress încearcă să pornească cron-ul la vizitele reale → fiecare vizitator
+ * plătește costul. Ridicăm orice interval sub 5 minute la 5 minute.
+ *
+ * Nu atinge intervalele WP core (hourly/twicedaily/daily/weekly, toate peste prag).
+ * Evenimentele deja programate preiau noul interval după prima reprogramare.
+ * Per site se poate ajusta cu filtrul `magpress_cron_min_interval` (0 = dezactivat).
+ */
+function magpress_cron_interval_floor($schedules) {
+    $floor = (int) apply_filters('magpress_cron_min_interval', 5 * MINUTE_IN_SECONDS);
+    if ($floor <= 0 || !is_array($schedules)) return $schedules;
+
+    foreach ($schedules as $name => $s) {
+        if (!empty($s['interval']) && (int) $s['interval'] > 0 && (int) $s['interval'] < $floor) {
+            $schedules[$name]['interval'] = $floor;
+        }
+    }
+    return $schedules;
+}
+add_filter('cron_schedules', 'magpress_cron_interval_floor', 9999);
 
 /**
  * Inregistram meniurile.
