@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.186');
+define('MAGPRESS_VERSION', '0.9.187');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -5457,6 +5457,19 @@ function magpress_register_news_features($wp_customize) {
         'type'        => 'textarea',
     ]);
 
+    // 4b. „Actualizat la <dată>" pe articole (v0.9.187)
+    $wp_customize->add_setting('magpress_show_updated', [
+        'default'           => 1,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_show_updated', [
+        'label'       => 'Afișează „Actualizat la <dată>"',
+        'description' => 'Pe articolele modificate după publicare. Data afișată nu poate fi niciodată mai veche decât data publicării, iar modificările din primele 24h de la publicare (corecturi) nu se anunță.',
+        'section'     => 'magpress_news',
+        'type'        => 'checkbox',
+    ]);
+
     // 5. Author byline rich
     $wp_customize->add_setting('magpress_news_author_byline', [
         'default'           => 0,
@@ -5795,18 +5808,52 @@ function magpress_category_color_class($cat) {
 // =========================================================================
 // AUTHOR BYLINE RICH (D)
 // =========================================================================
+/**
+ * Timestamp-ul de afișat pentru „Actualizat la", sau 0 dacă nu se afișează nimic.
+ * v0.9.187. Reguli:
+ *  - data afișată NU poate fi niciodată mai veche decât data publicării (dacă
+ *    post_modified < post_date — se întâmplă la articole importate/backdatate —
+ *    nu afișăm nimic, nu afișăm data publicării ca „actualizare");
+ *  - o diferență sub prag (implicit 24h) e o corectură la publicare, nu o
+ *    actualizare de conținut: n-o anunțăm.
+ */
+function magpress_updated_ts($post = null) {
+    if (!get_theme_mod('magpress_show_updated', 1)) return 0;
+    $pub = (int) get_post_time('U', true, $post);
+    $mod = (int) get_post_modified_time('U', true, $post);
+    if (!$pub || !$mod) return 0;
+    if ($mod <= $pub) return 0;
+    $min_gap = (int) apply_filters('magpress_updated_min_gap', DAY_IN_SECONDS);
+    if (($mod - $pub) < $min_gap) return 0;
+    return $mod;
+}
+
+/** Fragmentul „Actualizat la <dată>" (gol dacă nu e cazul). */
+function magpress_updated_html($post = null, $prefix = 'Actualizat la ') {
+    $ts = magpress_updated_ts($post);
+    if (!$ts) return '';
+    return '<span class="article-meta__updated">' . esc_html($prefix)
+         . '<time datetime="' . esc_attr(get_the_modified_date('c', $post)) . '">'
+         . esc_html(get_the_modified_date('j F Y', $post)) . '</time></span>';
+}
+
 function magpress_render_article_meta() {
     if (!is_singular('post')) return '';
     $rich = (bool) get_theme_mod('magpress_news_author_byline', 0);
 
     if (!$rich) {
         // Comportament default (identic cu varianta veche): plain meta
+        $updated = magpress_updated_html();
         ob_start();
         ?>
         <div class="article-meta">
             <span>De <strong><?php the_author(); ?></strong></span>
             <span class="sep">|</span>
             <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
+            <?php if ($updated !== '') : ?>
+                <span class="sep">|</span>
+                <?php echo $updated; // deja escapat în magpress_updated_html() ?>
+            <?php endif; ?>
             <span class="sep">|</span>
             <span><?php echo (int) magpress_reading_time(); ?> min citire</span>
         </div>
@@ -5818,9 +5865,9 @@ function magpress_render_article_meta() {
     $author_id = (int) get_the_author_meta('ID');
     $name = get_the_author_meta('display_name', $author_id);
     $url = get_author_posts_url($author_id);
-    $published_ts = get_post_time('U', true);
-    $modified_ts = get_post_modified_time('U', true);
-    $was_modified = $modified_ts && ($modified_ts - $published_ts) > 6 * HOUR_IN_SECONDS; // afișăm Updated doar dacă >6h diferență
+    // v0.9.187: aceeași regulă ca pe meta-ul simplu — data actualizării nu poate fi
+    // mai veche decât publicarea, iar sub prag nu o anunțăm deloc.
+    $updated = magpress_updated_html();
     $reading = (int) magpress_reading_time();
 
     ob_start();
@@ -5834,9 +5881,9 @@ function magpress_render_article_meta() {
                 <a href="<?php echo esc_url($url); ?>" class="article-meta__author-name"><?php echo esc_html($name); ?></a>
                 <div class="article-meta__dates">
                     <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y, H:i')); ?></time>
-                    <?php if ($was_modified): ?>
+                    <?php if ($updated !== ''): ?>
                         <span class="sep">·</span>
-                        <span class="article-meta__updated">Actualizat <time datetime="<?php echo esc_attr(get_the_modified_date('c')); ?>"><?php echo esc_html(human_time_diff($modified_ts, current_time('timestamp', true))); ?> în urmă</time></span>
+                        <?php echo $updated; // deja escapat în magpress_updated_html() ?>
                     <?php endif; ?>
                     <span class="sep">·</span>
                     <span class="article-meta__reading"><?php echo $reading; ?> min citire</span>
@@ -6481,7 +6528,11 @@ function magpress_build_article_schema() {
         'headline'         => mb_substr(wp_strip_all_tags(get_the_title($post)), 0, 110),
         'description'      => $desc,
         'datePublished'    => get_the_date('c', $post),
-        'dateModified'     => get_the_modified_date('c', $post),
+        // v0.9.187: dateModified nu poate fi mai vechi decât datePublished (articolele
+        // importate/backdatate au post_modified < post_date → validatoarele reclamă).
+        'dateModified'     => ((int) get_post_modified_time('U', true, $post) < (int) get_post_time('U', true, $post))
+                                ? get_the_date('c', $post)
+                                : get_the_modified_date('c', $post),
         // un singur autor → obiect Person îmbogățit (vezi $author mai sus).
         'author'           => $author,
         // Publisher MINIMAL pe Article (doar Google-required: name + logo). Datele complete (address,

@@ -489,6 +489,9 @@ body.magpress-lightbox-open{overflow:hidden}
 .article-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;font-size:.88rem;color:var(--c-text-muted);padding-top:1rem;border-top:1px solid var(--c-border)}
 .article-meta strong{color:var(--c-text);font-weight:600}
 .article-meta .sep{color:var(--c-border)}
+/* v0.9.187 — „Actualizat la <dată>" pe meta-ul simplu; apare doar dacă articolul a
+   fost chiar modificat după publicare (vezi magpress_updated_ts în functions.php) */
+.article-meta__updated{color:var(--c-accent);font-weight:600}
 
 /* ===================== ARTICLE IMAGE ===================== */
 .article-image{margin:0 auto 2rem;max-width:1000px}
