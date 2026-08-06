@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.184');
+define('MAGPRESS_VERSION', '0.9.185');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -1857,6 +1857,29 @@ function magpress_print_code_footer() {
     if (trim($code) !== '') { echo "\n" . $code . "\n"; }
 }
 add_action('wp_footer', 'magpress_print_code_footer', 99);
+
+/**
+ * Meta de verificare a proprietății site-ului pentru servicii externe.
+ * LinksIndexer folosește un token de CONT (identic pentru toate site-urile din
+ * rețea), deci îl ținem hardcodat aici — altfel ar trebui lipit manual în head
+ * pe fiecare din cele 74 de site-uri. Verificatorul lor NU rulează JavaScript,
+ * deci meta trebuie să fie în HTML-ul brut al homepage-ului (aici e, la wp_head
+ * prioritate 2 — înaintea oricărui alt cod și în interiorul bufferelor temei,
+ * care nu ating decât <title> și blocurile JSON-LD).
+ *
+ * Per-site se poate suprascrie cu theme_mod `magpress_linksindexer_token`
+ * (setabil remote), iar golirea lui scoate complet meta de pe acel site.
+ */
+define('MAGPRESS_LINKSINDEXER_TOKEN', 'cff50a973e73fb46d13ad422a74016226c0e2a3532ba0441f9610be7d47d698c');
+
+function magpress_print_verification_metas() {
+    $token = (string) get_theme_mod('magpress_linksindexer_token', MAGPRESS_LINKSINDEXER_TOKEN);
+    $token = trim(apply_filters('magpress_linksindexer_token', $token));
+    if ($token !== '') {
+        echo '<meta name="linksindexer-site-verification" content="' . esc_attr($token) . '">' . "\n";
+    }
+}
+add_action('wp_head', 'magpress_print_verification_metas', 2);
 
 /**
  * Servește /ads.txt din setarea Customizer (Authorized Digital Sellers).
