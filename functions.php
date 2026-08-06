@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.183');
+define('MAGPRESS_VERSION', '0.9.184');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -6097,8 +6097,14 @@ function magpress_emit_schema_jsonld() {
         if ($itemlist) $schemas[] = $itemlist;
     }
 
+    // v0.9.183: marcăm blocurile NOASTRE cu data-magpress. Filtrul de buffer de mai jos
+    // identifica „schema străină" după slash-urile escapate (\/), dar emiterea de aici NU
+    // folosea JSON_UNESCAPED_SLASHES → tema își ștergea PROPRIILE Organization și WebSite,
+    // pe toate cele 74 de site-uri. Marcajul e determinist, nu depinde de escaping.
     foreach ($schemas as $s) {
-        echo '<script type="application/ld+json">' . wp_json_encode($s, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>' . "\n";
+        echo '<script type="application/ld+json" data-magpress="1">'
+           . wp_json_encode($s, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP)
+           . '</script>' . "\n";
     }
 }
 add_action('wp_head', 'magpress_emit_schema_jsonld', 30);
@@ -6125,19 +6131,26 @@ function magpress_end_head_buffer() {
     // Strip schema duplicate emise de SEOPress (Organization, NewsMediaOrganization, WebSite).
     // Identificare: SEOPress folosește json_encode default cu escape slashes (\/), Magpress folosește
     // JSON_UNESCAPED_SLASHES (//). Astfel păstrăm DOAR schema Magpress fără confuzie pentru Google.
+    // v0.9.183: identificarea se face pe MARCAJUL nostru (data-magpress), nu pe
+    // escaping-ul slash-urilor — euristica veche ștergea și blocurile temei.
     $buffer = preg_replace_callback(
         '/<script\b[^>]*type="application\/ld\+json"[^>]*>\s*(\{[\s\S]*?\})\s*<\/script>/i',
         function ($m) {
-            $json = $m[1];
-            // Doar dacă e @type Organization/NewsMediaOrganization/WebSite
-            if (!preg_match('/"@type"\s*:\s*"(Organization|NewsMediaOrganization|OnlineBusiness|LocalBusiness|WebSite)"/', $json)) {
-                return $m[0]; // alt schema (Article, BreadcrumbList, ItemList, Person, etc.) — păstrăm
+            if (stripos($m[0], 'data-magpress') !== false) {
+                return $m[0]; // blocul temei — sursa unică de adevăr
             }
-            // SEOPress identification: escape slashes în URL-uri
-            if (strpos($json, '\\/') !== false) {
-                return ''; // strip — Magpress emite varianta corectă
+            if (!get_theme_mod('magpress_schema_override_seo', 1)) {
+                return $m[0]; // userul a ales să lase pluginul SEO să emită
             }
-            return $m[0]; // Magpress block — păstrăm
+            // Entitatea site-ului emisă de alt plugin (SEOPress: Person/Organization/
+            // WebSite) → o scoatem, ca să nu concureze cu cea a temei.
+            $data = json_decode($m[1], true);
+            $type = is_array($data) && isset($data['@type']) ? $data['@type'] : '';
+            $dup  = ['Organization', 'NewsMediaOrganization', 'OnlineBusiness', 'LocalBusiness', 'WebSite', 'Person'];
+            if (is_string($type) && in_array($type, $dup, true)) {
+                return '';
+            }
+            return $m[0];
         },
         $buffer
     );
