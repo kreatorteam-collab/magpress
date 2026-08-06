@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.190');
+define('MAGPRESS_VERSION', '0.9.191');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -552,17 +552,25 @@ function magpress_register_customize_controls() {
     class Magpress_Reset_Home_Control extends WP_Customize_Control {
         public $type = 'magpress_reset_home';
         public function render_content() {
+            // Discret, în stilul nativ WP pentru acțiuni distructive (link, nu buton mare):
+            // explicația lungă stă în dialogul de confirmare, nu în bara laterală.
             ?>
-            <div style="padding:10px 12px;border:1px solid #dcdcde;border-left:3px solid #d63638;background:#fff;border-radius:4px;margin-bottom:6px;">
-                <button type="button" class="button button-secondary" id="magpress-reset-home" style="width:100%;">
-                    <?php esc_html_e('Resetează homepage-ul (toate cele 30 de sloturi)', 'magpress'); ?>
+            <div class="magpress-reset-home">
+                <button type="button" class="button-link" id="magpress-reset-home">
+                    <?php esc_html_e('↺ Resetează homepage-ul', 'magpress'); ?>
                 </button>
-                <p class="description" style="margin:.6rem 0 0;">
-                    <?php esc_html_e('Readuce sloturile la starea din fabrică: primele 4 pe „Categorie" (fără categorii bifate), restul goale, layout Grid, 8 articole, fără coduri de reclamă. Se șterge și titlul H1 personalizat.', 'magpress'); ?>
-                    <strong><?php esc_html_e('Nimic nu se schimbă pe site până nu apeși „Publică" — dacă închizi Customizer-ul fără să publici, rămâne totul cum era.', 'magpress'); ?></strong>
-                </p>
-                <p id="magpress-reset-home-msg" style="margin:.5rem 0 0;font-weight:600;"></p>
+                <span class="magpress-reset-home__hint"><?php esc_html_e('cele 30 de sloturi revin la valorile implicite', 'magpress'); ?></span>
+                <p id="magpress-reset-home-msg"></p>
             </div>
+            <style>
+            .magpress-reset-home{margin:0 0 4px}
+            .magpress-reset-home #magpress-reset-home{color:#b32d2e;font-weight:600;text-decoration:none;padding:0}
+            .magpress-reset-home #magpress-reset-home:hover,
+            .magpress-reset-home #magpress-reset-home:focus{color:#8a2424;text-decoration:underline}
+            .magpress-reset-home__hint{display:block;color:#787c82;font-size:11px;line-height:1.5;margin-top:2px}
+            .magpress-reset-home #magpress-reset-home-msg:empty{display:none}
+            .magpress-reset-home #magpress-reset-home-msg{margin:6px 0 0;font-size:12px;line-height:1.5}
+            </style>
             <?php
         }
     }
@@ -775,7 +783,14 @@ function magpress_customize_controls_js() {
 
         btn.addEventListener('click', function(e){
             e.preventDefault();
-            if (!window.confirm('Resetezi toate cele 30 de sloturi ale homepage-ului la valorile implicite?\n\nNimic nu se schimbă pe site până nu apeși „Publică".')) return;
+            if (!window.confirm(
+                'Resetezi homepage-ul la valorile din fabrică?\n\n' +
+                '• primele 4 sloturi pe „Categorie", fără categorii bifate\n' +
+                '• sloturile 5-30 goale\n' +
+                '• layout Grid, 8 articole, fără coduri de reclamă\n' +
+                '• se șterge titlul H1 personalizat\n\n' +
+                'Nimic nu se schimbă pe site până nu apeși „Publică". Dacă închizi Customizer-ul fără să publici, rămâne totul cum era.'
+            )) return;
 
             var n = 0;
             function put(id, val) {
