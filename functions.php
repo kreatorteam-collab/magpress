@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.182');
+define('MAGPRESS_VERSION', '0.9.183');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -5927,8 +5927,32 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_homepage_extra', [
-        'label'       => 'Adaugă Organization+WebSite pe homepage (recomandat)',
-        'description' => 'Magpress detectează automat dacă SEOPress emite deja Organization (verifică opțiunea „Knowledge graph type" din SEOPress) și nu duplică. Dezactivează doar dacă în Rich Results Test vezi 2× Organization schema.',
+        'label'       => 'Adaugă Organization+WebSite pe homepage (setare veche)',
+        'description' => 'Înlocuită de „Forțează Organization+WebSite" de mai jos. Nu mai are efect.',
+        'section'     => 'magpress_schema',
+        'type'        => 'checkbox',
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_org_force', [
+        'default'           => 1,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_org_force', [
+        'label'       => 'Forțează Organization+WebSite pe homepage',
+        'description' => 'Tema emite mereu entitatea site-ului (Organization/NewsMediaOrganization) + WebSite. Debifează doar dacă vezi schema dublată în Rich Results Test.',
+        'section'     => 'magpress_schema',
+        'type'        => 'checkbox',
+    ]);
+
+    $wp_customize->add_setting('magpress_schema_override_seo', [
+        'default'           => 1,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_schema_override_seo', [
+        'label'       => 'Tema are prioritate față de schema din SEOPress',
+        'description' => 'Oprește blocurile echivalente emise de SEOPress (Person, Organization, WebSite, Breadcrumb), ca schema să fie gestionată dintr-un singur loc pe toate site-urile.',
         'section'     => 'magpress_schema',
         'type'        => 'checkbox',
     ]);
@@ -6019,6 +6043,29 @@ function magpress_build_faq_schema($post) {
     ];
 }
 
+/**
+ * SEOPress emite propria schemă (pe unele site-uri din flotă un „Person" ca entitate
+ * principală, care ținea locul lui Organization). Tema e sursa unică de adevăr pentru
+ * schema, ca să poată fi gestionată centralizat pe toate site-urile → oprim blocurile
+ * echivalente din SEOPress. Filtrele lipsă sunt inofensive: dacă pluginul nu e activ
+ * sau nu are filtrul, nu se întâmplă nimic.
+ * v0.9.183
+ */
+function magpress_suppress_seopress_schema() {
+    if (!get_theme_mod('magpress_schema_enabled', 1)) return;
+    if (!get_theme_mod('magpress_schema_override_seo', 1)) return;
+
+    foreach ([
+        'seopress_schemas_auto_website',
+        'seopress_schemas_auto_organization',
+        'seopress_schemas_auto_person',
+        'seopress_schemas_auto_breadcrumb',
+    ] as $f) {
+        add_filter($f, '__return_empty_array', 99);
+    }
+}
+add_action('init', 'magpress_suppress_seopress_schema', 5);
+
 function magpress_emit_schema_jsonld() {
     if (!get_theme_mod('magpress_schema_enabled', 1)) return;
 
@@ -6035,10 +6082,11 @@ function magpress_emit_schema_jsonld() {
         $bc = magpress_build_breadcrumb_schema_archive();
         if ($bc) $schemas[] = $bc;
     } elseif (is_front_page() || is_home()) {
-        if (get_theme_mod('magpress_schema_homepage_extra', 1)) {
-            // Magpress emite MEREU schema sa Organization + WebSite (default).
-            // Dacă alt plugin emite și el (SEOPress, Rank Math), Google reconciliează entity-uri prin
-            // name+url. User-ul ar trebui să dezactiveze schema duplicat din celălalt plugin manual.
+        // v0.9.183: Organization + WebSite se emit ACUM ÎNTOTDEAUNA. Cheia veche
+        // `magpress_schema_homepage_extra` era salvată pe 0 pe TOATĂ flota (74/74 nu
+        // aveau Organization), așa că folosim o cheie NOUĂ, ca zerourile vechi să nu
+        // mai blocheze nimic. Opt-out per site: debifezi „Forțează Organization".
+        if (get_theme_mod('magpress_schema_org_force', 1)) {
             $org = magpress_build_organization_schema();
             if ($org) $schemas[] = $org;
             $ws = magpress_build_website_schema();
