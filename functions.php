@@ -8,7 +8,14 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.187');
+define('MAGPRESS_VERSION', '0.9.188');
+/**
+ * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
+ * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
+ * e istoric de operațiuni în masă, nu editare editorială. Se poate schimba per site
+ * din Customizer (`magpress_updated_since`); valoarea `0` dezactivează pragul.
+ */
+define('MAGPRESS_UPDATED_SINCE_DEFAULT', '2026-08-06');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
 
@@ -5470,6 +5477,19 @@ function magpress_register_news_features($wp_customize) {
         'type'        => 'checkbox',
     ]);
 
+    // 4c. Pragul de la care contează o modificare (v0.9.188)
+    $wp_customize->add_setting('magpress_updated_since', [
+        'default'           => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_updated_since', [
+        'label'       => 'Ignoră actualizările dinainte de (AAAA-LL-ZZ)',
+        'description' => 'Operațiunile în masă (linkuri interne, migrări) au schimbat data de modificare pe mii de articole care n-au fost editate niciodată. Modificările anterioare acestei date nu se afișează. Gol = <code>' . esc_html(MAGPRESS_UPDATED_SINCE_DEFAULT) . '</code> (data introducerii regulii). Scrie <code>0</code> ca să afișezi orice modificare. Articolele împrospătate real de modulul de conținut se afișează întotdeauna.',
+        'section'     => 'magpress_news',
+        'type'        => 'text',
+    ]);
+
     // 5. Author byline rich
     $wp_customize->add_setting('magpress_news_author_byline', [
         'default'           => 0,
@@ -5825,6 +5845,21 @@ function magpress_updated_ts($post = null) {
     if ($mod <= $pub) return 0;
     $min_gap = (int) apply_filters('magpress_updated_min_gap', DAY_IN_SECONDS);
     if (($mod - $pub) < $min_gap) return 0;
+
+    // v0.9.188 — nu anunțăm ATINGERILE TEHNICE. Pe flotă, operațiuni în masă
+    // (inserarea de linkuri interne, redenumiri de categorii, migrări) au schimbat
+    // post_modified pe mii de articole care n-au fost editate editorial niciodată.
+    // Afișăm data DOAR dacă: (a) articolul a fost chiar împrospătat de modulul de
+    // conținut (meta _hzr_done), SAU (b) modificarea e ulterioară pragului de mai jos.
+    $p = get_post($post);
+    if ($p && get_post_meta($p->ID, '_hzr_done', true)) return $mod;
+
+    $since = trim((string) get_theme_mod('magpress_updated_since', ''));
+    if ($since === '') { $since = MAGPRESS_UPDATED_SINCE_DEFAULT; }
+    if ($since === '0') return $mod; // prag dezactivat explicit: se afișează orice
+    $cut = strtotime($since . ' 00:00:00 UTC');
+    if ($cut && $mod < $cut) return 0;
+
     return $mod;
 }
 
