@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.188');
+define('MAGPRESS_VERSION', '0.9.189');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1736,7 +1736,7 @@ function magpress_customize_register($wp_customize) {
 
     $wp_customize->add_section('magpress_curs_bnr', [
         'title'       => 'Magpress: Curs valutar BNR',
-        'description' => 'Bara subțire cu cursul oficial BNR, deasupra header-ului. Sursa: bnr.ro (cache 6h). Există și widget („Magpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziții.',
+        'description' => 'Bara subțire cu cursul oficial BNR, deasupra header-ului. Sursa: curs.bnr.ro (cache 6h). Există și widget („Magpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziții.',
         'priority'    => 162,
     ]);
     $wp_customize->add_setting('magpress_topbar_curs', [
@@ -7213,29 +7213,49 @@ function magpress_bnr_rates($force = false) {
         if (is_array($cached) && !empty($cached['dates'])) return $cached;
     }
 
-    $resp = wp_remote_get('https://www.bnr.ro/nbrfxrates10days.xml', ['timeout' => 10]);
-    if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
-        // Nu suprascriem cache-ul bun cu un eșec; reîncercăm peste 30 min.
-        $stale = get_transient('magpress_bnr_rates_stale');
-        if (is_array($stale)) { set_transient('magpress_bnr_rates_v1', $stale, 30 * MINUTE_IN_SECONDS); return $stale; }
-        return ['dates' => [], 'rates' => []];
-    }
-
-    $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
-    if (!$xml || empty($xml->Body->Cube)) return ['dates' => [], 'rates' => []];
+    // v0.9.189: BNR a MUTAT feed-ul pe curs.bnr.ro. Vechiul www.bnr.ro/nbrfxrates10days.xml
+    // nu dă 404, ci întoarce HTTP 200 cu PAGINA LOR HTML (catch-all) — de-aia parsarea
+    // ieșea goală și bara dispărea. Încercăm sursele pe rând și acceptăm doar XML valid.
+    $sources = apply_filters('magpress_bnr_sources', [
+        'https://curs.bnr.ro/nbrfxrates10days.xml',
+        'https://www.bnr.ro/nbrfxrates10days.xml',
+    ]);
 
     $rates = [];
-    foreach ($xml->Body->Cube as $cube) {
-        $date = (string) $cube['date'];
-        if (!$date) continue;
-        foreach ($cube->Rate as $r) {
-            $cur = strtoupper((string) $r['currency']);
-            $mul = max(1, (int) $r['multiplier']);
-            $val = (float) $r;
-            if ($cur && $val > 0) $rates[$date][$cur] = ['value' => $val, 'multiplier' => $mul];
+    foreach ($sources as $src) {
+        $resp = wp_remote_get($src, ['timeout' => 10]);
+        if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) continue;
+
+        $body = wp_remote_retrieve_body($resp);
+        // Un răspuns HTML (redirect spre homepage) nu e o eroare de rețea: îl respingem aici.
+        if (stripos(ltrim($body), '<!doctype') === 0 || stripos(ltrim($body), '<html') === 0) continue;
+
+        $xml = @simplexml_load_string($body);
+        if (!$xml || empty($xml->Body->Cube)) continue;
+
+        foreach ($xml->Body->Cube as $cube) {
+            $date = (string) $cube['date'];
+            if (!$date) continue;
+            foreach ($cube->Rate as $r) {
+                $cur = strtoupper((string) $r['currency']);
+                $mul = max(1, (int) $r['multiplier']);
+                $val = (float) $r;
+                if ($cur && $val > 0) $rates[$date][$cur] = ['value' => $val, 'multiplier' => $mul];
+            }
         }
+        if ($rates) break; // sursă bună găsită
     }
-    if (!$rates) return ['dates' => [], 'rates' => []];
+
+    // Orice eșec (rețea, HTML în loc de XML, XML fără cursuri) păstrează ultimele date
+    // bune în loc să golească bara. Reîncercăm peste 30 de minute.
+    if (!$rates) {
+        $stale = get_transient('magpress_bnr_rates_stale');
+        if (is_array($stale) && !empty($stale['dates'])) {
+            set_transient('magpress_bnr_rates_v1', $stale, 30 * MINUTE_IN_SECONDS);
+            return $stale;
+        }
+        return ['dates' => [], 'rates' => []];
+    }
     krsort($rates); // cele mai noi primele
     $out = ['dates' => array_keys($rates), 'rates' => $rates];
     set_transient('magpress_bnr_rates_v1', $out, 6 * HOUR_IN_SECONDS);
