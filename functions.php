@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 /**
- * Magpress v0.3 — tema clasica PHP.
+ * Magpress v0.3 â€” tema clasica PHP.
  *
  * Filozofie: HTML emis 1:1 de noi, fara FSE. LiteSpeed face cache/minify, SEOPress face meta/schema.
  * Customizarea per-site se face prin /wp-content/themes/magpress-config/site-config.json
@@ -8,12 +8,12 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.192');
+define('MAGPRESS_VERSION', '0.9.193');
 /**
- * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
- * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
- * e istoric de operațiuni în masă, nu editare editorială. Se poate schimba per site
- * din Customizer (`magpress_updated_since`); valoarea `0` dezactivează pragul.
+ * Prag implicit pentru â€žActualizat la": modificÄƒrile ANTERIOARE acestei date nu se
+ * afiÈ™eazÄƒ. E data la care a intrat regula (v0.9.188) â€” tot ce era Ã®nainte pe flotÄƒ
+ * e istoric de operaÈ›iuni Ã®n masÄƒ, nu editare editorialÄƒ. Se poate schimba per site
+ * din Customizer (`magpress_updated_since`); valoarea `0` dezactiveazÄƒ pragul.
  */
 define('MAGPRESS_UPDATED_SINCE_DEFAULT', '2026-08-06');
 define('MAGPRESS_DIR', get_template_directory());
@@ -39,17 +39,17 @@ function magpress_setup() {
     set_post_thumbnail_size(600, 400, true);
     add_image_size('magpress-card',    600, 400,  true);
     add_image_size('magpress-feature', 1200, 750, true);
-    add_image_size('magpress-hero',    1280, 0,   false); // hero articol single: full-width, proportional, FĂRĂ crop (existentele cad pe full)
-    // NOTE: `magpress-thumb` (120x120) eliminat — neutilizat în temă, doar consuma memorie la upload.
+    add_image_size('magpress-hero',    1280, 0,   false); // hero articol single: full-width, proportional, FÄ‚RÄ‚ crop (existentele cad pe full)
+    // NOTE: `magpress-thumb` (120x120) eliminat â€” neutilizat Ã®n temÄƒ, doar consuma memorie la upload.
 
     load_theme_textdomain('magpress', MAGPRESS_DIR . '/languages');
 }
 add_action('after_setup_theme', 'magpress_setup');
 
 /**
- * Dezactivează mărimile WP default neutilizate în Magpress: medium (300), medium_large (768), large (1024).
- * Magpress folosește doar `thumbnail` (avatar autor), `magpress-card` (600x400), `magpress-feature` (1200x750) și `magpress-hero` (1280, fără crop).
- * Asta reduce numărul de procesări la upload de la ~8 la 4 → mai puțină memorie/CPU.
+ * DezactiveazÄƒ mÄƒrimile WP default neutilizate Ã®n Magpress: medium (300), medium_large (768), large (1024).
+ * Magpress foloseÈ™te doar `thumbnail` (avatar autor), `magpress-card` (600x400), `magpress-feature` (1200x750) È™i `magpress-hero` (1280, fÄƒrÄƒ crop).
+ * Asta reduce numÄƒrul de procesÄƒri la upload de la ~8 la 4 â†’ mai puÈ›inÄƒ memorie/CPU.
  * Fix critic pentru site-urile pe hosting cu memory_limit mic (medpress.ro, observatormedical.ro etc.).
  */
 function magpress_remove_unused_image_sizes($sizes) {
@@ -60,14 +60,14 @@ function magpress_remove_unused_image_sizes($sizes) {
 }
 add_filter('intermediate_image_sizes_advanced', 'magpress_remove_unused_image_sizes');
 
-// NOTĂ: tema NU mai forțează editorul de imagini. WordPress alege nativ GD/Imagick (ambele
-// active pe server), exact ca orice altă temă. Dacă un anumit host are Imagick prost
-// configurat (policy.xml), se reglează server-side — nu e treaba temei.
+// NOTÄ‚: tema NU mai forÈ›eazÄƒ editorul de imagini. WordPress alege nativ GD/Imagick (ambele
+// active pe server), exact ca orice altÄƒ temÄƒ. DacÄƒ un anumit host are Imagick prost
+// configurat (policy.xml), se regleazÄƒ server-side â€” nu e treaba temei.
 
 /**
- * Dezactivează New Relic Browser Agent (RUM script).
- * Acel script trimite trafic spre bam.nr-data.net + adaugă 4+s latență la PageSpeed.
- * Folosit doar dacă serverul are extension PHP New Relic activă.
+ * DezactiveazÄƒ New Relic Browser Agent (RUM script).
+ * Acel script trimite trafic spre bam.nr-data.net + adaugÄƒ 4+s latenÈ›Äƒ la PageSpeed.
+ * Folosit doar dacÄƒ serverul are extension PHP New Relic activÄƒ.
  */
 function magpress_disable_newrelic_browser() {
     if (function_exists('newrelic_disable_autorum')) {
@@ -108,11 +108,11 @@ add_action('init', 'magpress_remove_bloat');
 
 /**
  * Throttle heartbeat pe ecranul de editare articol: 15s -> 60s.
- * Pe hosturi cu puține procese PHP concurente (medpress, observatormedical), autosave +
- * heartbeat se ciocnesc cu upload-ul de imagini / generarea Claude Writer și le „înfometează"
- * → „Serverul nu poate procesa imaginea" / „Conexiune pierdută". Reducând frecvența cererilor
- * de fundal de 4x, lăsăm workeri liberi pentru upload/generare. Autosave-ul rămâne funcțional
- * (la 60s, oricum default-ul WP). NU atinge procesarea imaginilor — doar ritmul cererilor.
+ * Pe hosturi cu puÈ›ine procese PHP concurente (medpress, observatormedical), autosave +
+ * heartbeat se ciocnesc cu upload-ul de imagini / generarea Claude Writer È™i le â€žÃ®nfometeazÄƒ"
+ * â†’ â€žServerul nu poate procesa imaginea" / â€žConexiune pierdutÄƒ". ReducÃ¢nd frecvenÈ›a cererilor
+ * de fundal de 4x, lÄƒsÄƒm workeri liberi pentru upload/generare. Autosave-ul rÄƒmÃ¢ne funcÈ›ional
+ * (la 60s, oricum default-ul WP). NU atinge procesarea imaginilor â€” doar ritmul cererilor.
  */
 function magpress_throttle_admin_heartbeat($hook) {
     if ($hook !== 'post.php' && $hook !== 'post-new.php') {
@@ -149,7 +149,7 @@ add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
  * Enqueue CSS tema.
  */
 function magpress_enqueue_assets() {
-    // News font preset — dacă e setat (≠ default), override-uiește magpress_google_font + adaugă CSS pentru h1-h3/body
+    // News font preset â€” dacÄƒ e setat (â‰  default), override-uieÈ™te magpress_google_font + adaugÄƒ CSS pentru h1-h3/body
     $preset    = magpress_news_font_preset_config();
     $menu_font = magpress_menu_font_config();
 
@@ -164,11 +164,11 @@ function magpress_enqueue_assets() {
                 'family'  => $google_font,
                 'display' => 'swap',
             ], '', '&', PHP_QUERY_RFC3986);
-            // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
+            // http_build_query inlocuieste ":" cu "%3A" â€” corectam pentru sintaxa css2
             $font_url = str_replace('%3A', ':', $font_url);
         }
     }
-    // Fontul de meniu intră în ACELAȘI request (nu mai e un al doilea hit la fonts.googleapis.com).
+    // Fontul de meniu intrÄƒ Ã®n ACELAÈ˜I request (nu mai e un al doilea hit la fonts.googleapis.com).
     if ($menu_font) {
         $font_url = ($font_url !== '')
             ? str_replace('&display=swap', '&family=' . $menu_font['google'] . '&display=swap', $font_url)
@@ -182,30 +182,30 @@ function magpress_enqueue_assets() {
     $ver = file_exists($css_path) ? filemtime($css_path) : MAGPRESS_VERSION;
     wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], $ver);
 
-    // Branding CSS — atasat dupa style.css (cascade-ul il face sa castige peste defaults)
+    // Branding CSS â€” atasat dupa style.css (cascade-ul il face sa castige peste defaults)
     $branding = magpress_get_branding_css();
     if ($branding) {
         wp_add_inline_style('magpress-main', $branding);
     }
 
-    // News font preset override (heading + body family) — atașat după main ca să câștige cascada
+    // News font preset override (heading + body family) â€” ataÈ™at dupÄƒ main ca sÄƒ cÃ¢È™tige cascada
     if ($preset) {
         $css_preset = 'body,.entry-content,.article-meta,.article-excerpt{font-family:' . $preset['body'] . '}'
                     . 'h1,h2,h3,h4,h5,h6,.article-title,.featured-card__title,.card-title,.section-header__title,.most-read-widget__title{font-family:' . $preset['heading'] . '}';
         wp_add_inline_style('magpress-main', $css_preset);
     }
 
-    // Font meniu (opțional, stil știri) — aplică fontul DOAR pe navigație (fontul e deja în request-ul combinat de mai sus).
+    // Font meniu (opÈ›ional, stil È™tiri) â€” aplicÄƒ fontul DOAR pe navigaÈ›ie (fontul e deja Ã®n request-ul combinat de mai sus).
     if ($menu_font) {
-        // Fonturile de tip știri sunt condensate → citesc mic; mărim ușor pt prezență (stil Mediafax).
-        // Fonturile condensate (Oswald etc.) la weight 700 + spațiere mică „își lipesc" literele pe
-        // fundal colorat → weight 600 + letter-spacing dublu = vizibil mai lizibil, același look de știri.
+        // Fonturile de tip È™tiri sunt condensate â†’ citesc mic; mÄƒrim uÈ™or pt prezenÈ›Äƒ (stil Mediafax).
+        // Fonturile condensate (Oswald etc.) la weight 700 + spaÈ›iere micÄƒ â€žÃ®È™i lipesc" literele pe
+        // fundal colorat â†’ weight 600 + letter-spacing dublu = vizibil mai lizibil, acelaÈ™i look de È™tiri.
         wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;font-weight:600!important;letter-spacing:.08em!important}');
     }
 }
 
 /**
- * Returnează config-ul pentru news font preset (sau null dacă e default).
+ * ReturneazÄƒ config-ul pentru news font preset (sau null dacÄƒ e default).
  * Folosit de enqueue + preconnect.
  */
 function magpress_news_font_preset_config() {
@@ -240,8 +240,8 @@ function magpress_news_font_preset_config() {
 }
 
 /**
- * Font DOAR pentru meniul de navigație (stil site de știri, ex. Mediafax).
- * Independent de preset-ul de headline/body. Returnează null dacă e 'default'.
+ * Font DOAR pentru meniul de navigaÈ›ie (stil site de È™tiri, ex. Mediafax).
+ * Independent de preset-ul de headline/body. ReturneazÄƒ null dacÄƒ e 'default'.
  */
 function magpress_menu_font_config() {
     $key = get_theme_mod('magpress_menu_font', 'default');
@@ -258,10 +258,10 @@ function magpress_menu_font_config() {
 }
 
 /**
- * Preconnect la Google Fonts (mic boost PageSpeed) — atat CSS-ul cat si fisierele woff2.
+ * Preconnect la Google Fonts (mic boost PageSpeed) â€” atat CSS-ul cat si fisierele woff2.
  */
 function magpress_preconnect_google_fonts($urls, $relation_type) {
-    // Preset news activ → preconnect sigur
+    // Preset news activ â†’ preconnect sigur
     $has_preset = (bool) magpress_news_font_preset_config();
     $has_default = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700')) !== '';
     $has_menu = (bool) magpress_menu_font_config();
@@ -339,13 +339,13 @@ add_action('wp_enqueue_scripts', 'magpress_enqueue_assets');
 /**
  * PRAG MINIM pentru intervalele de cron (v0.9.186).
  *
- * Unele pluginuri își declară joburi la 30–60 de secunde (ex. `nsi_check_pending_images`
+ * Unele pluginuri Ã®È™i declarÄƒ joburi la 30â€“60 de secunde (ex. `nsi_check_pending_images`
  * la 30s, `pinpilot_tick` la 60s). Pe site-urile unde WP-cron NU e mutat pe cron de
- * server, WordPress încearcă să pornească cron-ul la vizitele reale → fiecare vizitator
- * plătește costul. Ridicăm orice interval sub 5 minute la 5 minute.
+ * server, WordPress Ã®ncearcÄƒ sÄƒ porneascÄƒ cron-ul la vizitele reale â†’ fiecare vizitator
+ * plÄƒteÈ™te costul. RidicÄƒm orice interval sub 5 minute la 5 minute.
  *
  * Nu atinge intervalele WP core (hourly/twicedaily/daily/weekly, toate peste prag).
- * Evenimentele deja programate preiau noul interval după prima reprogramare.
+ * Evenimentele deja programate preiau noul interval dupÄƒ prima reprogramare.
  * Per site se poate ajusta cu filtrul `magpress_cron_min_interval` (0 = dezactivat).
  */
 function magpress_cron_interval_floor($schedules) {
@@ -443,7 +443,7 @@ function magpress_default_colors() {
 }
 
 /**
- * Citeste o culoare: Customizer (theme_mod) → site-config.json → default.
+ * Citeste o culoare: Customizer (theme_mod) â†’ site-config.json â†’ default.
  */
 function magpress_color($key) {
     $val = get_theme_mod('magpress_color_' . $key);
@@ -491,14 +491,14 @@ function magpress_get_branding_css() {
         $css .= '.site-header--inline .site-header__inner{padding-top:' . $pad_top . 'px !important;padding-bottom:' . $pad_bottom . 'px !important}';
     }
 
-    // Link ACTIV în meniu (v0.9.166) — culoare + liniuță sub pagina curentă.
-    // OPT-IN per site: emitem regula DOAR dacă site-ul a ales o culoare în Customizer,
-    // altfel meniul rămâne exact ca înainte pe toată flota.
+    // Link ACTIV Ã®n meniu (v0.9.166) â€” culoare + liniuÈ›Äƒ sub pagina curentÄƒ.
+    // OPT-IN per site: emitem regula DOAR dacÄƒ site-ul a ales o culoare Ã®n Customizer,
+    // altfel meniul rÄƒmÃ¢ne exact ca Ã®nainte pe toatÄƒ flota.
     $menu_active = magpress_color('menu_link_active');
     if ($menu_active) {
         $ma = esc_attr($menu_active);
-        // Culoare pe desktop + mobil; liniuța = ::after DREPT (nu box-shadow, care
-        // urmărește border-radius-ul link-ului și iese curbată la colțuri).
+        // Culoare pe desktop + mobil; liniuÈ›a = ::after DREPT (nu box-shadow, care
+        // urmÄƒreÈ™te border-radius-ul link-ului È™i iese curbatÄƒ la colÈ›uri).
         $css .= '.primary-nav .menu > li.current-menu-item > a,'
               . '.primary-nav .menu > li.current-menu-ancestor > a,'
               . '.primary-nav .menu > li.current_page_item > a,'
@@ -514,11 +514,11 @@ function magpress_get_branding_css() {
               . 'height:2px;background:' . $ma . '}';
     }
 
-    // Logo max-height — SCALARE PROPORȚIONALĂ (v0.9.165). Valoarea e o ancoră: 60 =
-    // mărimea standard. Defaulturile reale diferă pe layout (inline 48px, centered
-    // 110px desktop / 54px mobil), deci emiterea valorii BRUTE făcea saltul 110→50
-    // („foarte mic") la o schimbare de 10. Acum scalăm toate cele 3 mărimi cu
-    // factorul valoare/60, deci 50 = ~17% mai mic peste tot, liniar, fără salt la 60.
+    // Logo max-height â€” SCALARE PROPORÈšIONALÄ‚ (v0.9.165). Valoarea e o ancorÄƒ: 60 =
+    // mÄƒrimea standard. Defaulturile reale diferÄƒ pe layout (inline 48px, centered
+    // 110px desktop / 54px mobil), deci emiterea valorii BRUTE fÄƒcea saltul 110â†’50
+    // (â€žfoarte mic") la o schimbare de 10. Acum scalÄƒm toate cele 3 mÄƒrimi cu
+    // factorul valoare/60, deci 50 = ~17% mai mic peste tot, liniar, fÄƒrÄƒ salt la 60.
     $logo_h = max(20, min(200, (int) get_theme_mod('magpress_logo_max_height', 60)));
     if ($logo_h !== 60) {
         $f = $logo_h / 60;
@@ -527,8 +527,8 @@ function magpress_get_branding_css() {
         $cent_mob  = (int) round(54 * $f);
         $css .= '.site-branding .site-logo{max-height:' . $inline_h . 'px !important}';
         $css .= '.site-header--centered .site-header__top .site-logo{max-height:' . $cent_desk . 'px !important}';
-        // Mobilul centered are propriul default (54px) — media query DUPĂ regula de
-        // desktop ca să câștige prin ordine (aceeași specificitate + !important).
+        // Mobilul centered are propriul default (54px) â€” media query DUPÄ‚ regula de
+        // desktop ca sÄƒ cÃ¢È™tige prin ordine (aceeaÈ™i specificitate + !important).
         $css .= '@media (max-width:768px){.site-header--centered .site-header__top .site-logo{max-height:' . $cent_mob . 'px !important}}';
     }
 
@@ -536,28 +536,28 @@ function magpress_get_branding_css() {
 }
 
 /**
- * Custom Customizer control — checkbox list pentru selecție multiplă de categorii.
- * Stochează valoarea ca CSV de slug-uri (backward-compat cu setarea veche tip textarea).
+ * Custom Customizer control â€” checkbox list pentru selecÈ›ie multiplÄƒ de categorii.
+ * StocheazÄƒ valoarea ca CSV de slug-uri (backward-compat cu setarea veche tip textarea).
  */
 function magpress_register_customize_controls() {
     if (!class_exists('WP_Customize_Control')) return;
     if (class_exists('Magpress_Multi_Cat_Control')) return;
-    // Multi-select pentru slot — stochează ID-uri categorie (CSV).
-    // Backward compat: dacă valoarea e un singur „12" tot funcționează (parsat ca [12]).
+    // Multi-select pentru slot â€” stocheazÄƒ ID-uri categorie (CSV).
+    // Backward compat: dacÄƒ valoarea e un singur â€ž12" tot funcÈ›ioneazÄƒ (parsat ca [12]).
     /**
-     * Buton „Resetează homepage-ul" (v0.9.190). Nu are setare proprie: doar randează
+     * Buton â€žReseteazÄƒ homepage-ul" (v0.9.190). Nu are setare proprie: doar randeazÄƒ
      * butonul, iar JS-ul din magpress_customize_controls_js() readuce cele 30 de sloturi
-     * la valorile implicite. Nimic nu se salvează până la „Publică".
+     * la valorile implicite. Nimic nu se salveazÄƒ pÃ¢nÄƒ la â€žPublicÄƒ".
      */
     class Magpress_Reset_Home_Control extends WP_Customize_Control {
         public $type = 'magpress_reset_home';
         public function render_content() {
-            // Discret, în stilul nativ WP pentru acțiuni distructive (link, nu buton mare):
-            // explicația lungă stă în dialogul de confirmare, nu în bara laterală.
+            // Discret, Ã®n stilul nativ WP pentru acÈ›iuni distructive (link, nu buton mare):
+            // explicaÈ›ia lungÄƒ stÄƒ Ã®n dialogul de confirmare, nu Ã®n bara lateralÄƒ.
             ?>
             <div class="magpress-reset-home">
                 <button type="button" class="button-link" id="magpress-reset-home">
-                    <?php esc_html_e('↺ Resetează homepage-ul', 'magpress'); ?>
+                    <?php esc_html_e('â†º ReseteazÄƒ homepage-ul', 'magpress'); ?>
                 </button>
                 <span class="magpress-reset-home__hint"><?php esc_html_e('cele 30 de sloturi revin la valorile implicite', 'magpress'); ?></span>
                 <p id="magpress-reset-home-msg"></p>
@@ -598,12 +598,12 @@ function magpress_register_customize_controls() {
                 <span class="description customize-control-description"><?php echo wp_kses_post($this->description); ?></span>
             <?php endif; ?>
             <?php if (empty($categories)): ?>
-                <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu există categorii. Creează din Articole → Categorii.</p>
+                <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu existÄƒ categorii. CreeazÄƒ din Articole â†’ Categorii.</p>
             <?php else: ?>
                 <div id="<?php echo $uid; ?>-wrap" style="max-height:260px;overflow-y:auto;border:1px solid #ddd;padding:8px 10px;background:#fff;margin-top:6px;border-radius:3px;">
                     <?php foreach ($categories as $cat):
                         $cid = (int) $cat->term_id;
-                        // Marker „folosit la slot N" — excludem slot-ul curent.
+                        // Marker â€žfolosit la slot N" â€” excludem slot-ul curent.
                         $other_slots = [];
                         if (isset($used[$cid]) && is_array($used[$cid])) {
                             foreach ($used[$cid] as $sn) {
@@ -613,7 +613,7 @@ function magpress_register_customize_controls() {
                         $marker = '';
                         if ($other_slots) {
                             sort($other_slots);
-                            $marker = ' — folosit la slot ' . implode(', ', $other_slots);
+                            $marker = ' â€” folosit la slot ' . implode(', ', $other_slots);
                         }
                     ?>
                         <label style="display:block;padding:3px 0;cursor:pointer;font-size:.92em;">
@@ -625,7 +625,7 @@ function magpress_register_customize_controls() {
                         </label>
                     <?php endforeach; ?>
                 </div>
-                <p style="font-size:.78em;color:#666;margin:4px 0 0;">Bifează 1 sau mai multe. Slot-ul agregă cele mai recente articole din toate categoriile bifate.</p>
+                <p style="font-size:.78em;color:#666;margin:4px 0 0;">BifeazÄƒ 1 sau mai multe. Slot-ul agregÄƒ cele mai recente articole din toate categoriile bifate.</p>
             <?php endif; ?>
             <input type="hidden" id="<?php echo $uid; ?>-input" <?php $this->link(); ?> value="<?php echo esc_attr($value); ?>">
             <script>
@@ -665,7 +665,7 @@ function magpress_register_customize_controls() {
                 <span class="description customize-control-description"><?php echo wp_kses_post($this->description); ?></span>
             <?php endif; ?>
             <?php if (empty($categories)): ?>
-                <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu există categorii. Creează din Articole → Categorii.</p>
+                <p style="padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;margin-top:6px;font-size:.85em;">Nu existÄƒ categorii. CreeazÄƒ din Articole â†’ Categorii.</p>
             <?php else: ?>
                 <div id="<?php echo $uid; ?>-wrap" style="max-height:280px;overflow-y:auto;border:1px solid #ddd;padding:10px;background:#fff;margin-top:6px;border-radius:3px;">
                     <?php foreach ($categories as $cat): ?>
@@ -689,7 +689,7 @@ function magpress_register_customize_controls() {
                     var checked = wrap.querySelectorAll('input[type=checkbox]:checked');
                     var vals = Array.from(checked).map(function(c){return c.value;});
                     hidden.value = vals.join(',');
-                    // Trigger jQuery change ca să-l prindă wp.customize
+                    // Trigger jQuery change ca sÄƒ-l prindÄƒ wp.customize
                     if (window.jQuery) {
                         jQuery(hidden).trigger('change');
                     } else {
@@ -705,9 +705,9 @@ function magpress_register_customize_controls() {
 add_action('customize_register', 'magpress_register_customize_controls', 5);
 
 /**
- * JS live update pentru marker „— folosit la slot N" în Customizer.
- * Când user schimbă tipul sau categoria într-un slot, marker-ele din toate
- * dropdown-urile celelalte se actualizează imediat (fără reload pagină Customizer).
+ * JS live update pentru marker â€žâ€” folosit la slot N" Ã®n Customizer.
+ * CÃ¢nd user schimbÄƒ tipul sau categoria Ã®ntr-un slot, marker-ele din toate
+ * dropdown-urile celelalte se actualizeazÄƒ imediat (fÄƒrÄƒ reload paginÄƒ Customizer).
  */
 function magpress_customize_controls_js() {
     ?>
@@ -746,13 +746,13 @@ function magpress_customize_controls_js() {
                 if (!cb) continue;
                 var cid = parseInt(cb.value, 10);
                 var marker = label.querySelector('.magpress-used-marker');
-                if (!marker) continue; // ar trebui mereu să existe (PHP-ul o emite)
+                if (!marker) continue; // ar trebui mereu sÄƒ existe (PHP-ul o emite)
                 var others = (used[cid] || []).filter(function(s){ return s !== i; }).sort(function(a,b){return a-b;});
                 if (others.length === 0) {
                     marker.textContent = '';
                     marker.style.display = 'none';
                 } else {
-                    marker.textContent = ' — folosit la slot ' + others.join(', ');
+                    marker.textContent = ' â€” folosit la slot ' + others.join(', ');
                     marker.style.display = '';
                 }
             }
@@ -771,10 +771,10 @@ function magpress_customize_controls_js() {
     });
 
     /**
-     * v0.9.190 — „Resetează homepage-ul": readuce toate cele 30 de sloturi la valorile
-     * din fabrică (primele 4 = categorie, restul goale). Resetarea se face DOAR în
-     * interfață: nimic nu se schimbă pe site până nu apeși „Publică", deci poți ieși
-     * din Customizer fără să salvezi și rămâne totul cum era.
+     * v0.9.190 â€” â€žReseteazÄƒ homepage-ul": readuce toate cele 30 de sloturi la valorile
+     * din fabricÄƒ (primele 4 = categorie, restul goale). Resetarea se face DOAR Ã®n
+     * interfaÈ›Äƒ: nimic nu se schimbÄƒ pe site pÃ¢nÄƒ nu apeÈ™i â€žPublicÄƒ", deci poÈ›i ieÈ™i
+     * din Customizer fÄƒrÄƒ sÄƒ salvezi È™i rÄƒmÃ¢ne totul cum era.
      */
     function initReset() {
         var btn = document.getElementById('magpress-reset-home');
@@ -784,12 +784,12 @@ function magpress_customize_controls_js() {
         btn.addEventListener('click', function(e){
             e.preventDefault();
             if (!window.confirm(
-                'Resetezi homepage-ul la valorile din fabrică?\n\n' +
-                '• primele 4 sloturi pe „Categorie", fără categorii bifate\n' +
-                '• sloturile 5-30 goale\n' +
-                '• layout Grid, 8 articole, fără coduri de reclamă\n' +
-                '• se șterge titlul H1 personalizat\n\n' +
-                'Nimic nu se schimbă pe site până nu apeși „Publică". Dacă închizi Customizer-ul fără să publici, rămâne totul cum era.'
+                'Resetezi homepage-ul la valorile din fabricÄƒ?\n\n' +
+                'â€¢ primele 4 sloturi pe â€žCategorie", fÄƒrÄƒ categorii bifate\n' +
+                'â€¢ sloturile 5-30 goale\n' +
+                'â€¢ layout Grid, 8 articole, fÄƒrÄƒ coduri de reclamÄƒ\n' +
+                'â€¢ se È™terge titlul H1 personalizat\n\n' +
+                'Nimic nu se schimbÄƒ pe site pÃ¢nÄƒ nu apeÈ™i â€žPublicÄƒ". DacÄƒ Ã®nchizi Customizer-ul fÄƒrÄƒ sÄƒ publici, rÄƒmÃ¢ne totul cum era.'
             )) return;
 
             var n = 0;
@@ -814,7 +814,7 @@ function magpress_customize_controls_js() {
                 msg.style.color = '#00a32a';
                 msg.textContent = n === 0
                     ? 'Homepage-ul era deja la valorile implicite.'
-                    : n + ' setări resetate. Apasă „Publică" ca să se aplice pe site.';
+                    : n + ' setÄƒri resetate. ApasÄƒ â€žPublicÄƒ" ca sÄƒ se aplice pe site.';
             }
         });
     }
@@ -825,7 +825,7 @@ function magpress_customize_controls_js() {
 add_action('customize_controls_print_footer_scripts', 'magpress_customize_controls_js');
 
 /**
- * Customizer: secțiune Magpress cu culori + layout header.
+ * Customizer: secÈ›iune Magpress cu culori + layout header.
  */
 function magpress_customize_register($wp_customize) {
 
@@ -842,11 +842,11 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_header_layout', [
         'label'       => 'Stil header',
-        'description' => 'Inline = logo stânga + meniu pe aceeași linie. Centered = logo centrat sus + meniu sub.',
+        'description' => 'Inline = logo stÃ¢nga + meniu pe aceeaÈ™i linie. Centered = logo centrat sus + meniu sub.',
         'section'     => 'magpress_layout',
         'type'        => 'radio',
         'choices'     => [
-            'inline'   => 'Inline (logo + meniu pe aceeași linie)',
+            'inline'   => 'Inline (logo + meniu pe aceeaÈ™i linie)',
             'centered' => 'Centered (logo sus centrat, meniu sub)',
         ],
     ]);
@@ -858,8 +858,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_show_google_discover', [
-        'label'       => 'Box „Google Discover" (sursă preferată)',
-        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare pe homepage (poziția de mai jos) și pe articol (înainte de comentarii).',
+        'label'       => 'Box â€žGoogle Discover" (sursÄƒ preferatÄƒ)',
+        'description' => 'AfiÈ™eazÄƒ CTA pentru a marca site-ul ca sursÄƒ preferatÄƒ Ã®n Google Discover. Apare pe homepage (poziÈ›ia de mai jos) È™i pe articol (Ã®nainte de comentarii).',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
@@ -869,14 +869,14 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_discover_position', [
-        'label'       => 'Box Google Discover — după ce slot apare (homepage)',
-        'description' => '0 = poziția standard (sub titlul H1, deasupra sloturilor). 1 = după Slot 1, 2 = după Slot 2 etc. (sloturile de reclamă se numără și ele). Număr mai mare decât sloturile active = jos de tot.',
+        'label'       => 'Box Google Discover â€” dupÄƒ ce slot apare (homepage)',
+        'description' => '0 = poziÈ›ia standard (sub titlul H1, deasupra sloturilor). 1 = dupÄƒ Slot 1, 2 = dupÄƒ Slot 2 etc. (sloturile de reclamÄƒ se numÄƒrÄƒ È™i ele). NumÄƒr mai mare decÃ¢t sloturile active = jos de tot.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
     ]);
 
-    // Featured posts — layout selector
+    // Featured posts â€” layout selector
     $wp_customize->add_setting('magpress_featured_layout', [
         'default'           => 'two',
         'sanitize_callback' => function($v) {
@@ -885,22 +885,22 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_featured_layout', [
-        'label'       => 'Featured posts (sus pe homepage) — Layout',
-        'description' => 'Stilul de afișare a articolelor featured din capul homepage-ului. Sticky posts (sau cele mai recente dacă nu există sticky).',
+        'label'       => 'Featured posts (sus pe homepage) â€” Layout',
+        'description' => 'Stilul de afiÈ™are a articolelor featured din capul homepage-ului. Sticky posts (sau cele mai recente dacÄƒ nu existÄƒ sticky).',
         'section'     => 'magpress_layout',
         'type'        => 'select',
         'choices'     => [
             'two'         => '2 carduri side-by-side (default)',
             'three'       => '3 carduri egale',
             'one_two'     => 'Asimetric (1 mare + 2 mici stivuit)',
-            'mosaic'      => 'Mosaic 1+4 (1 mare + 4 mici grid 2×2)',
+            'mosaic'      => 'Mosaic 1+4 (1 mare + 4 mici grid 2Ã—2)',
             'hero_banner' => 'Hero banner full-width (1 articol mare)',
-            'big_list'    => 'Big + List (1 mare stânga + 5 articole listă dreapta)',
-            'hidden'      => '— Ascuns —',
+            'big_list'    => 'Big + List (1 mare stÃ¢nga + 5 articole listÄƒ dreapta)',
+            'hidden'      => 'â€” Ascuns â€”',
         ],
     ]);
 
-    // Featured posts — categorii excluse (multi-checkbox din lista categoriilor)
+    // Featured posts â€” categorii excluse (multi-checkbox din lista categoriilor)
     $wp_customize->add_setting('magpress_featured_excluded_cats', [
         'default'           => '',
         'sanitize_callback' => function ($v) {
@@ -912,8 +912,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control(new Magpress_Multi_Cat_Control($wp_customize, 'magpress_featured_excluded_cats', [
-        'label'       => 'Featured posts — Categorii excluse',
-        'description' => 'Bifează categoriile care NU trebuie să apară în zona featured de sus (sticky sau fallback).',
+        'label'       => 'Featured posts â€” Categorii excluse',
+        'description' => 'BifeazÄƒ categoriile care NU trebuie sÄƒ aparÄƒ Ã®n zona featured de sus (sticky sau fallback).',
         'section'     => 'magpress_layout',
     ]));
 
@@ -924,8 +924,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_header_padding_top', [
-        'label'       => 'Padding header — SUS (px)',
-        'description' => 'Spațiul deasupra logo-ului. Default 32px.',
+        'label'       => 'Padding header â€” SUS (px)',
+        'description' => 'SpaÈ›iul deasupra logo-ului. Default 32px.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 2],
@@ -937,22 +937,22 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_header_padding_bottom', [
-        'label'       => 'Padding header — JOS (px)',
-        'description' => 'Spațiul sub logo (până la meniu / margine). Default 20px.',
+        'label'       => 'Padding header â€” JOS (px)',
+        'description' => 'SpaÈ›iul sub logo (pÃ¢nÄƒ la meniu / margine). Default 20px.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 120, 'step' => 2],
     ]);
 
-    // Logo max-height (înălțime maximă a logo-ului din header)
+    // Logo max-height (Ã®nÄƒlÈ›ime maximÄƒ a logo-ului din header)
     $wp_customize->add_setting('magpress_logo_max_height', [
         'default'           => 60,
         'sanitize_callback' => 'absint',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_logo_max_height', [
-        'label'       => 'Mărime logo (60 = standard)',
-        'description' => 'Scalare proporțională: 60 = mărimea standard a layoutului; sub 60 = mai mic, peste 60 = mai mare (ex. 50 ≈ −17%, 90 = +50%). Se aplică pe desktop și mobil, pe ambele layouturi.',
+        'label'       => 'MÄƒrime logo (60 = standard)',
+        'description' => 'Scalare proporÈ›ionalÄƒ: 60 = mÄƒrimea standard a layoutului; sub 60 = mai mic, peste 60 = mai mare (ex. 50 â‰ˆ âˆ’17%, 90 = +50%). Se aplicÄƒ pe desktop È™i mobil, pe ambele layouturi.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 20, 'max' => 200, 'step' => 2],
@@ -965,8 +965,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_header_sticky', [
-        'label'       => 'Header sticky (rămâne fix sus la scroll)',
-        'description' => 'Doar pe desktop (≥ 768px). Pe mobile rămâne normal.',
+        'label'       => 'Header sticky (rÄƒmÃ¢ne fix sus la scroll)',
+        'description' => 'Doar pe desktop (â‰¥ 768px). Pe mobile rÄƒmÃ¢ne normal.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
@@ -979,33 +979,33 @@ function magpress_customize_register($wp_customize) {
 
     $colors = [
         'accent'          => ['Accent (highlight, butoane)',                '#6fa84a'],
-        'primary'         => ['Primary (text închis, header bar)',          '#1a1a1a'],
+        'primary'         => ['Primary (text Ã®nchis, header bar)',          '#1a1a1a'],
         'text'            => ['Text principal',                              '#1a1a1a'],
         'text_muted'      => ['Text secundar (meta, sub-titluri)',           '#6b6b6b'],
-        'background'      => ['Background pagină',                           '#ffffff'],
+        'background'      => ['Background paginÄƒ',                           '#ffffff'],
         'surface'         => ['Surface (boxe newsletter/etc)',               '#f6f7f5'],
-        'border'          => ['Border (linii subțiri, chenare)',             '#e6e6e6'],
+        'border'          => ['Border (linii subÈ›iri, chenare)',             '#e6e6e6'],
         'heading_h1'      => ['Titluri H1 (articol, archive)',               '#1a1a1a'],
         'heading_h2'      => ['Titluri H2 (subtitluri, section headers)',    '#1a1a1a'],
         'heading_h3'      => ['Titluri H3 (sub-sub-titluri, carduri)',       '#1a1a1a'],
         'link'            => ['Link (text articol)',                         '#6fa84a'],
         'link_hover'      => ['Link hover',                                   '#1a1a1a'],
-        'header_bg'       => ['Header — background (rândul cu logo)',         '#ffffff'],
-        'header_border'   => ['Header — border jos (linie sub header)',      '#e6e6e6'],
-        'menu_bg'         => ['Meniu — background',                          '#ffffff'],
-        'menu_link'       => ['Meniu — culoare link',                        '#1a1a1a'],
-        'menu_link_hover' => ['Meniu — culoare link hover',                  '#6fa84a'],
-        'menu_hover_bg'   => ['Meniu — background link hover',               '#f6f7f5'],
-        'menu_link_active' => ['Meniu — link ACTIV (pagina curentă) + liniuță', ''],
-        'search_color'    => ['Search — culoare icon + border',               '#1a1a1a'],
-        'badge_bg'        => ['Badge categorie — background',                 '#6fa84a'],
-        'badge_text'      => ['Badge categorie — text',                       '#ffffff'],
-        'footer_bg'       => ['Footer — background',                         '#f6f7f5'],
-        'footer_text'       => ['Footer — text',                                       '#6b6b6b'],
-        'footer_link'       => ['Footer — linkuri (culoare default)',                  '#1a1a1a'],
-        'footer_link_hover' => ['Footer — linkuri (culoare hover)',                    '#6fa84a'],
-        'footer_border'     => ['Footer — culoare linii (deasupra + sub coloane)',     '#e6e6e6'],
-        'footer_heading'    => ['Footer — titluri widget (REVISTA, INFO UTILE, etc.)', '#1a1a1a'],
+        'header_bg'       => ['Header â€” background (rÃ¢ndul cu logo)',         '#ffffff'],
+        'header_border'   => ['Header â€” border jos (linie sub header)',      '#e6e6e6'],
+        'menu_bg'         => ['Meniu â€” background',                          '#ffffff'],
+        'menu_link'       => ['Meniu â€” culoare link',                        '#1a1a1a'],
+        'menu_link_hover' => ['Meniu â€” culoare link hover',                  '#6fa84a'],
+        'menu_hover_bg'   => ['Meniu â€” background link hover',               '#f6f7f5'],
+        'menu_link_active' => ['Meniu â€” link ACTIV (pagina curentÄƒ) + liniuÈ›Äƒ', ''],
+        'search_color'    => ['Search â€” culoare icon + border',               '#1a1a1a'],
+        'badge_bg'        => ['Badge categorie â€” background',                 '#6fa84a'],
+        'badge_text'      => ['Badge categorie â€” text',                       '#ffffff'],
+        'footer_bg'       => ['Footer â€” background',                         '#f6f7f5'],
+        'footer_text'       => ['Footer â€” text',                                       '#6b6b6b'],
+        'footer_link'       => ['Footer â€” linkuri (culoare default)',                  '#1a1a1a'],
+        'footer_link_hover' => ['Footer â€” linkuri (culoare hover)',                    '#6fa84a'],
+        'footer_border'     => ['Footer â€” culoare linii (deasupra + sub coloane)',     '#e6e6e6'],
+        'footer_heading'    => ['Footer â€” titluri widget (REVISTA, INFO UTILE, etc.)', '#1a1a1a'],
     ];
 
     foreach ($colors as $key => $data) {
@@ -1029,7 +1029,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_font_family', [
         'label'       => 'Font family CSS (override)',
-        'description' => 'Lasă gol pentru "Open Sans" (default). Ex: "Inter", sans-serif. Sau "Lora", serif pentru articole.',
+        'description' => 'LasÄƒ gol pentru "Open Sans" (default). Ex: "Inter", sans-serif. Sau "Lora", serif pentru articole.',
         'section'     => 'magpress_colors',
         'type'        => 'text',
     ]);
@@ -1037,7 +1037,7 @@ function magpress_customize_register($wp_customize) {
     // ---------- Sectiune: Social media (footer) ----------
     $wp_customize->add_section('magpress_socials', [
         'title'       => 'Magpress: Social Media',
-        'description' => 'URL-uri pentru rețelele sociale. Apar ca iconițe în footer, sub coloanele de widget-uri. Lasă gol pentru a nu afișa.',
+        'description' => 'URL-uri pentru reÈ›elele sociale. Apar ca iconiÈ›e Ã®n footer, sub coloanele de widget-uri. LasÄƒ gol pentru a nu afiÈ™a.',
         'priority'    => 29,
     ]);
 
@@ -1066,12 +1066,12 @@ function magpress_customize_register($wp_customize) {
     // ---------- Sectiune: Homepage (30 sloturi flexibile) ----------
     $wp_customize->add_section('magpress_homepage', [
         'title'       => 'Magpress: Homepage',
-        'description' => '30 sloturi configurabile, în ordinea afișării. Fiecare slot poate fi: rând cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamă). Default: doar primele 4 sunt active (categorii); restul sunt „Gol".',
+        'description' => '30 sloturi configurabile, Ã®n ordinea afiÈ™Äƒrii. Fiecare slot poate fi: rÃ¢nd cu articole dintr-o categorie SAU bloc cu cod HTML/AdSense (banner, reclamÄƒ). Default: doar primele 4 sunt active (categorii); restul sunt â€žGol".',
         'priority'    => 27,
     ]);
 
-    // Buton de resetare (v0.9.190) — sus, înaintea sloturilor. Setarea e „fantomă":
-    // controlul nu salvează nimic, doar declanșează resetarea în interfață.
+    // Buton de resetare (v0.9.190) â€” sus, Ã®naintea sloturilor. Setarea e â€žfantomÄƒ":
+    // controlul nu salveazÄƒ nimic, doar declanÈ™eazÄƒ resetarea Ã®n interfaÈ›Äƒ.
     $wp_customize->add_setting('magpress_reset_home_noop', [
         'default'           => '',
         'sanitize_callback' => '__return_empty_string',
@@ -1084,7 +1084,7 @@ function magpress_customize_register($wp_customize) {
         ]));
     }
 
-    // Titlu H1 homepage — editabil + vizibil (centrat) sau ascuns pentru SEO.
+    // Titlu H1 homepage â€” editabil + vizibil (centrat) sau ascuns pentru SEO.
     $wp_customize->add_setting('magpress_home_h1_text', [
         'default'           => '',
         'sanitize_callback' => 'sanitize_text_field',
@@ -1092,7 +1092,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_home_h1_text', [
         'label'       => 'Titlu H1 homepage',
-        'description' => 'Textul titlului principal (H1) de pe prima pagină. Lasă gol = numele site-ului + descrierea.',
+        'description' => 'Textul titlului principal (H1) de pe prima paginÄƒ. LasÄƒ gol = numele site-ului + descrierea.',
         'section'     => 'magpress_homepage',
         'type'        => 'text',
     ]);
@@ -1102,25 +1102,25 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_home_h1_visible', [
-        'label'       => 'Afișează titlul H1 vizibil (centrat)',
-        'description' => 'Debifat = titlul rămâne DOAR pentru SEO (invizibil pe pagină).',
+        'label'       => 'AfiÈ™eazÄƒ titlul H1 vizibil (centrat)',
+        'description' => 'Debifat = titlul rÄƒmÃ¢ne DOAR pentru SEO (invizibil pe paginÄƒ).',
         'section'     => 'magpress_homepage',
         'type'        => 'checkbox',
     ]);
 
     $slot_types = [
-        'none'     => '— Gol (sari peste slot) —',
-        'category' => 'Categorie (rând articole)',
-        'ad'       => 'Reclamă / AdSense (cod HTML)',
+        'none'     => 'â€” Gol (sari peste slot) â€”',
+        'category' => 'Categorie (rÃ¢nd articole)',
+        'ad'       => 'ReclamÄƒ / AdSense (cod HTML)',
     ];
 
-    $cat_choices = ['0' => '— Alege o categorie —'];
+    $cat_choices = ['0' => 'â€” Alege o categorie â€”'];
     foreach (get_categories(['hide_empty' => false, 'number' => 100, 'orderby' => 'name']) as $c) {
         $cat_choices[(string) $c->term_id] = $c->name;
     }
 
-    // Map: cat_id => [slot1, slot2, ...] (pentru marker „— folosit la slot N")
-    // Multi-select: o categorie poate fi în mai multe sloturi simultan.
+    // Map: cat_id => [slot1, slot2, ...] (pentru marker â€žâ€” folosit la slot N")
+    // Multi-select: o categorie poate fi Ã®n mai multe sloturi simultan.
     $used_in_slots = [];
     for ($k = 1; $k <= 30; $k++) {
         $k_type = get_theme_mod("magpress_slot_{$k}_type", $k <= 4 ? 'category' : 'none');
@@ -1144,18 +1144,18 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_type", [
-            'label'       => "▶ Slot {$i} — Tip",
-            'description' => 'Ce afișează acest slot pe homepage.',
+            'label'       => "â–¶ Slot {$i} â€” Tip",
+            'description' => 'Ce afiÈ™eazÄƒ acest slot pe homepage.',
             'section'     => 'magpress_homepage',
             'type'        => 'select',
             'choices'     => $slot_types,
         ]);
 
-        // 2. Categorie (vizibila daca tip = category) — multi-select CSV de ID-uri
+        // 2. Categorie (vizibila daca tip = category) â€” multi-select CSV de ID-uri
         $wp_customize->add_setting("magpress_slot_{$i}_cat", [
             'default'           => '',
             'sanitize_callback' => function($v) {
-                // Accept atât int legacy ("12") cât și CSV ("12,15,18")
+                // Accept atÃ¢t int legacy ("12") cÃ¢t È™i CSV ("12,15,18")
                 if (is_array($v)) $v = implode(',', $v);
                 $v = (string) $v;
                 $ids = [];
@@ -1169,8 +1169,8 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $ctrl = new Magpress_Slot_Cats_Control($wp_customize, "magpress_slot_{$i}_cat", [
-            'label'           => "Slot {$i} — Categorii",
-            'description'     => 'Bifează una sau mai multe. Pentru o singură categorie cu sub-categorii (ex: „Lumea sportului") — WordPress include automat copiii.',
+            'label'           => "Slot {$i} â€” Categorii",
+            'description'     => 'BifeazÄƒ una sau mai multe. Pentru o singurÄƒ categorie cu sub-categorii (ex: â€žLumea sportului") â€” WordPress include automat copiii.',
             'section'         => 'magpress_homepage',
             'active_callback' => function() use ($i) {
                 return get_theme_mod("magpress_slot_{$i}_type", 'none') === 'category';
@@ -1187,8 +1187,8 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_count", [
-            'label'           => "Slot {$i} — Articole",
-            'description'     => 'Recomandat: 4 sau 8. Min 2, max 20. (Layout-urile Asimetric/Hero/Listă forțează un număr fix.)',
+            'label'           => "Slot {$i} â€” Articole",
+            'description'     => 'Recomandat: 4 sau 8. Min 2, max 20. (Layout-urile Asimetric/Hero/ListÄƒ forÈ›eazÄƒ un numÄƒr fix.)',
             'section'         => 'magpress_homepage',
             'type'            => 'number',
             'input_attrs'     => ['min' => 2, 'max' => 20, 'step' => 1],
@@ -1207,15 +1207,15 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_layout", [
-            'label'           => "Slot {$i} — Layout",
-            'description'     => 'Stilul de afișare a cardurilor.',
+            'label'           => "Slot {$i} â€” Layout",
+            'description'     => 'Stilul de afiÈ™are a cardurilor.',
             'section'         => 'magpress_homepage',
             'type'            => 'select',
             'choices'         => [
                 'grid'       => 'Grid 4 coloane (8 carduri egale)',
                 'asymmetric' => 'Asimetric (1 mare + 4 mici)',
                 'hero'       => 'Hero (4 carduri portret cu overlay)',
-                'list'       => 'Listă (imagine stânga + text dreapta)',
+                'list'       => 'ListÄƒ (imagine stÃ¢nga + text dreapta)',
             ],
             'active_callback' => function() use ($i) {
                 $default_type = $i <= 4 ? 'category' : 'none';
@@ -1227,14 +1227,14 @@ function magpress_customize_register($wp_customize) {
         $wp_customize->add_setting("magpress_slot_{$i}_ad", [
             'default'           => '',
             'sanitize_callback' => function($v) {
-                // Admin-only (Customizer requires manage_options) — acceptam HTML/script complet
+                // Admin-only (Customizer requires manage_options) â€” acceptam HTML/script complet
                 return is_string($v) ? $v : '';
             },
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_ad", [
-            'label'           => "Slot {$i} — Cod HTML / AdSense",
-            'description'     => 'Lipește aici codul AdSense, banner image sau orice HTML/script. Va apărea centrat pe homepage între sloturile de categorii.',
+            'label'           => "Slot {$i} â€” Cod HTML / AdSense",
+            'description'     => 'LipeÈ™te aici codul AdSense, banner image sau orice HTML/script. Va apÄƒrea centrat pe homepage Ã®ntre sloturile de categorii.',
             'section'         => 'magpress_homepage',
             'type'            => 'textarea',
             'active_callback' => function() use ($i) {
@@ -1242,15 +1242,15 @@ function magpress_customize_register($wp_customize) {
             },
         ]);
 
-        // 4b. Titlu opțional H2 (vizibil daca tip = ad)
+        // 4b. Titlu opÈ›ional H2 (vizibil daca tip = ad)
         $wp_customize->add_setting("magpress_slot_{$i}_html_title", [
             'default'           => '',
             'sanitize_callback' => 'sanitize_text_field',
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_html_title", [
-            'label'           => "Slot {$i} — Titlu (h2) [opțional]",
-            'description'     => 'Apare deasupra widget-ului ca h2. Lasă gol pentru a nu afișa.',
+            'label'           => "Slot {$i} â€” Titlu (h2) [opÈ›ional]",
+            'description'     => 'Apare deasupra widget-ului ca h2. LasÄƒ gol pentru a nu afiÈ™a.',
             'section'         => 'magpress_homepage',
             'type'            => 'text',
             'active_callback' => function() use ($i) {
@@ -1258,15 +1258,15 @@ function magpress_customize_register($wp_customize) {
             },
         ]);
 
-        // 4c. Subtitlu opțional (vizibil daca tip = ad)
+        // 4c. Subtitlu opÈ›ional (vizibil daca tip = ad)
         $wp_customize->add_setting("magpress_slot_{$i}_html_subtitle", [
             'default'           => '',
             'sanitize_callback' => 'sanitize_textarea_field',
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_html_subtitle", [
-            'label'           => "Slot {$i} — Subtitlu / descriere [opțional]",
-            'description'     => 'Apare sub titlu, ca paragraf descriptiv. Lasă gol pentru a nu afișa.',
+            'label'           => "Slot {$i} â€” Subtitlu / descriere [opÈ›ional]",
+            'description'     => 'Apare sub titlu, ca paragraf descriptiv. LasÄƒ gol pentru a nu afiÈ™a.',
             'section'         => 'magpress_homepage',
             'type'            => 'textarea',
             'active_callback' => function() use ($i) {
@@ -1278,7 +1278,7 @@ function magpress_customize_register($wp_customize) {
     // ---------- Sectiune: Reclame articol ----------
     $wp_customize->add_section('magpress_article_ads', [
         'title'       => 'Magpress: Reclame articol',
-        'description' => 'Coduri HTML/AdSense pentru pagini de articol (single). Lasă gol pentru a nu afișa.',
+        'description' => 'Coduri HTML/AdSense pentru pagini de articol (single). LasÄƒ gol pentru a nu afiÈ™a.',
         'priority'    => 28,
     ]);
 
@@ -1288,8 +1288,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_article_ad_mid', [
-        'label'       => 'Reclamă după paragraful 3',
-        'description' => 'Cod AdSense / HTML care apare în mijlocul articolului, după al 3-lea paragraf. Dacă articolul are <4 paragrafe, nu se afișează.',
+        'label'       => 'ReclamÄƒ dupÄƒ paragraful 3',
+        'description' => 'Cod AdSense / HTML care apare Ã®n mijlocul articolului, dupÄƒ al 3-lea paragraf. DacÄƒ articolul are <4 paragrafe, nu se afiÈ™eazÄƒ.',
         'section'     => 'magpress_article_ads',
         'type'        => 'textarea',
     ]);
@@ -1300,8 +1300,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_article_ad_mid2', [
-        'label'       => 'A doua reclamă în articol (pe la 60%)',
-        'description' => 'Cod pentru a DOUA reclamă din corpul articolului, mai jos (doar pe articole lungi, ≥10 paragrafe). ATENȚIE la MGID/AdsKeeper: pune aici un widget cu ALT widget-id decât cel de sus, altfel rămâne gol. Lasă gol pentru a nu afișa a doua reclamă.',
+        'label'       => 'A doua reclamÄƒ Ã®n articol (pe la 60%)',
+        'description' => 'Cod pentru a DOUA reclamÄƒ din corpul articolului, mai jos (doar pe articole lungi, â‰¥10 paragrafe). ATENÈšIE la MGID/AdsKeeper: pune aici un widget cu ALT widget-id decÃ¢t cel de sus, altfel rÄƒmÃ¢ne gol. LasÄƒ gol pentru a nu afiÈ™a a doua reclamÄƒ.',
         'section'     => 'magpress_article_ads',
         'type'        => 'textarea',
     ]);
@@ -1312,8 +1312,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_article_ad_end', [
-        'label'       => 'Reclamă sub articol',
-        'description' => 'Cod AdSense / HTML care apare imediat sub conținutul articolului, înainte de „Articole similare".',
+        'label'       => 'ReclamÄƒ sub articol',
+        'description' => 'Cod AdSense / HTML care apare imediat sub conÈ›inutul articolului, Ã®nainte de â€žArticole similare".',
         'section'     => 'magpress_article_ads',
         'type'        => 'textarea',
     ]);
@@ -1324,8 +1324,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_google_font', [
-        'label'       => 'Google Font de încărcat',
-        'description' => 'Nume font + greutăți (format: "Open Sans:400,600,700,800"). Lasă gol pentru a nu încărca niciun Google Font.',
+        'label'       => 'Google Font de Ã®ncÄƒrcat',
+        'description' => 'Nume font + greutÄƒÈ›i (format: "Open Sans:400,600,700,800"). LasÄƒ gol pentru a nu Ã®ncÄƒrca niciun Google Font.',
         'section'     => 'magpress_colors',
         'type'        => 'text',
     ]);
@@ -1333,61 +1333,61 @@ function magpress_customize_register($wp_customize) {
     // ---------- Sectiune: Coduri personalizate (Header/Footer) ----------
     $wp_customize->add_section('magpress_custom_code', [
         'title'       => 'Magpress: Coduri Header/Footer',
-        'description' => 'Adaugă coduri de urmărire (Google Analytics, Google Tag Manager, Facebook Pixel, verificări de proprietate, chat widgets etc.). Codul e inserat exact așa cum îl scrii — include tag-urile <script> / <style> / <meta> unde e nevoie.',
+        'description' => 'AdaugÄƒ coduri de urmÄƒrire (Google Analytics, Google Tag Manager, Facebook Pixel, verificÄƒri de proprietate, chat widgets etc.). Codul e inserat exact aÈ™a cum Ã®l scrii â€” include tag-urile <script> / <style> / <meta> unde e nevoie.',
         'priority'    => 160,
     ]);
 
-    // Cod în <head> — analytics, meta verification, GTM etc.
+    // Cod Ã®n <head> â€” analytics, meta verification, GTM etc.
     $wp_customize->add_setting('magpress_code_head', [
         'default'           => '',
         'sanitize_callback' => 'magpress_sanitize_custom_code',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_code_head', [
-        'label'       => 'Cod în <head>',
-        'description' => 'Se inserează chiar înainte de închiderea </head>, pe toate paginile. Ideal pentru Google Analytics (gtag.js), Google Tag Manager, meta tag-uri de verificare (Search Console), Facebook Pixel etc.',
+        'label'       => 'Cod Ã®n <head>',
+        'description' => 'Se insereazÄƒ chiar Ã®nainte de Ã®nchiderea </head>, pe toate paginile. Ideal pentru Google Analytics (gtag.js), Google Tag Manager, meta tag-uri de verificare (Search Console), Facebook Pixel etc.',
         'section'     => 'magpress_custom_code',
         'type'        => 'textarea',
         'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: Google Analytics -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-XXXX\"></script>"],
     ]);
 
-    // Cod imediat după <body> — GTM noscript etc.
+    // Cod imediat dupÄƒ <body> â€” GTM noscript etc.
     $wp_customize->add_setting('magpress_code_body_open', [
         'default'           => '',
         'sanitize_callback' => 'magpress_sanitize_custom_code',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_code_body_open', [
-        'label'       => 'Cod după deschiderea <body>',
-        'description' => 'Se inserează imediat după tag-ul <body>, pe toate paginile. Folosit de obicei pentru fragmentul <noscript> al Google Tag Manager.',
+        'label'       => 'Cod dupÄƒ deschiderea <body>',
+        'description' => 'Se insereazÄƒ imediat dupÄƒ tag-ul <body>, pe toate paginile. Folosit de obicei pentru fragmentul <noscript> al Google Tag Manager.',
         'section'     => 'magpress_custom_code',
         'type'        => 'textarea',
         'input_attrs' => ['rows' => 5, 'placeholder' => "<!-- ex: Google Tag Manager (noscript) -->"],
     ]);
 
-    // Cod înainte de </body> — footer scripts, chat widgets etc.
+    // Cod Ã®nainte de </body> â€” footer scripts, chat widgets etc.
     $wp_customize->add_setting('magpress_code_footer', [
         'default'           => '',
         'sanitize_callback' => 'magpress_sanitize_custom_code',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_code_footer', [
-        'label'       => 'Cod în footer (înainte de </body>)',
-        'description' => 'Se inserează chiar înainte de închiderea </body>, pe toate paginile. Ideal pentru scripturi care nu trebuie să blocheze randarea: chat widgets, remarketing, heatmaps etc.',
+        'label'       => 'Cod Ã®n footer (Ã®nainte de </body>)',
+        'description' => 'Se insereazÄƒ chiar Ã®nainte de Ã®nchiderea </body>, pe toate paginile. Ideal pentru scripturi care nu trebuie sÄƒ blocheze randarea: chat widgets, remarketing, heatmaps etc.',
         'section'     => 'magpress_custom_code',
         'type'        => 'textarea',
         'input_attrs' => ['rows' => 8, 'placeholder' => "<!-- ex: chat widget, remarketing... -->"],
     ]);
 
-    // ads.txt — servit automat de temă la /ads.txt (fără fișier manual per site).
+    // ads.txt â€” servit automat de temÄƒ la /ads.txt (fÄƒrÄƒ fiÈ™ier manual per site).
     $wp_customize->add_setting('magpress_ads_txt', [
         'default'           => '',
         'sanitize_callback' => 'magpress_sanitize_custom_code',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_ads_txt', [
-        'label'       => 'Conținut ads.txt',
-        'description' => 'Liniile ads.txt cerute de rețelele de reclame (AdsKeeper, AdSense etc.). Tema le servește automat la adresa /ads.txt — NU trebuie să creezi fișier pe server. Copiază liniile din dashboard-ul fiecărei rețele. Lasă gol pentru a nu servi ads.txt din temă. Nu funcționează dacă există deja un fișier fizic ads.txt pe server (acela are prioritate).',
+        'label'       => 'ConÈ›inut ads.txt',
+        'description' => 'Liniile ads.txt cerute de reÈ›elele de reclame (AdsKeeper, AdSense etc.). Tema le serveÈ™te automat la adresa /ads.txt â€” NU trebuie sÄƒ creezi fiÈ™ier pe server. CopiazÄƒ liniile din dashboard-ul fiecÄƒrei reÈ›ele. LasÄƒ gol pentru a nu servi ads.txt din temÄƒ. Nu funcÈ›ioneazÄƒ dacÄƒ existÄƒ deja un fiÈ™ier fizic ads.txt pe server (acela are prioritate).',
         'section'     => 'magpress_custom_code',
         'type'        => 'textarea',
         'input_attrs' => ['rows' => 8, 'placeholder' => "google.com, pub-XXXXXXXX, DIRECT, f08c47fec0942fa0\nadskeeper.com, 1103871, DIRECT"],
@@ -1396,7 +1396,7 @@ function magpress_customize_register($wp_customize) {
     // ---------- Sectiune: Parteneri (feed din alte site-uri) ----------
     $wp_customize->add_section('magpress_partners', [
         'title'       => 'Magpress: Parteneri (feed extern)',
-        'description' => 'Carduri cu ultimele articole de pe alte site-uri ale tale (stil „Parteneri" Libertatea). Completează URL-ul site-ului sursă; opțional, slug-ul unei categorii (ex: „sport"). Secțiunea apare doar dacă e configurat cel puțin un site.',
+        'description' => 'Carduri cu ultimele articole de pe alte site-uri ale tale (stil â€žParteneri" Libertatea). CompleteazÄƒ URL-ul site-ului sursÄƒ; opÈ›ional, slug-ul unei categorii (ex: â€žsport"). SecÈ›iunea apare doar dacÄƒ e configurat cel puÈ›in un site.',
         'priority'    => 161,
     ]);
 
@@ -1406,7 +1406,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_partners_title', [
-        'label'   => 'Titlul secțiunii',
+        'label'   => 'Titlul secÈ›iunii',
         'section' => 'magpress_partners',
         'type'    => 'text',
     ]);
@@ -1417,7 +1417,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_partners_on_home', [
-        'label'   => 'Afișează pe homepage (jos, după sloturi)',
+        'label'   => 'AfiÈ™eazÄƒ pe homepage (jos, dupÄƒ sloturi)',
         'section' => 'magpress_partners',
         'type'    => 'checkbox',
     ]);
@@ -1429,8 +1429,8 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_partner_{$i}_url", [
-            'label'       => "Sursa {$i} — URL site",
-            'description' => $i === 1 ? 'Ex: https://revistacasamea.ro (orice site WordPress de-al tău)' : '',
+            'label'       => "Sursa {$i} â€” URL site",
+            'description' => $i === 1 ? 'Ex: https://revistacasamea.ro (orice site WordPress de-al tÄƒu)' : '',
             'section'     => 'magpress_partners',
             'type'        => 'url',
         ]);
@@ -1441,8 +1441,8 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_partner_{$i}_cat", [
-            'label'       => "Sursa {$i} — DOAR din categoriile (slug-uri, opțional)",
-            'description' => $i === 1 ? 'Gol = cele mai noi articole din tot site-ul. Mai multe categorii separate prin virgulă (ex: sport, auto).' : '',
+            'label'       => "Sursa {$i} â€” DOAR din categoriile (slug-uri, opÈ›ional)",
+            'description' => $i === 1 ? 'Gol = cele mai noi articole din tot site-ul. Mai multe categorii separate prin virgulÄƒ (ex: sport, auto).' : '',
             'section'     => 'magpress_partners',
             'type'        => 'text',
         ]);
@@ -1453,8 +1453,8 @@ function magpress_customize_register($wp_customize) {
             'transport'         => 'refresh',
         ]);
         $wp_customize->add_control("magpress_partner_{$i}_cat_exclude", [
-            'label'       => "Sursa {$i} — EXCLUDE categoriile (slug-uri, opțional)",
-            'description' => $i === 1 ? 'Articolele din aceste categorii NU apar (ex: uncategorized, promo). Separate prin virgulă.' : '',
+            'label'       => "Sursa {$i} â€” EXCLUDE categoriile (slug-uri, opÈ›ional)",
+            'description' => $i === 1 ? 'Articolele din aceste categorii NU apar (ex: uncategorized, promo). Separate prin virgulÄƒ.' : '',
             'section'     => 'magpress_partners',
             'type'        => 'text',
         ]);
@@ -1472,8 +1472,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_enabled', [
-        'label'       => 'Afișează bara de newsletter pe homepage',
-        'description' => 'Bară orizontală: plic + text + formular email, opțional cu butonul „sursă preferată în Google".',
+        'label'       => 'AfiÈ™eazÄƒ bara de newsletter pe homepage',
+        'description' => 'BarÄƒ orizontalÄƒ: plic + text + formular email, opÈ›ional cu butonul â€žsursÄƒ preferatÄƒ Ã®n Google".',
         'section'     => 'magpress_nlbar',
         'type'        => 'checkbox',
     ]);
@@ -1487,8 +1487,8 @@ function magpress_customize_register($wp_customize) {
         'section' => 'magpress_nlbar',
         'type'    => 'select',
         'choices' => [
-            'dark'  => 'Închis (fundal închis, text alb)',
-            'light' => 'Deschis (fundal deschis, text închis)',
+            'dark'  => 'ÃŽnchis (fundal Ã®nchis, text alb)',
+            'light' => 'Deschis (fundal deschis, text Ã®nchis)',
         ],
     ]);
     $wp_customize->add_setting('magpress_nlbar_text', [
@@ -1497,13 +1497,13 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_text', [
-        'label'       => 'Textul din bară',
-        'description' => 'Gol = text implicit cu numele site-ului. Poți folosi &lt;strong&gt;.',
+        'label'       => 'Textul din barÄƒ',
+        'description' => 'Gol = text implicit cu numele site-ului. PoÈ›i folosi &lt;strong&gt;.',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
     $wp_customize->add_setting('magpress_nlbar_btn', [
-        'default'           => 'Abonează-te',
+        'default'           => 'AboneazÄƒ-te',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
@@ -1518,34 +1518,34 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_mode', [
-        'label'       => 'Cum se abonează cititorul',
-        'description' => 'Popup = buton care deschide o fereastră cu formularul temei (abonații se salvează în site: Aspect → Abonați). Inline = câmp de email direct în bară, trimis către un serviciu extern.',
+        'label'       => 'Cum se aboneazÄƒ cititorul',
+        'description' => 'Popup = buton care deschide o fereastrÄƒ cu formularul temei (abonaÈ›ii se salveazÄƒ Ã®n site: Aspect â†’ AbonaÈ›i). Inline = cÃ¢mp de email direct Ã®n barÄƒ, trimis cÄƒtre un serviciu extern.',
         'section'     => 'magpress_nlbar',
         'type'        => 'select',
         'choices'     => [
             'popup'  => 'Buton + popup cu formularul temei (recomandat)',
-            'inline' => 'Câmp de email direct în bară (serviciu extern)',
+            'inline' => 'CÃ¢mp de email direct Ã®n barÄƒ (serviciu extern)',
         ],
     ]);
 
     // --- Texte popup ---
     $wp_customize->add_setting('magpress_nlbar_pop_title', [
-        'default'           => 'Abonează-te la newsletter',
+        'default'           => 'AboneazÄƒ-te la newsletter',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_pop_title', [
-        'label'   => 'Popup — titlu',
+        'label'   => 'Popup â€” titlu',
         'section' => 'magpress_nlbar',
         'type'    => 'text',
     ]);
     $wp_customize->add_setting('magpress_nlbar_pop_desc', [
-        'default'           => 'Primești articolele noastre pe email. Fără spam, te poți dezabona oricând.',
+        'default'           => 'PrimeÈ™ti articolele noastre pe email. FÄƒrÄƒ spam, te poÈ›i dezabona oricÃ¢nd.',
         'sanitize_callback' => 'wp_kses_post',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_pop_desc', [
-        'label'   => 'Popup — descriere',
+        'label'   => 'Popup â€” descriere',
         'section' => 'magpress_nlbar',
         'type'    => 'textarea',
     ]);
@@ -1555,7 +1555,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_ask_name', [
-        'label'   => 'Popup — cere și numele',
+        'label'   => 'Popup â€” cere È™i numele',
         'section' => 'magpress_nlbar',
         'type'    => 'checkbox',
     ]);
@@ -1565,8 +1565,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_consent', [
-        'label'       => 'Popup — text acord (GDPR)',
-        'description' => 'Vine completat cu textul standard (link către politica de confidențialitate). Șterge tot dacă nu vrei bifă.',
+        'label'       => 'Popup â€” text acord (GDPR)',
+        'description' => 'Vine completat cu textul standard (link cÄƒtre politica de confidenÈ›ialitate). È˜terge tot dacÄƒ nu vrei bifÄƒ.',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -1576,7 +1576,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_success', [
-        'label'       => 'Popup — mesaj după abonare',
+        'label'       => 'Popup â€” mesaj dupÄƒ abonare',
         'description' => 'Gol = mesaj implicit.',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
@@ -1590,8 +1590,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_from_email', [
-        'label'       => 'Email expeditor (de pe ce adresă pleacă)',
-        'description' => 'Gol = contact@' . $mgp_nl_host . '. Folosește o adresă de pe domeniul site-ului — una de Gmail/Yahoo pusă aici ajunge în spam sau e respinsă.',
+        'label'       => 'Email expeditor (de pe ce adresÄƒ pleacÄƒ)',
+        'description' => 'Gol = contact@' . $mgp_nl_host . '. FoloseÈ™te o adresÄƒ de pe domeniul site-ului â€” una de Gmail/Yahoo pusÄƒ aici ajunge Ã®n spam sau e respinsÄƒ.',
         'section'     => 'magpress_nlbar',
         'type'        => 'email',
     ]);
@@ -1613,7 +1613,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_nlbar_welcome', [
         'label'       => 'Trimite email de bun venit la abonare',
-        'description' => 'Confirmă abonatului că s-a înscris. Se trimite o singură dată, la prima abonare.',
+        'description' => 'ConfirmÄƒ abonatului cÄƒ s-a Ã®nscris. Se trimite o singurÄƒ datÄƒ, la prima abonare.',
         'section'     => 'magpress_nlbar',
         'type'        => 'checkbox',
     ]);
@@ -1623,8 +1623,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_welcome_subject', [
-        'label'       => 'Bun venit — subiect',
-        'description' => 'Gol = „Bine ai venit la newsletterul ' . get_bloginfo('name') . '".',
+        'label'       => 'Bun venit â€” subiect',
+        'description' => 'Gol = â€žBine ai venit la newsletterul ' . get_bloginfo('name') . '".',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
     ]);
@@ -1634,8 +1634,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_welcome_body', [
-        'label'       => 'Bun venit — mesaj',
-        'description' => 'Gol = text implicit. Poți folosi {nume}, {site}, {url}, {email} și {dezabonare} (linkul de dezabonare — dacă nu îl pui, se adaugă automat la final).',
+        'label'       => 'Bun venit â€” mesaj',
+        'description' => 'Gol = text implicit. PoÈ›i folosi {nume}, {site}, {url}, {email} È™i {dezabonare} (linkul de dezabonare â€” dacÄƒ nu Ã®l pui, se adaugÄƒ automat la final).',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -1645,8 +1645,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_autopost', [
-        'label'       => 'Trimite automat articolele noi către abonați',
-        'description' => 'La publicarea unui articol, abonații primesc titlul, un rezumat și linkul. Trimiterea se face în fundal, în loturi.',
+        'label'       => 'Trimite automat articolele noi cÄƒtre abonaÈ›i',
+        'description' => 'La publicarea unui articol, abonaÈ›ii primesc titlul, un rezumat È™i linkul. Trimiterea se face Ã®n fundal, Ã®n loturi.',
         'section'     => 'magpress_nlbar',
         'type'        => 'checkbox',
     ]);
@@ -1656,7 +1656,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_send_mode', [
-        'label'       => 'Când pleacă emailurile',
+        'label'       => 'CÃ¢nd pleacÄƒ emailurile',
         'description' => 'Rezumat zilnic = UN singur email pe zi, cu toate articolele publicate de la ultimul rezumat.',
         'section'     => 'magpress_nlbar',
         'type'        => 'select',
@@ -1672,7 +1672,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_nlbar_daily_hour', [
         'label'       => 'Ora rezumatului zilnic',
-        'description' => 'Ora locală a site-ului (0–23). Implicit 8 dimineața. Necesită modul „Un singur email pe zi".',
+        'description' => 'Ora localÄƒ a site-ului (0â€“23). Implicit 8 dimineaÈ›a. NecesitÄƒ modul â€žUn singur email pe zi".',
         'section'     => 'magpress_nlbar',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 23, 'step' => 1],
@@ -1683,8 +1683,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_digest_subject', [
-        'label'       => 'Rezumat zilnic — subiect email',
-        'description' => 'Gol = „' . get_bloginfo('name') . ' — 3 articole noi". Poți folosi {site}, {nr}, {data}, {titlu}.',
+        'label'       => 'Rezumat zilnic â€” subiect email',
+        'description' => 'Gol = â€ž' . get_bloginfo('name') . ' â€” 3 articole noi". PoÈ›i folosi {site}, {nr}, {data}, {titlu}.',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
     ]);
@@ -1695,8 +1695,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_post_subject', [
-        'label'       => 'Articol nou — subiect email',
-        'description' => 'Gol = titlul articolului. Poți folosi {titlu} și {site}, ex: „{site}: {titlu}".',
+        'label'       => 'Articol nou â€” subiect email',
+        'description' => 'Gol = titlul articolului. PoÈ›i folosi {titlu} È™i {site}, ex: â€ž{site}: {titlu}".',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
     ]);
@@ -1707,7 +1707,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_notify', [
-        'label'   => 'Anunță-mă pe email la fiecare abonat nou',
+        'label'   => 'AnunÈ›Äƒ-mÄƒ pe email la fiecare abonat nou',
         'section' => 'magpress_nlbar',
         'type'    => 'checkbox',
     ]);
@@ -1717,7 +1717,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_notify_to', [
-        'label'       => 'Unde primesc anunțul',
+        'label'       => 'Unde primesc anunÈ›ul',
         'description' => 'Gol = adresa de administrator a site-ului (' . esc_html(get_option('admin_email')) . ').',
         'section'     => 'magpress_nlbar',
         'type'        => 'email',
@@ -1729,8 +1729,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_action', [
-        'label'       => 'Inline — URL formular (unde se trimite emailul)',
-        'description' => 'Doar pentru modul „inline": adresa de „action" de la Mailchimp / Brevo / etc.',
+        'label'       => 'Inline â€” URL formular (unde se trimite emailul)',
+        'description' => 'Doar pentru modul â€žinline": adresa de â€žaction" de la Mailchimp / Brevo / etc.',
         'section'     => 'magpress_nlbar',
         'type'        => 'url',
     ]);
@@ -1740,7 +1740,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_field', [
-        'label'       => 'Inline — numele câmpului de email',
+        'label'       => 'Inline â€” numele cÃ¢mpului de email',
         'description' => 'Mailchimp = EMAIL, Brevo = email.',
         'section'     => 'magpress_nlbar',
         'type'        => 'text',
@@ -1751,8 +1751,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_shortcode', [
-        'label'       => 'Inline — SAU shortcode formular (plugin newsletter)',
-        'description' => 'Ex. [mc4wp_form id="123"]. Dacă e completat, înlocuiește câmpul simplu.',
+        'label'       => 'Inline â€” SAU shortcode formular (plugin newsletter)',
+        'description' => 'Ex. [mc4wp_form id="123"]. DacÄƒ e completat, Ã®nlocuieÈ™te cÃ¢mpul simplu.',
         'section'     => 'magpress_nlbar',
         'type'        => 'textarea',
     ]);
@@ -1762,8 +1762,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_discover', [
-        'label'       => 'Include butonul „sursă preferată în Google"',
-        'description' => 'Dacă îl bifezi aici, poți dezactiva boxul mare Google Discover din secțiunea Layout.',
+        'label'       => 'Include butonul â€žsursÄƒ preferatÄƒ Ã®n Google"',
+        'description' => 'DacÄƒ Ã®l bifezi aici, poÈ›i dezactiva boxul mare Google Discover din secÈ›iunea Layout.',
         'section'     => 'magpress_nlbar',
         'type'        => 'checkbox',
     ]);
@@ -1773,8 +1773,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_nlbar_position', [
-        'label'       => 'După ce slot apare',
-        'description' => '0 = deasupra sloturilor. 1 = după Slot 1, 2 = după Slot 2 etc. Număr mai mare decât sloturile active = jos de tot.',
+        'label'       => 'DupÄƒ ce slot apare',
+        'description' => '0 = deasupra sloturilor. 1 = dupÄƒ Slot 1, 2 = dupÄƒ Slot 2 etc. NumÄƒr mai mare decÃ¢t sloturile active = jos de tot.',
         'section'     => 'magpress_nlbar',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
@@ -1791,8 +1791,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_popcats_enabled', [
-        'label'       => 'Afișează grila de categorii pe homepage',
-        'description' => 'Carduri simple cu numele categoriei (fără iconițe), hover în culoarea de accent.',
+        'label'       => 'AfiÈ™eazÄƒ grila de categorii pe homepage',
+        'description' => 'Carduri simple cu numele categoriei (fÄƒrÄƒ iconiÈ›e), hover Ã®n culoarea de accent.',
         'section'     => 'magpress_popcats',
         'type'        => 'checkbox',
     ]);
@@ -1802,7 +1802,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_popcats_title', [
-        'label'   => 'Titlul secțiunii',
+        'label'   => 'Titlul secÈ›iunii',
         'section' => 'magpress_popcats',
         'type'    => 'text',
     ]);
@@ -1812,8 +1812,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control(new Magpress_Slot_Cats_Control($wp_customize, 'magpress_popcats_cat', [
-        'label'       => 'Categoriile afișate',
-        'description' => 'Bifează categoriile care apar în grilă (în ordinea alfabetică a numelui).',
+        'label'       => 'Categoriile afiÈ™ate',
+        'description' => 'BifeazÄƒ categoriile care apar Ã®n grilÄƒ (Ã®n ordinea alfabeticÄƒ a numelui).',
         'section'     => 'magpress_popcats',
     ]));
     $wp_customize->add_setting('magpress_popcats_position', [
@@ -1822,8 +1822,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_popcats_position', [
-        'label'       => 'După ce slot apare',
-        'description' => '0 = deasupra sloturilor (sub articolele promovate). 1 = după Slot 1, 2 = după Slot 2 etc. (sloturile de reclamă se numără și ele). Număr mai mare decât sloturile active = jos de tot.',
+        'label'       => 'DupÄƒ ce slot apare',
+        'description' => '0 = deasupra sloturilor (sub articolele promovate). 1 = dupÄƒ Slot 1, 2 = dupÄƒ Slot 2 etc. (sloturile de reclamÄƒ se numÄƒrÄƒ È™i ele). NumÄƒr mai mare decÃ¢t sloturile active = jos de tot.',
         'section'     => 'magpress_popcats',
         'type'        => 'number',
         'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
@@ -1831,7 +1831,7 @@ function magpress_customize_register($wp_customize) {
 
     $wp_customize->add_section('magpress_curs_bnr', [
         'title'       => 'Magpress: Curs valutar BNR',
-        'description' => 'Bara subțire cu cursul oficial BNR, deasupra header-ului. Sursa: curs.bnr.ro (cache 6h). Există și widget („Magpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziții.',
+        'description' => 'Bara subÈ›ire cu cursul oficial BNR, deasupra header-ului. Sursa: curs.bnr.ro (cache 6h). ExistÄƒ È™i widget (â€žMagpress: Curs valutar BNR") + shortcode [curs_bnr] pentru alte poziÈ›ii.',
         'priority'    => 162,
     ]);
     $wp_customize->add_setting('magpress_topbar_curs', [
@@ -1840,7 +1840,7 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_curs', [
-        'label'   => 'Afișează bara cu cursul BNR (deasupra header-ului)',
+        'label'   => 'AfiÈ™eazÄƒ bara cu cursul BNR (deasupra header-ului)',
         'section' => 'magpress_curs_bnr',
         'type'    => 'checkbox',
     ]);
@@ -1850,8 +1850,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_curs_list', [
-        'label'       => 'Valute afișate (coduri ISO, separate prin virgulă)',
-        'description' => 'Ex: EUR,USD,GBP,CHF — orice cod din feed-ul BNR.',
+        'label'       => 'Valute afiÈ™ate (coduri ISO, separate prin virgulÄƒ)',
+        'description' => 'Ex: EUR,USD,GBP,CHF â€” orice cod din feed-ul BNR.',
         'section'     => 'magpress_curs_bnr',
         'type'        => 'text',
     ]);
@@ -1861,16 +1861,16 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_curs_align', [
-        'label'   => 'Aliniere (în lățimea conținutului)',
+        'label'   => 'Aliniere (Ã®n lÄƒÈ›imea conÈ›inutului)',
         'section' => 'magpress_curs_bnr',
         'type'    => 'radio',
-        'choices' => ['left' => 'Stânga', 'right' => 'Dreapta'],
+        'choices' => ['left' => 'StÃ¢nga', 'right' => 'Dreapta'],
     ]);
 
     // ---------- Sectiune: Bara Vreme (top bar, sub Curs BNR) ----------
     $wp_customize->add_section('magpress_vreme_bar', [
         'title'       => 'Magpress: Bara Vreme',
-        'description' => 'Bandă subțire care derulează vremea pe orașe (date oficiale ANM, cache 3h), imediat sub bara Curs BNR. Există și shortcode [vreme_bar] + widget pentru alte poziții.',
+        'description' => 'BandÄƒ subÈ›ire care deruleazÄƒ vremea pe oraÈ™e (date oficiale ANM, cache 3h), imediat sub bara Curs BNR. ExistÄƒ È™i shortcode [vreme_bar] + widget pentru alte poziÈ›ii.',
         'priority'    => 163,
     ]);
     $wp_customize->add_setting('magpress_topbar_vreme', [
@@ -1879,18 +1879,18 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_vreme', [
-        'label'   => 'Afișează banda cu vremea (sub bara Curs BNR)',
+        'label'   => 'AfiÈ™eazÄƒ banda cu vremea (sub bara Curs BNR)',
         'section' => 'magpress_vreme_bar',
         'type'    => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_topbar_vreme_orase', [
-        'default'           => 'București,Timișoara,Cluj-Napoca,Iași,Constanța',
+        'default'           => 'BucureÈ™ti,TimiÈ™oara,Cluj-Napoca,IaÈ™i,ConstanÈ›a',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_vreme_orase', [
-        'label'       => 'Orașe afișate (separate prin virgulă)',
-        'description' => 'Se afișează în ordinea listei. Disponibile: București, Timișoara, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina. Gol = toate.',
+        'label'       => 'OraÈ™e afiÈ™ate (separate prin virgulÄƒ)',
+        'description' => 'Se afiÈ™eazÄƒ Ã®n ordinea listei. Disponibile: BucureÈ™ti, TimiÈ™oara, Cluj-Napoca, IaÈ™i, ConstanÈ›a, Craiova, Sibiu, Arad, BotoÈ™ani, RÃ¢mnicu VÃ¢lcea, Sulina. Gol = toate.',
         'section'     => 'magpress_vreme_bar',
         'type'        => 'text',
     ]);
@@ -1900,8 +1900,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_topbar_vreme_scroll', [
-        'label'       => 'Derulează banda (ticker în mișcare)',
-        'description' => 'Nebifat = orașele stau fixe (recomandat). Bifat = banda derulează lent.',
+        'label'       => 'DeruleazÄƒ banda (ticker Ã®n miÈ™care)',
+        'description' => 'Nebifat = oraÈ™ele stau fixe (recomandat). Bifat = banda deruleazÄƒ lent.',
         'section'     => 'magpress_vreme_bar',
         'type'        => 'checkbox',
     ]);
@@ -1916,7 +1916,7 @@ function magpress_customize_register($wp_customize) {
         'type'    => 'radio',
         'choices' => [
             'inchis'  => 'Colorat (preia culoarea site-ului, text alb)',
-            'deschis' => 'Deschis (fundal gri deschis, text închis)',
+            'deschis' => 'Deschis (fundal gri deschis, text Ã®nchis)',
         ],
     ]);
     $wp_customize->add_setting('magpress_search_in_topbar', [
@@ -1925,8 +1925,8 @@ function magpress_customize_register($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_search_in_topbar', [
-        'label'       => 'Mută căutarea în top bar (lângă dată)',
-        'description' => 'Scoate lupa din meniu și pune un link „Caută" în top bar (deschide același modal). Eliberează spațiu în header pentru meniu mai mare. Necesită top bar-ul afișat.',
+        'label'       => 'MutÄƒ cÄƒutarea Ã®n top bar (lÃ¢ngÄƒ datÄƒ)',
+        'description' => 'Scoate lupa din meniu È™i pune un link â€žCautÄƒ" Ã®n top bar (deschide acelaÈ™i modal). ElibereazÄƒ spaÈ›iu Ã®n header pentru meniu mai mare. NecesitÄƒ top bar-ul afiÈ™at.',
         'section'     => 'magpress_curs_bnr',
         'type'        => 'checkbox',
     ]);
@@ -1934,10 +1934,10 @@ function magpress_customize_register($wp_customize) {
 add_action('customize_register', 'magpress_customize_register');
 
 /**
- * Golește cache-ul LiteSpeed la SALVAREA Customizer-ului.
- * Fără asta, schimbările (font meniu, culori, bare, titlu H1) NU se văd: CSS-ul generat de temă e
- * inline în HTML-ul paginii, deci rămâne „copt" în pagina din cache. Hook-urile de purge nu
- * regenerează mereu UCSS/CSS-combinat → ștergem și fizic directoarele generate (ca la deploy).
+ * GoleÈ™te cache-ul LiteSpeed la SALVAREA Customizer-ului.
+ * FÄƒrÄƒ asta, schimbÄƒrile (font meniu, culori, bare, titlu H1) NU se vÄƒd: CSS-ul generat de temÄƒ e
+ * inline Ã®n HTML-ul paginii, deci rÄƒmÃ¢ne â€žcopt" Ã®n pagina din cache. Hook-urile de purge nu
+ * regenereazÄƒ mereu UCSS/CSS-combinat â†’ È™tergem È™i fizic directoarele generate (ca la deploy).
  */
 add_action('customize_save_after', function () {
     if (defined('LSCWP_V') || has_action('litespeed_purge_all')) {
@@ -1956,16 +1956,16 @@ add_action('customize_save_after', function () {
 
 /**
  * Sanitizare pentru codurile personalizate (analytics/scripts) din Customizer.
- * Aceste câmpuri sunt setate doar de administratori cu acces la Customizer,
- * deci acceptăm HTML/JS brut (inclusiv <script>) — la fel ca alte plugin-uri de
- * tip „Insert Headers and Footers". Doar ne asigurăm că valoarea e string.
+ * Aceste cÃ¢mpuri sunt setate doar de administratori cu acces la Customizer,
+ * deci acceptÄƒm HTML/JS brut (inclusiv <script>) â€” la fel ca alte plugin-uri de
+ * tip â€žInsert Headers and Footers". Doar ne asigurÄƒm cÄƒ valoarea e string.
  */
 function magpress_sanitize_custom_code($value) {
     return is_string($value) ? $value : '';
 }
 
 /**
- * Emite codurile personalizate în head / body-open / footer.
+ * Emite codurile personalizate Ã®n head / body-open / footer.
  */
 function magpress_print_code_head() {
     $code = (string) get_theme_mod('magpress_code_head', '');
@@ -1986,13 +1986,13 @@ function magpress_print_code_footer() {
 add_action('wp_footer', 'magpress_print_code_footer', 99);
 
 /**
- * Meta de verificare a proprietății site-ului pentru servicii externe.
- * LinksIndexer folosește un token de CONT (identic pentru toate site-urile din
- * rețea), deci îl ținem hardcodat aici — altfel ar trebui lipit manual în head
- * pe fiecare din cele 74 de site-uri. Verificatorul lor NU rulează JavaScript,
- * deci meta trebuie să fie în HTML-ul brut al homepage-ului (aici e, la wp_head
- * prioritate 2 — înaintea oricărui alt cod și în interiorul bufferelor temei,
- * care nu ating decât <title> și blocurile JSON-LD).
+ * Meta de verificare a proprietÄƒÈ›ii site-ului pentru servicii externe.
+ * LinksIndexer foloseÈ™te un token de CONT (identic pentru toate site-urile din
+ * reÈ›ea), deci Ã®l È›inem hardcodat aici â€” altfel ar trebui lipit manual Ã®n head
+ * pe fiecare din cele 74 de site-uri. Verificatorul lor NU ruleazÄƒ JavaScript,
+ * deci meta trebuie sÄƒ fie Ã®n HTML-ul brut al homepage-ului (aici e, la wp_head
+ * prioritate 2 â€” Ã®naintea oricÄƒrui alt cod È™i Ã®n interiorul bufferelor temei,
+ * care nu ating decÃ¢t <title> È™i blocurile JSON-LD).
  *
  * Per-site se poate suprascrie cu theme_mod `magpress_linksindexer_token`
  * (setabil remote), iar golirea lui scoate complet meta de pe acel site.
@@ -2009,18 +2009,18 @@ function magpress_print_verification_metas() {
 add_action('wp_head', 'magpress_print_verification_metas', 2);
 
 /**
- * Servește /ads.txt din setarea Customizer (Authorized Digital Sellers).
- * Astfel nu trebuie creat fișier fizic pe fiecare din cele 64 de site-uri —
- * rețelele de reclame (AdsKeeper, AdSense) îl citesc de la {site}/ads.txt.
- * NB: dacă există un fișier fizic ads.txt în root, serverul îl servește pe
- * acela direct și PHP nu mai rulează — atunci setarea din temă e ignorată.
+ * ServeÈ™te /ads.txt din setarea Customizer (Authorized Digital Sellers).
+ * Astfel nu trebuie creat fiÈ™ier fizic pe fiecare din cele 64 de site-uri â€”
+ * reÈ›elele de reclame (AdsKeeper, AdSense) Ã®l citesc de la {site}/ads.txt.
+ * NB: dacÄƒ existÄƒ un fiÈ™ier fizic ads.txt Ã®n root, serverul Ã®l serveÈ™te pe
+ * acela direct È™i PHP nu mai ruleazÄƒ â€” atunci setarea din temÄƒ e ignoratÄƒ.
  */
 function magpress_serve_ads_txt() {
     $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     if (strtolower(trim($path, '/')) !== 'ads.txt') { return; }
 
     $content = trim((string) get_theme_mod('magpress_ads_txt', ''));
-    if ($content === '') { return; } // lasă WP să dea 404 normal
+    if ($content === '') { return; } // lasÄƒ WP sÄƒ dea 404 normal
 
     if (!headers_sent()) {
         header('Content-Type: text/plain; charset=utf-8');
@@ -2034,15 +2034,15 @@ add_action('init', 'magpress_serve_ads_txt', 0);
 
 /**
  * ============================================================
- * PARTENERI — feed de articole din alte site-uri (stil Libertatea)
+ * PARTENERI â€” feed de articole din alte site-uri (stil Libertatea)
  * ============================================================
- * Sursele (URL + categorie opțională) vin din Customizer. Articolele se iau
- * prin REST API-ul WordPress al site-ului sursă (wp-json/wp/v2), cu imagine
- * featured, și se țin în cache 30 min (transient). Cache-ul e reîmprospătat
- * și de cron-ul de 5 minute, ca vizitatorii să nu aștepte fetch-ul aproape
- * niciodată. La eroare → cache gol 10 min, pagina nu se blochează.
+ * Sursele (URL + categorie opÈ›ionalÄƒ) vin din Customizer. Articolele se iau
+ * prin REST API-ul WordPress al site-ului sursÄƒ (wp-json/wp/v2), cu imagine
+ * featured, È™i se È›in Ã®n cache 30 min (transient). Cache-ul e reÃ®mprospÄƒtat
+ * È™i de cron-ul de 5 minute, ca vizitatorii sÄƒ nu aÈ™tepte fetch-ul aproape
+ * niciodatÄƒ. La eroare â†’ cache gol 10 min, pagina nu se blocheazÄƒ.
  */
-/** Sanitizează o listă de slug-uri separate prin virgulă („Sport, AUTO" → „sport,auto"). */
+/** SanitizeazÄƒ o listÄƒ de slug-uri separate prin virgulÄƒ (â€žSport, AUTO" â†’ â€žsport,auto"). */
 function magpress_sanitize_slug_list($v) {
     if (!is_string($v)) return '';
     $slugs = preg_split('/[\s,]+/', $v, -1, PREG_SPLIT_NO_EMPTY);
@@ -2065,7 +2065,7 @@ function magpress_partner_sources() {
     return $out;
 }
 
-/** Rezolvă o listă de slug-uri („sport,auto") în ID-uri de categorii de pe site-ul sursă. */
+/** RezolvÄƒ o listÄƒ de slug-uri (â€žsport,auto") Ã®n ID-uri de categorii de pe site-ul sursÄƒ. */
 function magpress_partner_resolve_cat_ids($site_url, $slug_list) {
     if ($slug_list === '') return [];
     $resp = wp_remote_get(
@@ -2124,26 +2124,26 @@ function magpress_partner_fetch($src, $limit = 4) {
                 ];
             }
         }
-        // Cache 12h (reglabil via filter). Reîmprospătat în fundal de cron.
+        // Cache 12h (reglabil via filter). ReÃ®mprospÄƒtat Ã®n fundal de cron.
         $ttl = (int) apply_filters('magpress_partners_cache_ttl', 12 * HOUR_IN_SECONDS);
         set_transient($key, $posts, max(300, $ttl));
     } else {
-        // La eroare (sursă picată) reîncercăm mai des — 30 min.
+        // La eroare (sursÄƒ picatÄƒ) reÃ®ncercÄƒm mai des â€” 30 min.
         set_transient($key, [], 30 * MINUTE_IN_SECONDS);
     }
     return $posts;
 }
 
 /**
- * Randează secțiunea Parteneri: 4 carduri, round-robin câte un articol din
- * fiecare sursă (dacă e o singură sursă → ultimele ei 4 articole).
- * Apare DOAR pe homepage (toggle în Customizer). Scoasă de pe articole la cererea userului.
+ * RandeazÄƒ secÈ›iunea Parteneri: 4 carduri, round-robin cÃ¢te un articol din
+ * fiecare sursÄƒ (dacÄƒ e o singurÄƒ sursÄƒ â†’ ultimele ei 4 articole).
+ * Apare DOAR pe homepage (toggle Ã®n Customizer). ScoasÄƒ de pe articole la cererea userului.
  */
 /**
- * Grila „Categorii populare" pe homepage (v0.9.168, poziționare pe slot din
- * v0.9.169) — carduri text fără iconițe. Config în Customizer (secțiunea
- * „Magpress: Categorii populare"): on/off (OFF implicit pe flotă), titlu,
- * categoriile bifate (CSV de ID-uri), „după ce slot apare".
+ * Grila â€žCategorii populare" pe homepage (v0.9.168, poziÈ›ionare pe slot din
+ * v0.9.169) â€” carduri text fÄƒrÄƒ iconiÈ›e. Config Ã®n Customizer (secÈ›iunea
+ * â€žMagpress: Categorii populare"): on/off (OFF implicit pe flotÄƒ), titlu,
+ * categoriile bifate (CSV de ID-uri), â€ždupÄƒ ce slot apare".
  * Plasarea o face front-page.php prin magpress_homepage_after_slot().
  */
 function magpress_render_popular_categories() {
@@ -2186,10 +2186,10 @@ function magpress_render_popular_categories() {
 }
 
 /**
- * Inserții poziționate pe slot (v0.9.169): apelată de front-page.php după fiecare
- * slot randat ($i = 1..N, în ordinea afișării, incl. sloturile de reclamă), cu
- * $i = 0 la ancorele de dinaintea sloturilor și $total la final pentru „jos de tot"
- * (poziții mai mari decât sloturile active).
+ * InserÈ›ii poziÈ›ionate pe slot (v0.9.169): apelatÄƒ de front-page.php dupÄƒ fiecare
+ * slot randat ($i = 1..N, Ã®n ordinea afiÈ™Äƒrii, incl. sloturile de reclamÄƒ), cu
+ * $i = 0 la ancorele de dinaintea sloturilor È™i $total la final pentru â€žjos de tot"
+ * (poziÈ›ii mai mari decÃ¢t sloturile active).
  */
 function magpress_homepage_after_slot($i, $total = null) {
     $pop = (int) get_theme_mod('magpress_popcats_position', 0);
@@ -2197,7 +2197,7 @@ function magpress_homepage_after_slot($i, $total = null) {
     $nlb = (int) get_theme_mod('magpress_nlbar_position', 0);
     $has_nl = (int) get_theme_mod('magpress_nlbar_enabled', 0);
     if ($total !== null) {
-        // finalul listei: randează tot ce țintea un slot inexistent
+        // finalul listei: randeazÄƒ tot ce È›intea un slot inexistent
         if ($pop > $total) magpress_render_popular_categories();
         if ($dis > $total) get_template_part('template-parts/google-discover');
         if ($has_nl && $nlb > $total) get_template_part('template-parts/newsletter-bar');
@@ -2253,14 +2253,14 @@ function magpress_render_partners() {
     <?php return ob_get_clean();
 }
 
-// Încălzește cache-ul feed-urilor pe cron-ul de 5 minute (după check-ul de update).
+// ÃŽncÄƒlzeÈ™te cache-ul feed-urilor pe cron-ul de 5 minute (dupÄƒ check-ul de update).
 add_action('magpress_auto_deploy_check', function () {
     foreach (magpress_partner_sources() as $src) { magpress_partner_fetch($src, 4); }
 }, 20);
 
-// Pre-warm bare Curs BNR + Vreme: refetch în FUNDAL (cron) ÎNAINTE de expirarea cache-ului,
-// ca vizitatorii să nu prindă niciodată cache rece. Doar pe site-urile unde bara e activată.
-// Un transient-marker limitează refetch-ul (sub TTL-ul de serving), deși cronul e la 5 min.
+// Pre-warm bare Curs BNR + Vreme: refetch Ã®n FUNDAL (cron) ÃŽNAINTE de expirarea cache-ului,
+// ca vizitatorii sÄƒ nu prindÄƒ niciodatÄƒ cache rece. Doar pe site-urile unde bara e activatÄƒ.
+// Un transient-marker limiteazÄƒ refetch-ul (sub TTL-ul de serving), deÈ™i cronul e la 5 min.
 add_action('magpress_auto_deploy_check', function () {
     if (get_theme_mod('magpress_topbar_curs', 0) && get_transient('magpress_bnr_prewarm') === false) {
         set_transient('magpress_bnr_prewarm', 1, 4 * HOUR_IN_SECONDS); // < 6h TTL serving
@@ -2273,9 +2273,9 @@ add_action('magpress_auto_deploy_check', function () {
 }, 30);
 
 /**
- * Inline critical CSS — minimul absolut pentru above-the-fold (header + container + featured).
+ * Inline critical CSS â€” minimul absolut pentru above-the-fold (header + container + featured).
  * Restul CSS-ului (style.css) ramane sa se incarce normal, dar critical apare instant
- * fara sa astepte download-ul fisierului → boost FCP/LCP.
+ * fara sa astepte download-ul fisierului â†’ boost FCP/LCP.
  */
 function magpress_inline_critical_css() {
     $css = '*,*::before,*::after{box-sizing:border-box}'
@@ -2288,9 +2288,9 @@ function magpress_inline_critical_css() {
          . '.site-header--inline .site-header__inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1rem clamp(1rem,3vw,2rem)}'
          . '.site-header--centered .site-header__top{display:flex!important;justify-content:center!important;align-items:center!important;padding:2rem clamp(1rem,3vw,2rem) 1.25rem!important;text-align:center!important}'
          . '.site-header--centered .site-header__top .site-logo{max-height:110px!important;width:auto!important;display:block!important;margin:0 auto}'
-         // Mobil (v0.9.178): logo STÂNGA, hamburger DREAPTA. Regula de mai sus e
-         // necondiționată și cu !important, deci o anulăm explicit aici — altfel,
-         // dacă LiteSpeed servește criticul după stylesheet, headerul rămâne centrat.
+         // Mobil (v0.9.178): logo STÃ‚NGA, hamburger DREAPTA. Regula de mai sus e
+         // necondiÈ›ionatÄƒ È™i cu !important, deci o anulÄƒm explicit aici â€” altfel,
+         // dacÄƒ LiteSpeed serveÈ™te criticul dupÄƒ stylesheet, headerul rÄƒmÃ¢ne centrat.
          . '@media(max-width:768px){'
          . '.site-header--centered .site-header__top{display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important;text-align:left!important;padding:.85rem clamp(1rem,3vw,2rem)!important}'
          . '.site-header--centered .site-header__top .site-branding{order:1;justify-self:start!important;margin:0!important}'
@@ -2299,8 +2299,8 @@ function magpress_inline_critical_css() {
          . '.site-header--centered .header-spacer{display:none!important}'
          . '}'
          . '.site-nav-bar{background:#fff;border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6}'
-         // Meniu centered: aliniat cu .container (aceeași lățime ca meniul/conținutul). !important ca
-         // să reziste la CSS combinat/UCSS stale de la LiteSpeed (regula veche nu avea !important).
+         // Meniu centered: aliniat cu .container (aceeaÈ™i lÄƒÈ›ime ca meniul/conÈ›inutul). !important ca
+         // sÄƒ reziste la CSS combinat/UCSS stale de la LiteSpeed (regula veche nu avea !important).
          . '.site-nav-bar__inner{padding:.4rem clamp(1rem,3vw,2rem)!important}'
          . '.featured-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin:2rem 0 3rem;width:100%}'
          . '.featured-grid>*{min-width:0;max-width:100%}'
@@ -2308,24 +2308,24 @@ function magpress_inline_critical_css() {
          . '.featured-card{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/10;min-height:280px;background:#f6f7f5}'
          . '.featured-card__image{position:absolute;inset:0;display:block;z-index:1}'
          . '.featured-card__image img{width:100%;height:100%;object-fit:cover}'
-         // Cards normale (category rows) — aspect-ratio 3/2 ca să rezerve spațiu corect de la primul paint (anti-CLS)
+         // Cards normale (category rows) â€” aspect-ratio 3/2 ca sÄƒ rezerve spaÈ›iu corect de la primul paint (anti-CLS)
          . '.card{display:flex;flex-direction:column;background:#fff;border-radius:8px;overflow:hidden}'
          . '.card-image{display:block;aspect-ratio:3/2;overflow:hidden;background:#f6f7f5;position:relative}'
          . '.card-image img{width:100%;height:100%;object-fit:cover;display:block}'
          . '.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.25rem}'
-         // Site logo dimensiuni explicit ca să nu shifteze layoutul header când imaginea încarcă
+         // Site logo dimensiuni explicit ca sÄƒ nu shifteze layoutul header cÃ¢nd imaginea Ã®ncarcÄƒ
          . '.site-logo{display:block;max-height:48px;width:auto;height:auto}'
          . '.site-logo img{display:block;max-height:100%;width:auto;height:auto}'
-         // Ad slot înălțime rezervată (anti-CLS la încărcare AdSense)
+         // Ad slot Ã®nÄƒlÈ›ime rezervatÄƒ (anti-CLS la Ã®ncÄƒrcare AdSense)
          . '.ad-slot{display:block;min-height:280px;margin:2rem auto;text-align:center}'
          . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
          . '.skip-link{position:absolute;left:-9999px}'
-         // Checkbox căutare fix în viewport → deschiderea modalului NU derulează pagina la footer.
-         // !important + în critical ca să bată CSS-ul combinat/UCSS stale de la LiteSpeed (admin logat).
+         // Checkbox cÄƒutare fix Ã®n viewport â†’ deschiderea modalului NU deruleazÄƒ pagina la footer.
+         // !important + Ã®n critical ca sÄƒ batÄƒ CSS-ul combinat/UCSS stale de la LiteSpeed (admin logat).
          . '.search-modal-checkbox{position:fixed!important;top:0!important;left:0!important}'
-         // Sticky header — inline ca să reziste la UCSS/Critical CSS removal de la LiteSpeed
+         // Sticky header â€” inline ca sÄƒ reziste la UCSS/Critical CSS removal de la LiteSpeed
          . '@media(min-width:768px){'
          . '.has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-header-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
          . '.has-sticky-header .site-nav-bar--centered{position:sticky;top:0;z-index:100;background:var(--c-menu-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
@@ -2348,13 +2348,13 @@ function magpress_reading_time($post_id = null) {
 
 /**
  * Breadcrumbs simplu: Acasa / Categorie / Titlu (sau Acasa / Categorie).
- * SEOPress are propriul breadcrumbs schema — daca-l afiseaza el, comenteaza apelul.
+ * SEOPress are propriul breadcrumbs schema â€” daca-l afiseaza el, comenteaza apelul.
  */
 function magpress_breadcrumbs() {
     echo '<nav class="breadcrumbs" aria-label="Breadcrumb">';
-    echo '<a href="' . esc_url(home_url('/')) . '">Acasă</a>';
+    echo '<a href="' . esc_url(home_url('/')) . '">AcasÄƒ</a>';
 
-    // Categoriile PĂRINTE, de sus în jos (ex. Afaceri / Piețe și industrii).
+    // Categoriile PÄ‚RINTE, de sus Ã®n jos (ex. Afaceri / PieÈ›e È™i industrii).
     $ancestors = function ($term) {
         if (!$term || empty($term->term_id)) return;
         foreach (array_reverse(get_ancestors($term->term_id, $term->taxonomy)) as $aid) {
@@ -2373,8 +2373,8 @@ function magpress_breadcrumbs() {
             echo '<span class="sep">/</span>';
             echo '<a href="' . esc_url(get_category_link($cats[0])) . '">' . esc_html($cats[0]->name) . '</a>';
         }
-        // v0.9.181: titlul articolului lipsea, deși schema BreadcrumbList îl emitea
-        // deja — firimiturile vizibile se opreau la categorie.
+        // v0.9.181: titlul articolului lipsea, deÈ™i schema BreadcrumbList Ã®l emitea
+        // deja â€” firimiturile vizibile se opreau la categorie.
         echo '<span class="sep">/</span>';
         echo '<span class="current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_category() || is_tag() || is_tax()) {
@@ -2390,10 +2390,10 @@ function magpress_breadcrumbs() {
         echo '<span class="current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_search()) {
         echo '<span class="sep">/</span>';
-        echo '<span class="current">Rezultate căutare</span>';
+        echo '<span class="current">Rezultate cÄƒutare</span>';
     } elseif (is_404()) {
         echo '<span class="sep">/</span>';
-        echo '<span class="current">Pagină negăsită</span>';
+        echo '<span class="current">PaginÄƒ negÄƒsitÄƒ</span>';
     }
     echo '</nav>';
 }
@@ -2404,7 +2404,7 @@ function magpress_breadcrumbs() {
  * Returns: array de ['type' => 'category'|'ad', ...payload...]
  */
 function magpress_homepage_slots() {
-    // Static memo — apelată o singură dată per request
+    // Static memo â€” apelatÄƒ o singurÄƒ datÄƒ per request
     static $cached_slots = null;
     if ($cached_slots !== null) return $cached_slots;
 
@@ -2424,7 +2424,7 @@ function magpress_homepage_slots() {
             }
             $cat_ids = array_values(array_unique($cat_ids));
             if (empty($cat_ids)) continue;
-            // Verifică prima categorie validă pentru titlu/URL secțiune
+            // VerificÄƒ prima categorie validÄƒ pentru titlu/URL secÈ›iune
             $primary_cat = null;
             foreach ($cat_ids as $cid) {
                 $c = get_category($cid);
@@ -2476,7 +2476,7 @@ function magpress_homepage_slots() {
 }
 
 /**
- * Injecteaza reclama in mijlocul articolului — dupa al 3-lea paragraf <p>.
+ * Injecteaza reclama in mijlocul articolului â€” dupa al 3-lea paragraf <p>.
  * Aplicat doar pe single post.
  */
 function magpress_inject_mid_article_ad($content) {
@@ -2487,11 +2487,11 @@ function magpress_inject_mid_article_ad($content) {
 
     $parts = explode('</p>', $content);
     $n = count($parts);
-    if ($n < 5) return $content; // <4 paragrafe — nicio reclamă
+    if ($n < 5) return $content; // <4 paragrafe â€” nicio reclamÄƒ
 
-    // Poziția 1: după paragraful 3. Poziția 2: pe la 60%, doar pe articole lungi.
-    // Map poziție→HTML (fiecare cu contextul lui). A doua reclamă e un COD SEPARAT
-    // (widget-id diferit) dacă e configurată; altfel, pentru non-MGID, dublăm primul.
+    // PoziÈ›ia 1: dupÄƒ paragraful 3. PoziÈ›ia 2: pe la 60%, doar pe articole lungi.
+    // Map poziÈ›ieâ†’HTML (fiecare cu contextul lui). A doua reclamÄƒ e un COD SEPARAT
+    // (widget-id diferit) dacÄƒ e configuratÄƒ; altfel, pentru non-MGID, dublÄƒm primul.
     $insertions = [];
     if ($ad !== '') { $insertions[3] = magpress_render_ad_html($ad, 'mid-article'); }
 
@@ -2499,11 +2499,11 @@ function magpress_inject_mid_article_ad($content) {
         $second = (int) floor($n * 0.6);
         if ($second >= 6 && $second <= $n - 2 && !isset($insertions[$second])) {
             if ($ad2 !== '') {
-                // A doua reclamă distinctă (recomandat pt MGID/AdsKeeper — widget-id propriu).
+                // A doua reclamÄƒ distinctÄƒ (recomandat pt MGID/AdsKeeper â€” widget-id propriu).
                 $insertions[$second] = magpress_render_ad_html($ad2, 'mid-article-2');
             } elseif ($ad !== '') {
-                // Fără a doua reclamă configurată: dublăm primul DOAR dacă NU e MGID/AdsKeeper
-                // (acelea nu se umplu de două ori cu același widget-id).
+                // FÄƒrÄƒ a doua reclamÄƒ configuratÄƒ: dublÄƒm primul DOAR dacÄƒ NU e MGID/AdsKeeper
+                // (acelea nu se umplu de douÄƒ ori cu acelaÈ™i widget-id).
                 $is_mgid = (bool) preg_match('/_mgwidget|_mgq\b|adskeeper|mgid\.com|jsc\.mgid/i', $ad);
                 if (!$is_mgid) { $insertions[$second] = magpress_render_ad_html($ad, 'mid-article'); }
             }
@@ -2523,17 +2523,17 @@ function magpress_inject_mid_article_ad($content) {
 add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
 
 /**
- * Strip atribuirea "Articolul X apare prima dată în Y." din conținut.
- * Aplicat în 3 locuri pentru a acoperi toate căile:
- *   1. wpeMatico_pre_insert_post — la import RSS (curăță înainte de DB insert; postări NOI)
- *   2. wpematico_pre_insert_post — variant lowercase (PHP filter names sunt case-sensitive)
- *   3. the_content — la afișare (curăță postările deja importate, fără modificare DB)
+ * Strip atribuirea "Articolul X apare prima datÄƒ Ã®n Y." din conÈ›inut.
+ * Aplicat Ã®n 3 locuri pentru a acoperi toate cÄƒile:
+ *   1. wpeMatico_pre_insert_post â€” la import RSS (curÄƒÈ›Äƒ Ã®nainte de DB insert; postÄƒri NOI)
+ *   2. wpematico_pre_insert_post â€” variant lowercase (PHP filter names sunt case-sensitive)
+ *   3. the_content â€” la afiÈ™are (curÄƒÈ›Äƒ postÄƒrile deja importate, fÄƒrÄƒ modificare DB)
  */
 function magpress_strip_source_attribution($content) {
     if (!is_string($content) || $content === '') return $content;
-    // Linia "Articolul %POSTLINK% apare prima dată în %BLOGLINK%." (sau cu link-uri reale)
-    $content = preg_replace('/Articolul.*?apare prima dat[ăa] în.*?\./isu', '', $content);
-    // Curăță și paragrafele goale rămase
+    // Linia "Articolul %POSTLINK% apare prima datÄƒ Ã®n %BLOGLINK%." (sau cu link-uri reale)
+    $content = preg_replace('/Articolul.*?apare prima dat[Äƒa] Ã®n.*?\./isu', '', $content);
+    // CurÄƒÈ›Äƒ È™i paragrafele goale rÄƒmase
     $content = preg_replace('/<p[^>]*>\s*<\/p>/i', '', $content);
     return $content;
 }
@@ -2552,7 +2552,7 @@ add_filter('wpematico_pre_insert_post', function ($post_data) {
     }
     return $post_data;
 });
-// 3. La afișare (acoperă postările deja importate)
+// 3. La afiÈ™are (acoperÄƒ postÄƒrile deja importate)
 add_filter('the_content', 'magpress_strip_source_attribution', 5);
 
 /**
@@ -2565,8 +2565,8 @@ function magpress_get_end_article_ad() {
 }
 
 /**
- * Reclamă în capul paginilor de categorie/tag (după descriere, înainte de articole).
- * Refolosește codul AdSense din slotul mid-article (zero config suplimentar per site).
+ * ReclamÄƒ Ã®n capul paginilor de categorie/tag (dupÄƒ descriere, Ã®nainte de articole).
+ * RefoloseÈ™te codul AdSense din slotul mid-article (zero config suplimentar per site).
  */
 function magpress_get_category_top_ad() {
     if (!is_category() && !is_tag()) return '';
@@ -2577,19 +2577,19 @@ function magpress_get_category_top_ad() {
 
 /**
  * ============================================================
- * ERROR LOGGER pentru fișierele temei
+ * ERROR LOGGER pentru fiÈ™ierele temei
  * ============================================================
- * Captează automat erori PHP din fișierele Magpress și le scrie
- * în /wp-content/magpress-errors.log. Vizibile in admin panel.
+ * CapteazÄƒ automat erori PHP din fiÈ™ierele Magpress È™i le scrie
+ * Ã®n /wp-content/magpress-errors.log. Vizibile in admin panel.
  */
 const MAGPRESS_ERROR_LOG_FILE = WP_CONTENT_DIR . '/magpress-errors.log';
-const MAGPRESS_ERROR_LOG_MAX_BYTES = 524288; // 512 KB — rotim când depășește
+const MAGPRESS_ERROR_LOG_MAX_BYTES = 524288; // 512 KB â€” rotim cÃ¢nd depÄƒÈ™eÈ™te
 
 function magpress_log_error($severity, $message, $file, $line) {
     // Doar erori din folderul temei (sau apelate din tema)
     if (strpos($file, MAGPRESS_DIR) === false) return;
 
-    // Rotește log-ul dacă e prea mare
+    // RoteÈ™te log-ul dacÄƒ e prea mare
     if (file_exists(MAGPRESS_ERROR_LOG_FILE) && filesize(MAGPRESS_ERROR_LOG_FILE) > MAGPRESS_ERROR_LOG_MAX_BYTES) {
         @rename(MAGPRESS_ERROR_LOG_FILE, MAGPRESS_ERROR_LOG_FILE . '.old');
     }
@@ -2613,13 +2613,13 @@ function magpress_error_handler($errno, $errstr, $errfile, $errline) {
         E_USER_NOTICE   => 'USER_NOTICE',
         E_DEPRECATED    => 'DEPRECATED',
         E_USER_DEPRECATED => 'USER_DEPRECATED',
-        // E_STRICT eliminat: constanta e deprecată în PHP 8.4+ și simpla ei referire
-        // (chiar ca cheie de array) spama log-ul cu „Constant E_STRICT is deprecated".
+        // E_STRICT eliminat: constanta e deprecatÄƒ Ã®n PHP 8.4+ È™i simpla ei referire
+        // (chiar ca cheie de array) spama log-ul cu â€žConstant E_STRICT is deprecated".
         E_RECOVERABLE_ERROR => 'RECOVERABLE_ERROR',
     ];
     $severity = $severity_map[$errno] ?? 'UNKNOWN(' . $errno . ')';
     magpress_log_error($severity, $errstr, $errfile, $errline);
-    return false; // continuă handler-ul nativ
+    return false; // continuÄƒ handler-ul nativ
 }
 
 function magpress_fatal_handler() {
@@ -2634,17 +2634,17 @@ function magpress_register_error_handlers() {
     // Doar pe frontend + admin (nu in cron sau cli)
     if (defined('DOING_CRON') && DOING_CRON) return;
     if (defined('WP_CLI') && WP_CLI) return;
-    // SKIP pe producție când WP_DEBUG e off — error handler-ul adaugă overhead pe FIECARE request.
-    // Pe producție WordPress nu emite warning-uri vizibile oricum.
+    // SKIP pe producÈ›ie cÃ¢nd WP_DEBUG e off â€” error handler-ul adaugÄƒ overhead pe FIECARE request.
+    // Pe producÈ›ie WordPress nu emite warning-uri vizibile oricum.
     if (!defined('WP_DEBUG') || !WP_DEBUG) return;
-    // E_STRICT deprecated în PHP 8.4+ — folosim E_ALL direct (E_STRICT oricum nu mai e folosit)
+    // E_STRICT deprecated Ã®n PHP 8.4+ â€” folosim E_ALL direct (E_STRICT oricum nu mai e folosit)
     set_error_handler('magpress_error_handler', E_ALL);
     register_shutdown_function('magpress_fatal_handler');
 }
 add_action('init', 'magpress_register_error_handlers');
 
 /**
- * Citește ultimele N erori din log (pentru afișare în admin).
+ * CiteÈ™te ultimele N erori din log (pentru afiÈ™are Ã®n admin).
  */
 function magpress_read_recent_errors($limit = 20) {
     if (!file_exists(MAGPRESS_ERROR_LOG_FILE)) return [];
@@ -2655,7 +2655,7 @@ function magpress_read_recent_errors($limit = 20) {
 }
 
 /**
- * Returnează numărul total de erori din log (pentru admin notice).
+ * ReturneazÄƒ numÄƒrul total de erori din log (pentru admin notice).
  */
 function magpress_count_errors() {
     if (!file_exists(MAGPRESS_ERROR_LOG_FILE)) return 0;
@@ -2665,7 +2665,7 @@ function magpress_count_errors() {
 }
 
 /**
- * Admin notice când există erori în log.
+ * Admin notice cÃ¢nd existÄƒ erori Ã®n log.
  */
 function magpress_admin_error_notice() {
     if (!current_user_can('manage_options')) return;
@@ -2674,7 +2674,7 @@ function magpress_admin_error_notice() {
     $url = admin_url('themes.php?page=magpress-settings');
     ?>
     <div class="notice notice-warning is-dismissible">
-        <p><strong>⚠️ Magpress:</strong> Tema a înregistrat <strong><?php echo $count; ?> erori</strong>. <a href="<?php echo esc_url($url); ?>">Vezi detalii →</a></p>
+        <p><strong>âš ï¸ Magpress:</strong> Tema a Ã®nregistrat <strong><?php echo $count; ?> erori</strong>. <a href="<?php echo esc_url($url); ?>">Vezi detalii â†’</a></p>
     </div>
     <?php
 }
@@ -2684,10 +2684,10 @@ add_action('admin_notices', 'magpress_admin_error_notice');
  * ============================================================
  * ADSENSE LAZY LOADING
  * ============================================================
- * Wrap ad HTML într-un container cu data-attribute. JS detectează când
- * slot-ul e aproape de viewport și inject-ează codul AdSense efectiv,
- * inclusiv script-urile (createContextualFragment execută script-uri inline).
- * Reduce TBT cu 200-400ms, LCP cu 500ms-1s, fără să strici venit AdSense.
+ * Wrap ad HTML Ã®ntr-un container cu data-attribute. JS detecteazÄƒ cÃ¢nd
+ * slot-ul e aproape de viewport È™i inject-eazÄƒ codul AdSense efectiv,
+ * inclusiv script-urile (createContextualFragment executÄƒ script-uri inline).
+ * Reduce TBT cu 200-400ms, LCP cu 500ms-1s, fÄƒrÄƒ sÄƒ strici venit AdSense.
  */
 function magpress_is_adsense_lazy_enabled() {
     return (bool) get_theme_mod('magpress_adsense_lazy', 1);
@@ -2697,17 +2697,17 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     $html = trim((string) $html);
     if ($html === '') return '';
 
-    // MGID native widgets: integrarea lor oficială cere ca div-ul (data-type="_mgwidget")
-    // + scriptul (_mgq.push(["_mgc.load"])) să fie în HTML-ul INIȚIAL — loader-ul MGID din
-    // <head> procesează coada _mgq la load. Dacă le injectăm lazy (la scroll), ne bazăm pe un
-    // re-scan al loader-ului care nu e garantat și widget-ul rămâne gol. Deci le emitem RAW,
-    // indiferent de setarea de lazy-loading. (Scriptul e definit de administrator — sigur.)
+    // MGID native widgets: integrarea lor oficialÄƒ cere ca div-ul (data-type="_mgwidget")
+    // + scriptul (_mgq.push(["_mgc.load"])) sÄƒ fie Ã®n HTML-ul INIÈšIAL â€” loader-ul MGID din
+    // <head> proceseazÄƒ coada _mgq la load. DacÄƒ le injectÄƒm lazy (la scroll), ne bazÄƒm pe un
+    // re-scan al loader-ului care nu e garantat È™i widget-ul rÄƒmÃ¢ne gol. Deci le emitem RAW,
+    // indiferent de setarea de lazy-loading. (Scriptul e definit de administrator â€” sigur.)
     if (preg_match('/_mgwidget|_mgq\b|jsc\.mgid|servicer\.mgid|mgid\.com/i', $html)) {
         return '<div class="ad-slot ad-slot--mgid ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
     }
 
-    // Detect & cache Publisher ID — caută în scriptul async loader SAU în data-ad-client pe <ins>.
-    // Îl emitem o singură dată în <head> ca să evităm race conditions per-slot.
+    // Detect & cache Publisher ID â€” cautÄƒ Ã®n scriptul async loader SAU Ã®n data-ad-client pe <ins>.
+    // ÃŽl emitem o singurÄƒ datÄƒ Ã®n <head> ca sÄƒ evitÄƒm race conditions per-slot.
     $pub_found = '';
     if (preg_match('/adsbygoogle\.js\?client=(ca-pub-\d+)/', $html, $pm)) {
         $pub_found = $pm[1];
@@ -2719,12 +2719,12 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     }
 
     if (!magpress_is_adsense_lazy_enabled()) {
-        // Non-lazy: păstrăm comportament vechi (include scriptul + push() inline)
+        // Non-lazy: pÄƒstrÄƒm comportament vechi (include scriptul + push() inline)
         return '<div class="ad-slot ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
     }
 
-    // Smart lazy: dacă găsim <ins class="adsbygoogle">, păstrăm DOAR <ins>-ul (curățat de scripturi).
-    // Scriptul loader e emis global în <head>; push() se face din IO callback cu safety checks.
+    // Smart lazy: dacÄƒ gÄƒsim <ins class="adsbygoogle">, pÄƒstrÄƒm DOAR <ins>-ul (curÄƒÈ›at de scripturi).
+    // Scriptul loader e emis global Ã®n <head>; push() se face din IO callback cu safety checks.
     if (preg_match('/(<ins\b[^>]*\badsbygoogle\b[^>]*(?:\/>|>.*?<\/ins>))/is', $html, $m)) {
         $ins_tag = $m[1];
         return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '">'
@@ -2732,24 +2732,24 @@ function magpress_render_ad_html($html, $context = 'homepage') {
              . '</div>';
     }
 
-    // Fallback: cod custom (banner image, etc.) — lazy total prin data-ad-html (păstrat din versiunea veche)
+    // Fallback: cod custom (banner image, etc.) â€” lazy total prin data-ad-html (pÄƒstrat din versiunea veche)
     return '<div class="ad-slot ad-slot--lazy-full ad-slot--' . esc_attr($context) . '" data-ad-html="' . esc_attr($html) . '">'
          . '<div class="ad-slot__placeholder" aria-hidden="true"></div>'
          . '</div>';
 }
 
 /**
- * Emite scriptul oficial adsbygoogle.js în <head> O SINGURĂ DATĂ.
- * Detectat automat la primul render de ad (cached în wp_options), sau setat manual din Customizer.
- * Evită race condition: push() din IO callback poate executa imediat fără să aștepte loading-ul scriptului.
+ * Emite scriptul oficial adsbygoogle.js Ã®n <head> O SINGURÄ‚ DATÄ‚.
+ * Detectat automat la primul render de ad (cached Ã®n wp_options), sau setat manual din Customizer.
+ * EvitÄƒ race condition: push() din IO callback poate executa imediat fÄƒrÄƒ sÄƒ aÈ™tepte loading-ul scriptului.
  */
 function magpress_enqueue_adsense_loader() {
     // Customizer override are prioritate
     $custom = trim((string) get_theme_mod('magpress_adsense_publisher_id', ''));
     $pub = $custom !== '' ? $custom : (string) get_option('magpress_adsense_publisher_id', '');
 
-    // Fallback: scanează toate input-urile Customizer pentru AdSense code (în caz că render-ul body
-    // nu a apucat să cache-ze încă, sau cache-ul e gol post-deploy).
+    // Fallback: scaneazÄƒ toate input-urile Customizer pentru AdSense code (Ã®n caz cÄƒ render-ul body
+    // nu a apucat sÄƒ cache-ze Ã®ncÄƒ, sau cache-ul e gol post-deploy).
     if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) {
         $candidates = [
             (string) get_theme_mod('magpress_article_ad_mid', ''),
@@ -2777,12 +2777,12 @@ function magpress_enqueue_adsense_loader() {
 add_action('wp_head', 'magpress_enqueue_adsense_loader', 5);
 
 /**
- * Fix LiteSpeed: feature-ul "Localize Resources" (optm-localize) servește scripturi
+ * Fix LiteSpeed: feature-ul "Localize Resources" (optm-localize) serveÈ™te scripturi
  * externe de pe domeniul propriu (/wp-content/litespeed/localres/...). Pentru
- * adsbygoogle.js, Google Analytics și GTM asta STRICĂ funcționarea (AdSense nu mai
- * servește reclame, tracking-ul se rupe), pentru că Google verifică originea reală.
- * Pe tema asta (fără biblioteci CDN externe) localizarea nu aduce niciun beneficiu,
- * deci o dezactivăm la runtime prin acțiunea oficială LiteSpeed.
+ * adsbygoogle.js, Google Analytics È™i GTM asta STRICÄ‚ funcÈ›ionarea (AdSense nu mai
+ * serveÈ™te reclame, tracking-ul se rupe), pentru cÄƒ Google verificÄƒ originea realÄƒ.
+ * Pe tema asta (fÄƒrÄƒ biblioteci CDN externe) localizarea nu aduce niciun beneficiu,
+ * deci o dezactivÄƒm la runtime prin acÈ›iunea oficialÄƒ LiteSpeed.
  */
 function magpress_litespeed_disable_localize() {
     if (!defined('LSCWP_V')) return; // LiteSpeed Cache nu e activ
@@ -2792,9 +2792,9 @@ add_action('litespeed_init', 'magpress_litespeed_disable_localize');
 add_action('init', 'magpress_litespeed_disable_localize', 1);
 
 /**
- * Exclude logo-ul din LiteSpeed lazy load — logo-ul e LCP, trebuie încărcat eager.
- * Filtrul `litespeed_media_lazy_img_excludes` primește array de string-uri care, dacă
- * apar în tag-ul <img>, sar peste lazy. „site-logo" e clasa pusă de header.php.
+ * Exclude logo-ul din LiteSpeed lazy load â€” logo-ul e LCP, trebuie Ã®ncÄƒrcat eager.
+ * Filtrul `litespeed_media_lazy_img_excludes` primeÈ™te array de string-uri care, dacÄƒ
+ * apar Ã®n tag-ul <img>, sar peste lazy. â€žsite-logo" e clasa pusÄƒ de header.php.
  */
 add_filter('litespeed_media_lazy_img_excludes', function($excludes) {
     if (!is_array($excludes)) $excludes = [];
@@ -2807,10 +2807,10 @@ function magpress_adsense_lazy_script() {
     ?>
 <script id="magpress-adsense-lazy">
 (function(){
-  // Auto-inject loader adsbygoogle.js dacă nu există deja (când sloturile vin din plugin extern).
-  // Detectează publisher ID din data-ad-client al primului <ins> și încarcă scriptul în <head>.
+  // Auto-inject loader adsbygoogle.js dacÄƒ nu existÄƒ deja (cÃ¢nd sloturile vin din plugin extern).
+  // DetecteazÄƒ publisher ID din data-ad-client al primului <ins> È™i Ã®ncarcÄƒ scriptul Ã®n <head>.
   function ensureAdsenseLoader(){
-    if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja încărcat
+    if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja Ã®ncÄƒrcat
     var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"]');
     if (!firstIns) return;
     var client = firstIns.getAttribute('data-ad-client');
@@ -2823,20 +2823,20 @@ function magpress_adsense_lazy_script() {
   }
   ensureAdsenseLoader();
 
-  // Injectează HTML custom + execută scripturile. Suportă și scripturi care
-  // afișează bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
-  // nu se randează când scriptul e încărcat lazy (browserul ignoră document.write
-  // după ce pagina s-a parsat). Capturăm output-ul și-l mutăm în slot.
+  // InjecteazÄƒ HTML custom + executÄƒ scripturile. SuportÄƒ È™i scripturi care
+  // afiÈ™eazÄƒ bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
+  // nu se randeazÄƒ cÃ¢nd scriptul e Ã®ncÄƒrcat lazy (browserul ignorÄƒ document.write
+  // dupÄƒ ce pagina s-a parsat). CapturÄƒm output-ul È™i-l mutÄƒm Ã®n slot.
   function executeScripts(container, html){
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
-    // Mută TOATE nodurile copil în container, păstrând structura (div-urile wrapper rămân).
-    // Script-urile sunt inerte după innerHTML — le re-creăm IN PLACE mai jos.
+    // MutÄƒ TOATE nodurile copil Ã®n container, pÄƒstrÃ¢nd structura (div-urile wrapper rÄƒmÃ¢n).
+    // Script-urile sunt inerte dupÄƒ innerHTML â€” le re-creÄƒm IN PLACE mai jos.
     while (tmp.firstChild) container.appendChild(tmp.firstChild);
 
-    // Detectează TOATE script-urile (inclusiv nested în div-uri wrapper — ex: Scoreaxis,
+    // DetecteazÄƒ TOATE script-urile (inclusiv nested Ã®n div-uri wrapper â€” ex: Scoreaxis,
     // unde <script> e copil al <div id="scoreaxis-widget-X">; document.currentScript.parentNode
-    // trebuie să fie wrapperul, NU ad-slot-ul direct).
+    // trebuie sÄƒ fie wrapperul, NU ad-slot-ul direct).
     var scripts = Array.prototype.slice.call(container.querySelectorAll('script:not([data-magpress-executed])'));
 
     function runNext(i){
@@ -2849,9 +2849,9 @@ function magpress_adsense_lazy_script() {
 
       var parent = oldS.parentNode || container;
 
-      // Shim document.write: inserăm SINCRON output-ul în parent-ul scriptului
-      // (ex: profitshare face document.write(<div id=...>) și imediat după
-      // document.getElementById(id) — dacă nu inserăm pe loc, găsesc null).
+      // Shim document.write: inserÄƒm SINCRON output-ul Ã®n parent-ul scriptului
+      // (ex: profitshare face document.write(<div id=...>) È™i imediat dupÄƒ
+      // document.getElementById(id) â€” dacÄƒ nu inserÄƒm pe loc, gÄƒsesc null).
       var origWrite = document.write, origWriteln = document.writeln;
       document.write = document.writeln = function(s){
         var holder = document.createElement('div');
@@ -2877,10 +2877,10 @@ function magpress_adsense_lazy_script() {
   }
 
   // AdSense push() cu safety:
-  //  - verifică data-adsbygoogle-status (previne TagError "ins already have ads")
-  //  - try/catch (orice eroare nu blochează alte slots)
-  //  - scriptul loader e deja în <head> (emis de magpress_enqueue_adsense_loader), deci push-ul
-  //    se queue-uiește în window.adsbygoogle array și execută când loader-ul e gata
+  //  - verificÄƒ data-adsbygoogle-status (previne TagError "ins already have ads")
+  //  - try/catch (orice eroare nu blocheazÄƒ alte slots)
+  //  - scriptul loader e deja Ã®n <head> (emis de magpress_enqueue_adsense_loader), deci push-ul
+  //    se queue-uieÈ™te Ã®n window.adsbygoogle array È™i executÄƒ cÃ¢nd loader-ul e gata
   function pushAdsense(ins){
     if (!ins || ins.dataset.adsbygoogleStatus) return;
     try {
@@ -2897,9 +2897,9 @@ function magpress_adsense_lazy_script() {
     slot.classList.add('ad-slot--loaded');
   }
 
-  // Reclamele cu dimensiune fixă (ex: profitshare 1200x628, 970x250) pot fi mai
-  // late decât slotul (max ~1000px) și s-ar tăia. Le scalăm proporțional cu
-  // transform:scale ca să încapă fără crop și fără distorsiune (rămân clare).
+  // Reclamele cu dimensiune fixÄƒ (ex: profitshare 1200x628, 970x250) pot fi mai
+  // late decÃ¢t slotul (max ~1000px) È™i s-ar tÄƒia. Le scalÄƒm proporÈ›ional cu
+  // transform:scale ca sÄƒ Ã®ncapÄƒ fÄƒrÄƒ crop È™i fÄƒrÄƒ distorsiune (rÄƒmÃ¢n clare).
   function fitFixedAd(slot){
     var target = slot.querySelector('[data-magpress-fit]');
     var natW, natH;
@@ -2916,7 +2916,7 @@ function magpress_adsense_lazy_script() {
       slot.setAttribute('data-ad-w', natW);
       slot.setAttribute('data-ad-h', natH);
     }
-    // Reset ca să măsurăm spațiul real disponibil
+    // Reset ca sÄƒ mÄƒsurÄƒm spaÈ›iul real disponibil
     slot.style.width = ''; slot.style.height = ''; target.style.transform = '';
     var avail = slot.clientWidth || (slot.parentNode && slot.parentNode.clientWidth) || natW;
     var scale = Math.min(1, avail / natW);
@@ -2937,7 +2937,7 @@ function magpress_adsense_lazy_script() {
   }
 
   function activateFullSlot(slot){
-    // Slot fără <ins> (banner custom HTML/img) — inject totul
+    // Slot fÄƒrÄƒ <ins> (banner custom HTML/img) â€” inject totul
     var html = slot.dataset.adHtml || '';
     var ph = slot.querySelector('.ad-slot__placeholder');
     if (ph) ph.remove();
@@ -2959,9 +2959,9 @@ function magpress_adsense_lazy_script() {
     return;
   }
 
-  // rootMargin redus de la 400px la 200px — recomandarea Google:
-  // declanșează push() înainte ca slot-ul să fie vizibil, dar nu prea devreme
-  // (slot-uri unfilled because ad nu e încă "in viewable position")
+  // rootMargin redus de la 400px la 200px â€” recomandarea Google:
+  // declanÈ™eazÄƒ push() Ã®nainte ca slot-ul sÄƒ fie vizibil, dar nu prea devreme
+  // (slot-uri unfilled because ad nu e Ã®ncÄƒ "in viewable position")
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
@@ -2973,7 +2973,7 @@ function magpress_adsense_lazy_script() {
 
   document.querySelectorAll(selectors).forEach(function(s){ io.observe(s); });
 
-  // Re-scalează bannerele cu dimensiune fixă când se schimbă lățimea ferestrei.
+  // Re-scaleazÄƒ bannerele cu dimensiune fixÄƒ cÃ¢nd se schimbÄƒ lÄƒÈ›imea ferestrei.
   var resizeT;
   window.addEventListener('resize', function(){
     clearTimeout(resizeT);
@@ -2988,8 +2988,8 @@ function magpress_adsense_lazy_script() {
 add_action('wp_footer', 'magpress_adsense_lazy_script', 5);
 
 /**
- * Lightbox pentru imagini din articol (.entry-content) — auto-detectează imaginile
- * cu link la full size (wp-block-image cu <a>, gallery, wp-block-gallery) și deschide
+ * Lightbox pentru imagini din articol (.entry-content) â€” auto-detecteazÄƒ imaginile
+ * cu link la full size (wp-block-image cu <a>, gallery, wp-block-gallery) È™i deschide
  * overlay cu navigare prev/next, ESC, click outside, swipe pe mobil.
  * Doar pe single post/page (nu pe homepage/archive).
  */
@@ -3001,7 +3001,7 @@ function magpress_lightbox_script() {
   var content = document.querySelector('.entry-content');
   if (!content) return;
 
-  // Verifică dacă un src e un placeholder lazy load (NU URL real de imagine).
+  // VerificÄƒ dacÄƒ un src e un placeholder lazy load (NU URL real de imagine).
   // LiteSpeed/lazy-loaders folosesc data URIs (data:image/svg+xml;base64,...) ca placeholder.
   function isPlaceholder(src){
     if (!src) return true;
@@ -3010,7 +3010,7 @@ function magpress_lightbox_script() {
     return false;
   }
 
-  // Alege cea mai mare imagine din srcset (returnează URL-ul).
+  // Alege cea mai mare imagine din srcset (returneazÄƒ URL-ul).
   function largestFromSrcset(srcset){
     if (!srcset) return '';
     var best = '', maxW = 0;
@@ -3022,10 +3022,10 @@ function magpress_lightbox_script() {
     return best;
   }
 
-  // Detectează URL-ul full pentru o imagine, EVITÂND lazy load placeholders.
-  // Prioritate: <a> părinte cu link media → srcset largest → data-srcset (LiteSpeed) → data-src → currentSrc/src.
+  // DetecteazÄƒ URL-ul full pentru o imagine, EVITÃ‚ND lazy load placeholders.
+  // Prioritate: <a> pÄƒrinte cu link media â†’ srcset largest â†’ data-srcset (LiteSpeed) â†’ data-src â†’ currentSrc/src.
   function getFullSrc(img){
-    // 1. Link părinte la fișier media
+    // 1. Link pÄƒrinte la fiÈ™ier media
     var a = img.closest('a');
     if (a && a.href && /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i.test(a.href)) return a.href;
 
@@ -3033,7 +3033,7 @@ function magpress_lightbox_script() {
     var fromSrcset = largestFromSrcset(img.srcset || img.getAttribute('srcset'));
     if (fromSrcset && !isPlaceholder(fromSrcset)) return fromSrcset;
 
-    // 3. data-srcset (LiteSpeed/lazy plugin-uri stochează aici originalul)
+    // 3. data-srcset (LiteSpeed/lazy plugin-uri stocheazÄƒ aici originalul)
     var fromDataSrcset = largestFromSrcset(img.getAttribute('data-srcset'));
     if (fromDataSrcset) return fromDataSrcset;
 
@@ -3045,12 +3045,12 @@ function magpress_lightbox_script() {
     var lazySrc = img.getAttribute('data-lazy-src');
     if (lazySrc && !isPlaceholder(lazySrc)) return lazySrc;
 
-    // 6. Fallback final — currentSrc/src (poate fi placeholder dar e tot ce avem)
+    // 6. Fallback final â€” currentSrc/src (poate fi placeholder dar e tot ce avem)
     var cur = img.currentSrc || img.src || '';
     return cur;
   }
 
-  // Colectează toate imaginile linkabile din articol: galerie + wp-block-image cu <a> la full size
+  // ColecteazÄƒ toate imaginile linkabile din articol: galerie + wp-block-image cu <a> la full size
   function collectImages(){
     var imgs = [];
     var nodes = content.querySelectorAll(
@@ -3072,15 +3072,15 @@ function magpress_lightbox_script() {
   var items = collectImages();
   if (!items.length) return;
 
-  // Construiește overlay-ul o singură dată
+  // ConstruieÈ™te overlay-ul o singurÄƒ datÄƒ
   var lb = document.createElement('div');
   lb.className = 'magpress-lightbox';
   lb.setAttribute('role', 'dialog');
   lb.setAttribute('aria-modal', 'true');
   lb.innerHTML = ''
-    + '<button class="magpress-lightbox__btn magpress-lightbox__close" aria-label="Închide"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg></button>'
+    + '<button class="magpress-lightbox__btn magpress-lightbox__close" aria-label="ÃŽnchide"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg></button>'
     + '<button class="magpress-lightbox__btn magpress-lightbox__prev" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>'
-    + '<button class="magpress-lightbox__btn magpress-lightbox__next" aria-label="Următor"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>'
+    + '<button class="magpress-lightbox__btn magpress-lightbox__next" aria-label="UrmÄƒtor"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>'
     + '<div class="magpress-lightbox__counter" aria-live="polite"></div>'
     + '<img class="magpress-lightbox__img" alt="">'
     + '<div class="magpress-lightbox__caption" aria-live="polite" style="display:none"></div>';
@@ -3098,7 +3098,7 @@ function magpress_lightbox_script() {
     if (idx >= items.length) idx = 0;
     currentIdx = idx;
     var it = items[idx];
-    // Re-derivă URL-ul la fiecare show — dacă LiteSpeed a încărcat imaginea între timp,
+    // Re-derivÄƒ URL-ul la fiecare show â€” dacÄƒ LiteSpeed a Ã®ncÄƒrcat imaginea Ã®ntre timp,
     // src/srcset sunt acum URL-uri reale (nu placeholder data:URI).
     var freshFull = getFullSrc(it.el);
     if (freshFull) it.full = freshFull;
@@ -3111,7 +3111,7 @@ function magpress_lightbox_script() {
     } else {
       lbCaption.style.display = 'none';
     }
-    // Hide prev/next dacă e o singură imagine
+    // Hide prev/next dacÄƒ e o singurÄƒ imagine
     var multi = items.length > 1;
     lbPrev.style.display = multi ? '' : 'none';
     lbNext.style.display = multi ? '' : 'none';
@@ -3131,7 +3131,7 @@ function magpress_lightbox_script() {
   // Bind click pe imagini
   items.forEach(function(it, idx){
     it.el.style.cursor = 'zoom-in';
-    // Dacă imaginea e în <a>, prevent default și deschide lightbox-ul
+    // DacÄƒ imaginea e Ã®n <a>, prevent default È™i deschide lightbox-ul
     var a = it.el.closest('a');
     var target = a || it.el;
     target.addEventListener('click', function(e){
@@ -3143,7 +3143,7 @@ function magpress_lightbox_script() {
   lb.querySelector('.magpress-lightbox__close').addEventListener('click', close);
   lbPrev.addEventListener('click', function(e){ e.stopPropagation(); show(currentIdx - 1); });
   lbNext.addEventListener('click', function(e){ e.stopPropagation(); show(currentIdx + 1); });
-  // Click pe fundal (nu pe imagine/buton) → close
+  // Click pe fundal (nu pe imagine/buton) â†’ close
   lb.addEventListener('click', function(e){
     if (e.target === lb) close();
   });
@@ -3180,12 +3180,12 @@ function magpress_register_adsense_lazy_setting($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_adsense_lazy', [
         'label'       => 'AdSense lazy load (recomandat)',
-        'description' => 'Încarcă reclamele DOAR când userul scrolează aproape de ele (~200px). Reduce TBT/LCP cu 200-1000ms. Dezactivează doar dacă observi că ads nu se mai afișează deloc.',
+        'description' => 'ÃŽncarcÄƒ reclamele DOAR cÃ¢nd userul scroleazÄƒ aproape de ele (~200px). Reduce TBT/LCP cu 200-1000ms. DezactiveazÄƒ doar dacÄƒ observi cÄƒ ads nu se mai afiÈ™eazÄƒ deloc.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
 
-    // Publisher ID override (manual fallback dacă detecția auto din cod nu funcționează)
+    // Publisher ID override (manual fallback dacÄƒ detecÈ›ia auto din cod nu funcÈ›ioneazÄƒ)
     $wp_customize->add_setting('magpress_adsense_publisher_id', [
         'default'           => '',
         'sanitize_callback' => function ($v) {
@@ -3195,8 +3195,8 @@ function magpress_register_adsense_lazy_setting($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_adsense_publisher_id', [
-        'label'       => 'AdSense Publisher ID (opțional)',
-        'description' => 'Format: ca-pub-1234567890123456. Lasă gol — tema detectează automat din primul cod AdSense salvat. Setează manual doar dacă nu detectează corect.',
+        'label'       => 'AdSense Publisher ID (opÈ›ional)',
+        'description' => 'Format: ca-pub-1234567890123456. LasÄƒ gol â€” tema detecteazÄƒ automat din primul cod AdSense salvat. SeteazÄƒ manual doar dacÄƒ nu detecteazÄƒ corect.',
         'section'     => 'magpress_layout',
         'type'        => 'text',
         'input_attrs' => ['placeholder' => 'ca-pub-...'],
@@ -3206,7 +3206,7 @@ add_action('customize_register', 'magpress_register_adsense_lazy_setting');
 
 /**
  * ============================================================
- * PING CENTRAL — site-ul trimite zilnic status la app.targetseo.ro
+ * PING CENTRAL â€” site-ul trimite zilnic status la app.targetseo.ro
  * ============================================================
  * Endpoint colector: https://app.targetseo.ro/api/magpress-ping.php
  * Vezi: app.targetseo.ro/magpress-sites.php (dashboard centralizat)
@@ -3215,9 +3215,9 @@ const MAGPRESS_PING_ENDPOINT = 'https://app.targetseo.ro/api/magpress-ping.php';
 const MAGPRESS_PING_SECRET   = 'magpress-monitor-b7f2e1a3c9d8'; // sincron cu api/magpress-ping.php pe targetseo.ro
 
 /**
- * Deploy secret — per site, generat o singură dată și salvat în wp_options.
- * NU mai e hardcodat în cod (vezi GitGuardian). Push-script-ul citește secretul
- * fiecărui site din magpress_sites pe targetseo.ro (trimis prin ping).
+ * Deploy secret â€” per site, generat o singurÄƒ datÄƒ È™i salvat Ã®n wp_options.
+ * NU mai e hardcodat Ã®n cod (vezi GitGuardian). Push-script-ul citeÈ™te secretul
+ * fiecÄƒrui site din magpress_sites pe targetseo.ro (trimis prin ping).
  */
 function magpress_get_deploy_secret() {
     $secret = get_option('magpress_deploy_secret');
@@ -3227,11 +3227,11 @@ function magpress_get_deploy_secret() {
     }
     return $secret;
 }
-// Asigură generarea la activare temă (nu așteptăm primul request REST)
+// AsigurÄƒ generarea la activare temÄƒ (nu aÈ™teptÄƒm primul request REST)
 add_action('after_switch_theme', 'magpress_get_deploy_secret');
 
 function magpress_send_ping($blocking = false) {
-    // Citește log-ul pentru recent_errors + counts
+    // CiteÈ™te log-ul pentru recent_errors + counts
     $recent = magpress_read_recent_errors(20);
     $errors_count = magpress_count_errors();
     $fatal_count = 0;
@@ -3266,21 +3266,21 @@ function magpress_send_ping($blocking = false) {
     ]);
 }
 
-// Înregistrăm schedule 'weekly' (nu există nativ în WP)
+// ÃŽnregistrÄƒm schedule 'weekly' (nu existÄƒ nativ Ã®n WP)
 function magpress_add_weekly_schedule($schedules) {
     if (!isset($schedules['weekly'])) {
         $schedules['weekly'] = [
             'interval' => 7 * DAY_IN_SECONDS,
-            'display'  => 'Săptămânal',
+            'display'  => 'SÄƒptÄƒmÃ¢nal',
         ];
     }
     return $schedules;
 }
 add_filter('cron_schedules', 'magpress_add_weekly_schedule');
 
-// Schedule săptămânal (re-schedule dacă găsește vechea variantă 'daily')
+// Schedule sÄƒptÄƒmÃ¢nal (re-schedule dacÄƒ gÄƒseÈ™te vechea variantÄƒ 'daily')
 function magpress_schedule_ping() {
-    // Detectează dacă există deja schedule cu interval != weekly și-l înlocuiește
+    // DetecteazÄƒ dacÄƒ existÄƒ deja schedule cu interval != weekly È™i-l Ã®nlocuieÈ™te
     $next = wp_next_scheduled('magpress_daily_ping');
     if ($next) {
         $cron = _get_cron_array();
@@ -3307,8 +3307,8 @@ add_action('init', 'magpress_schedule_ping');
 add_action('magpress_daily_ping', 'magpress_send_ping');
 
 /**
- * Forțează un ping imediat după update temă (când versiunea în stylesheet != versiunea ultimă raportată).
- * Asigură că deploy_secret + theme_version ajung la targetseo.ro imediat, nu peste o săptămână.
+ * ForÈ›eazÄƒ un ping imediat dupÄƒ update temÄƒ (cÃ¢nd versiunea Ã®n stylesheet != versiunea ultimÄƒ raportatÄƒ).
+ * AsigurÄƒ cÄƒ deploy_secret + theme_version ajung la targetseo.ro imediat, nu peste o sÄƒptÄƒmÃ¢nÄƒ.
  */
 add_action('init', function () {
     if (is_admin() || wp_doing_cron() || wp_doing_ajax()) return;
@@ -3316,7 +3316,7 @@ add_action('init', function () {
     $reported = get_option('magpress_last_reported_version');
     if ($current !== $reported) {
         update_option('magpress_last_reported_version', $current, false);
-        // Trimite ping pe un shutdown hook ca să nu blocheze request-ul
+        // Trimite ping pe un shutdown hook ca sÄƒ nu blocheze request-ul
         add_action('shutdown', 'magpress_send_ping');
     }
 }, 99);
@@ -3327,7 +3327,7 @@ function magpress_unschedule_ping() {
 }
 add_action('switch_theme', 'magpress_unschedule_ping');
 
-// Permite trigger manual din pagina Aspect → Magpress (vezi handle in render settings)
+// Permite trigger manual din pagina Aspect â†’ Magpress (vezi handle in render settings)
 function magpress_handle_manual_ping() {
     if (!current_user_can('manage_options')) return;
     if (!isset($_POST['magpress_send_ping']) || !check_admin_referer('magpress_send_ping_action')) return;
@@ -3336,7 +3336,7 @@ function magpress_handle_manual_ping() {
 add_action('admin_init', 'magpress_handle_manual_ping');
 
 /**
- * Render iconițe social media (folosit in footer).
+ * Render iconiÈ›e social media (folosit in footer).
  * Returneaza HTML sau string gol daca nu exista URL-uri.
  */
 function magpress_render_socials() {
@@ -3400,7 +3400,7 @@ function magpress_check_for_update($transient) {
 
     $current_version = $transient->checked[$slug];
 
-    // Cache 6 ore — nu polluam GitHub la fiecare load
+    // Cache 6 ore â€” nu polluam GitHub la fiecare load
     $info = get_transient('magpress_update_info');
     if (false === $info) {
         $response = wp_remote_get(MAGPRESS_UPDATE_INFO_URL, ['timeout' => 5]);
@@ -3429,18 +3429,18 @@ function magpress_check_for_update($transient) {
     }
     return $transient;
 }
-// DEZACTIVAT: site-urile NU mai verifică update prin WordPress — deploy-ul vine exclusiv prin
-// push.ps1. Astfel WP nu mai detectează o versiune nouă și nu mai declanșează auto-instalarea
-// (care intră în maintenance mode 503 → heartbeat-ul pică → „Conexiune pierdută").
+// DEZACTIVAT: site-urile NU mai verificÄƒ update prin WordPress â€” deploy-ul vine exclusiv prin
+// push.ps1. Astfel WP nu mai detecteazÄƒ o versiune nouÄƒ È™i nu mai declanÈ™eazÄƒ auto-instalarea
+// (care intrÄƒ Ã®n maintenance mode 503 â†’ heartbeat-ul picÄƒ â†’ â€žConexiune pierdutÄƒ").
 // add_filter('pre_set_site_transient_update_themes', 'magpress_check_for_update');
 
 /**
- * BLOCHEAZĂ update-ul FALS de pe wordpress.org (coliziune de slug).
- * Pe wordpress.org există o temă STRĂINĂ numită tot „MagPress" (Sensational Theme,
- * v1.1.1). WP compară doar slug-ul folderului + versiunea → oferă „Actualizează acum"
- * care ar ÎNLOCUI tema noastră cu cea străină. Filtrul rulează la CITIREA
- * transient-ului, deci ascunde și ofertele deja cache-uite: orice ofertă de update
- * pentru slug-ul nostru care nu vine din repo-ul propriu GitHub este eliminată.
+ * BLOCHEAZÄ‚ update-ul FALS de pe wordpress.org (coliziune de slug).
+ * Pe wordpress.org existÄƒ o temÄƒ STRÄ‚INÄ‚ numitÄƒ tot â€žMagPress" (Sensational Theme,
+ * v1.1.1). WP comparÄƒ doar slug-ul folderului + versiunea â†’ oferÄƒ â€žActualizeazÄƒ acum"
+ * care ar ÃŽNLOCUI tema noastrÄƒ cu cea strÄƒinÄƒ. Filtrul ruleazÄƒ la CITIREA
+ * transient-ului, deci ascunde È™i ofertele deja cache-uite: orice ofertÄƒ de update
+ * pentru slug-ul nostru care nu vine din repo-ul propriu GitHub este eliminatÄƒ.
  */
 function magpress_block_foreign_update($transient) {
     if (!is_object($transient) || empty($transient->response)) {
@@ -3459,15 +3459,15 @@ function magpress_block_foreign_update($transient) {
 add_filter('site_transient_update_themes', 'magpress_block_foreign_update');
 
 /**
- * INSTALĂRI NOI: dacă permalink-urile sunt pe „Plain" (structură goală, default-ul
- * unui WP proaspăt), TOT REST-ul pretty (/wp-json/*) dă 404 la nivel de server →
- * site-ul apare „offline" în dashboardul TargetSEO și Sync/legal-status nu merg.
- * La activarea temei setăm standardul flotei /%postname%/ + hard flush (.htaccess).
- * Nu atingem NICIODATĂ o structură deja setată (ex. /%category%/%postname%/).
+ * INSTALÄ‚RI NOI: dacÄƒ permalink-urile sunt pe â€žPlain" (structurÄƒ goalÄƒ, default-ul
+ * unui WP proaspÄƒt), TOT REST-ul pretty (/wp-json/*) dÄƒ 404 la nivel de server â†’
+ * site-ul apare â€žoffline" Ã®n dashboardul TargetSEO È™i Sync/legal-status nu merg.
+ * La activarea temei setÄƒm standardul flotei /%postname%/ + hard flush (.htaccess).
+ * Nu atingem NICIODATÄ‚ o structurÄƒ deja setatÄƒ (ex. /%category%/%postname%/).
  */
 function magpress_setup_permalinks_on_activation() {
     if (get_option('permalink_structure')) {
-        return; // structură deja aleasă — nu ne băgăm
+        return; // structurÄƒ deja aleasÄƒ â€” nu ne bÄƒgÄƒm
     }
     global $wp_rewrite;
     update_option('permalink_structure', '/%postname%/');
@@ -3506,9 +3506,9 @@ function magpress_fix_update_source($source, $remote_source, $upgrader, $hook_ex
 add_filter('upgrader_source_selection', 'magpress_fix_update_source', 10, 4);
 
 /**
- * AUTO-UPDATE TEMĂ activat by default.
- * Site-ul instalează update-urile automat când le detectează — fără click.
- * Admin-ul poate dezactiva via filter sau din Aspect → Teme → click pe temă → Disable auto-updates.
+ * AUTO-UPDATE TEMÄ‚ activat by default.
+ * Site-ul instaleazÄƒ update-urile automat cÃ¢nd le detecteazÄƒ â€” fÄƒrÄƒ click.
+ * Admin-ul poate dezactiva via filter sau din Aspect â†’ Teme â†’ click pe temÄƒ â†’ Disable auto-updates.
  */
 function magpress_enable_auto_update($update, $item) {
     if (isset($item->theme) && $item->theme === get_stylesheet()) {
@@ -3516,31 +3516,31 @@ function magpress_enable_auto_update($update, $item) {
     }
     return $update;
 }
-// DEZACTIVAT: deploy-ul se face EXCLUSIV prin push.ps1 (REST /v1/deploy), care înlocuiește
-// fișierele direct, fără maintenance mode. Nu mai forțăm auto-update-ul WP — el intra în
-// maintenance mode (503) la fiecare instalare și rupea heartbeat-ul wp-admin.
+// DEZACTIVAT: deploy-ul se face EXCLUSIV prin push.ps1 (REST /v1/deploy), care Ã®nlocuieÈ™te
+// fiÈ™ierele direct, fÄƒrÄƒ maintenance mode. Nu mai forÈ›Äƒm auto-update-ul WP â€” el intra Ã®n
+// maintenance mode (503) la fiecare instalare È™i rupea heartbeat-ul wp-admin.
 // add_filter('auto_update_theme', 'magpress_enable_auto_update', 10, 2);
 
 /**
  * ============================================================
- * AUTO-DEPLOY prin CRON (self-update) — fără maintenance mode
+ * AUTO-DEPLOY prin CRON (self-update) â€” fÄƒrÄƒ maintenance mode
  * ============================================================
- * Restaurează comportamentul „push pe GitHub → site-ul se actualizează singur",
- * dar FĂRĂ bug-ul „Conexiune pierdută": nu folosim upgrader-ul WordPress (care
- * intră în maintenance mode 503 și rupe heartbeat-ul), ci apelăm DIRECT
- * magpress_perform_deploy() — aceeași funcție folosită de push.ps1, care
- * înlocuiește fișierele în loc, fără maintenance mode.
+ * RestaureazÄƒ comportamentul â€žpush pe GitHub â†’ site-ul se actualizeazÄƒ singur",
+ * dar FÄ‚RÄ‚ bug-ul â€žConexiune pierdutÄƒ": nu folosim upgrader-ul WordPress (care
+ * intrÄƒ Ã®n maintenance mode 503 È™i rupe heartbeat-ul), ci apelÄƒm DIRECT
+ * magpress_perform_deploy() â€” aceeaÈ™i funcÈ›ie folositÄƒ de push.ps1, care
+ * Ã®nlocuieÈ™te fiÈ™ierele Ã®n loc, fÄƒrÄƒ maintenance mode.
  *
  * Fluxul:
- *   1. Un cron la 5 minute citește .update-info.json de pe GitHub (cache-buster).
- *   2. Dacă versiunea de pe GitHub > versiunea instalată → rulează deploy-ul safe.
- *   3. BONUS instant: cât timp un admin e logat în wp-admin, la fiecare pagină
- *      încărcată (throttle 60s) se declanșează aceeași verificare în FUNDAL —
- *      site-ul la care lucrezi prinde update-ul în secunde, fără click.
- *   4. push.ps1 rămâne funcțional în paralel (deploy manual instant), ca fallback.
+ *   1. Un cron la 5 minute citeÈ™te .update-info.json de pe GitHub (cache-buster).
+ *   2. DacÄƒ versiunea de pe GitHub > versiunea instalatÄƒ â†’ ruleazÄƒ deploy-ul safe.
+ *   3. BONUS instant: cÃ¢t timp un admin e logat Ã®n wp-admin, la fiecare paginÄƒ
+ *      Ã®ncÄƒrcatÄƒ (throttle 60s) se declanÈ™eazÄƒ aceeaÈ™i verificare Ã®n FUNDAL â€”
+ *      site-ul la care lucrezi prinde update-ul Ã®n secunde, fÄƒrÄƒ click.
+ *   4. push.ps1 rÄƒmÃ¢ne funcÈ›ional Ã®n paralel (deploy manual instant), ca fallback.
  *
- * Se poate dezactiva fără edit de cod: add_filter('magpress_auto_deploy_enabled', '__return_false');
- * sau definind constanta MAGPRESS_AUTO_DEPLOY_DISABLED = true în wp-config.php.
+ * Se poate dezactiva fÄƒrÄƒ edit de cod: add_filter('magpress_auto_deploy_enabled', '__return_false');
+ * sau definind constanta MAGPRESS_AUTO_DEPLOY_DISABLED = true Ã®n wp-config.php.
  */
 function magpress_auto_deploy_enabled() {
     if (defined('MAGPRESS_AUTO_DEPLOY_DISABLED') && MAGPRESS_AUTO_DEPLOY_DISABLED) {
@@ -3560,7 +3560,7 @@ add_filter('cron_schedules', function ($schedules) {
     return $schedules;
 });
 
-// Programează cron-ul la 5 minute (re-schedule idempotent, ca la ping).
+// ProgrameazÄƒ cron-ul la 5 minute (re-schedule idempotent, ca la ping).
 function magpress_schedule_auto_deploy() {
     if (!magpress_auto_deploy_enabled()) {
         if (wp_next_scheduled('magpress_auto_deploy_check')) {
@@ -3568,7 +3568,7 @@ function magpress_schedule_auto_deploy() {
         }
         return;
     }
-    // Re-programează dacă intervalul s-a schimbat (ex: vechiul 'hourly' → 'magpress_5min').
+    // Re-programeazÄƒ dacÄƒ intervalul s-a schimbat (ex: vechiul 'hourly' â†’ 'magpress_5min').
     $ev = wp_get_scheduled_event('magpress_auto_deploy_check');
     if ($ev && $ev->schedule !== 'magpress_5min') {
         wp_clear_scheduled_hook('magpress_auto_deploy_check');
@@ -3581,8 +3581,8 @@ function magpress_schedule_auto_deploy() {
 add_action('after_switch_theme', 'magpress_schedule_auto_deploy');
 add_action('init', 'magpress_schedule_auto_deploy');
 add_action('magpress_auto_deploy_check', 'magpress_run_auto_deploy');
-// Hook separat pentru trigger-ul instant din admin (hook diferit ca să nu fie
-// dedupe-uit de wp_schedule_single_event — WP ignoră single events cu același
+// Hook separat pentru trigger-ul instant din admin (hook diferit ca sÄƒ nu fie
+// dedupe-uit de wp_schedule_single_event â€” WP ignorÄƒ single events cu acelaÈ™i
 // hook la <10 min de un event recurent deja programat).
 add_action('magpress_auto_deploy_instant', 'magpress_run_auto_deploy');
 
@@ -3593,10 +3593,10 @@ add_action('switch_theme', function () {
 });
 
 /**
- * Trigger INSTANT: cât timp lucrezi în wp-admin, fiecare încărcare de pagină
- * (max 1/minut) pornește verificarea de update în FUNDAL — prin cron spawn,
- * ca să nu blocheze pagina de admin nici măcar o secundă. Efect: după un push
- * pe GitHub, site-ul la care lucrezi se actualizează în secunde, fără click.
+ * Trigger INSTANT: cÃ¢t timp lucrezi Ã®n wp-admin, fiecare Ã®ncÄƒrcare de paginÄƒ
+ * (max 1/minut) porneÈ™te verificarea de update Ã®n FUNDAL â€” prin cron spawn,
+ * ca sÄƒ nu blocheze pagina de admin nici mÄƒcar o secundÄƒ. Efect: dupÄƒ un push
+ * pe GitHub, site-ul la care lucrezi se actualizeazÄƒ Ã®n secunde, fÄƒrÄƒ click.
  * Pe hosturile cu DISABLE_WP_CRON, event-ul e preluat de cron-ul de sistem.
  */
 function magpress_instant_deploy_trigger() {
@@ -3613,34 +3613,34 @@ function magpress_instant_deploy_trigger() {
 add_action('admin_init', 'magpress_instant_deploy_trigger');
 
 /**
- * Notificare discretă în admin după un auto-deploy reușit (afișată o dată).
+ * Notificare discretÄƒ Ã®n admin dupÄƒ un auto-deploy reuÈ™it (afiÈ™atÄƒ o datÄƒ).
  */
 add_action('admin_notices', function () {
     if (!current_user_can('manage_options')) return;
     $last = get_option('magpress_last_auto_deploy');
     if (!is_array($last) || empty($last['version'])) return;
     delete_option('magpress_last_auto_deploy');
-    echo '<div class="notice notice-success is-dismissible"><p>✅ <strong>Magpress</strong> s-a actualizat automat la versiunea <strong>' . esc_html($last['version']) . '</strong>.</p></div>';
+    echo '<div class="notice notice-success is-dismissible"><p>âœ… <strong>Magpress</strong> s-a actualizat automat la versiunea <strong>' . esc_html($last['version']) . '</strong>.</p></div>';
 });
 
 /**
- * Handler cron: verifică GitHub și, dacă e o versiune nouă, rulează deploy-ul safe.
- * Returnează array cu rezultatul (util și pentru trigger manual din admin).
+ * Handler cron: verificÄƒ GitHub È™i, dacÄƒ e o versiune nouÄƒ, ruleazÄƒ deploy-ul safe.
+ * ReturneazÄƒ array cu rezultatul (util È™i pentru trigger manual din admin).
  */
 function magpress_run_auto_deploy() {
     if (!magpress_auto_deploy_enabled()) {
         return ['ok' => false, 'skipped' => 'disabled'];
     }
 
-    // Nu ne suprapunem cu un deploy în curs (push.ps1 sau alt cron).
+    // Nu ne suprapunem cu un deploy Ã®n curs (push.ps1 sau alt cron).
     if (get_transient('magpress_deploy_lock')) {
         return ['ok' => false, 'skipped' => 'deploy_in_progress'];
     }
 
-    // 1. Versiunea instalată acum.
+    // 1. Versiunea instalatÄƒ acum.
     $installed = (string) wp_get_theme()->get('Version');
 
-    // 2. Versiunea de pe GitHub (cache-buster ca să sărim CDN-ul raw de 5 min).
+    // 2. Versiunea de pe GitHub (cache-buster ca sÄƒ sÄƒrim CDN-ul raw de 5 min).
     $resp = wp_remote_get(MAGPRESS_UPDATE_INFO_URL . '?_=' . time(), [
         'timeout' => 10,
         'headers' => ['User-Agent' => 'magpress-autodeploy/' . get_stylesheet()],
@@ -3654,12 +3654,12 @@ function magpress_run_auto_deploy() {
     }
     $remote = (string) $info['version'];
 
-    // 3. Deploy DOAR dacă GitHub e strict mai nou.
+    // 3. Deploy DOAR dacÄƒ GitHub e strict mai nou.
     if (version_compare($installed, $remote, '>=')) {
         return ['ok' => true, 'skipped' => 'up_to_date', 'installed' => $installed, 'remote' => $remote];
     }
 
-    // 4. Rulează deploy-ul safe (fără maintenance mode). Lock 120s ca la REST.
+    // 4. RuleazÄƒ deploy-ul safe (fÄƒrÄƒ maintenance mode). Lock 120s ca la REST.
     set_transient('magpress_deploy_lock', time(), 120);
     @ignore_user_abort(true);
     @set_time_limit(180);
@@ -3669,7 +3669,7 @@ function magpress_run_auto_deploy() {
     delete_transient('magpress_deploy_lock');
     delete_transient('magpress_update_info');
 
-    // Reținem ultimul auto-deploy reușit → notificare discretă în admin.
+    // ReÈ›inem ultimul auto-deploy reuÈ™it â†’ notificare discretÄƒ Ã®n admin.
     if (!empty($result['ok']) && !empty($result['version'])) {
         update_option('magpress_last_auto_deploy', ['version' => $result['version'], 'time' => time()], false);
     }
@@ -3681,11 +3681,11 @@ function magpress_run_auto_deploy() {
 }
 
 /* ============================================================================
- * NEWSLETTER NATIV (v0.9.172) — formular propriu în popup, abonați în DB.
- * Fără plugin extern: tabel {prefix}magpress_subscribers, endpoint public REST
- * /magpress/v1/subscribe (FĂRĂ nonce — paginile sunt cache-uite de LiteSpeed și
- * un nonce cache-uit e mort; protecția e honeypot + rate-limit pe IP + validare
- * email + UNIQUE pe email), listă + export CSV în Aspect → Abonați.
+ * NEWSLETTER NATIV (v0.9.172) â€” formular propriu Ã®n popup, abonaÈ›i Ã®n DB.
+ * FÄƒrÄƒ plugin extern: tabel {prefix}magpress_subscribers, endpoint public REST
+ * /magpress/v1/subscribe (FÄ‚RÄ‚ nonce â€” paginile sunt cache-uite de LiteSpeed È™i
+ * un nonce cache-uit e mort; protecÈ›ia e honeypot + rate-limit pe IP + validare
+ * email + UNIQUE pe email), listÄƒ + export CSV Ã®n Aspect â†’ AbonaÈ›i.
  * ========================================================================== */
 
 define('MAGPRESS_SUBS_DB_VERSION', 1);
@@ -3714,23 +3714,23 @@ function magpress_subs_install() {
 }
 add_action('after_switch_theme', 'magpress_subs_install');
 
-/** Creează tabelul la nevoie (site-urile primesc tema prin deploy, fără switch). */
+/** CreeazÄƒ tabelul la nevoie (site-urile primesc tema prin deploy, fÄƒrÄƒ switch). */
 function magpress_subs_maybe_install() {
     if ((int) get_option('magpress_subs_db_version', 0) === MAGPRESS_SUBS_DB_VERSION) return;
-    if (!get_theme_mod('magpress_nlbar_enabled', 0)) return; // doar dacă bara e pornită
+    if (!get_theme_mod('magpress_nlbar_enabled', 0)) return; // doar dacÄƒ bara e pornitÄƒ
     magpress_subs_install();
 }
 add_action('init', 'magpress_subs_maybe_install', 20);
 
-/** Textul standard de acord GDPR din popup (gol în Customizer = fără bifă). */
+/** Textul standard de acord GDPR din popup (gol Ã®n Customizer = fÄƒrÄƒ bifÄƒ). */
 function magpress_nlbar_default_consent() {
-    return 'Sunt de acord ca datele mele să fie folosite pentru trimiterea newsletterului, conform <a href="/politica-confidentialitate/" target="_blank" rel="noopener">politicii de confidențialitate</a>. Mă pot dezabona oricând.';
+    return 'Sunt de acord ca datele mele sÄƒ fie folosite pentru trimiterea newsletterului, conform <a href="/politica-confidentialitate/" target="_blank" rel="noopener">politicii de confidenÈ›ialitate</a>. MÄƒ pot dezabona oricÃ¢nd.';
 }
 
 /**
  * Expeditorul emailurilor de newsletter: [email, nume].
- * Implicit contact@<domeniu> — adresa TREBUIE să fie pe domeniul site-ului,
- * altfel Gmail/Yahoo resping mesajul (SPF/DKIM al domeniului tău nu acoperă
+ * Implicit contact@<domeniu> â€” adresa TREBUIE sÄƒ fie pe domeniul site-ului,
+ * altfel Gmail/Yahoo resping mesajul (SPF/DKIM al domeniului tÄƒu nu acoperÄƒ
  * adrese de gmail.com/yahoo.com puse ca From).
  */
 function magpress_nlbar_from() {
@@ -3744,9 +3744,9 @@ function magpress_nlbar_from() {
 }
 
 /**
- * DEZABONARE (v0.9.174) — link semnat, fără cont și fără parolă.
- * Token = HMAC pe email cu sarea de auth a site-ului: nu stocăm nimic în plus,
- * nu poate fi ghicit și nimeni nu poate dezabona pe altcineva.
+ * DEZABONARE (v0.9.174) â€” link semnat, fÄƒrÄƒ cont È™i fÄƒrÄƒ parolÄƒ.
+ * Token = HMAC pe email cu sarea de auth a site-ului: nu stocÄƒm nimic Ã®n plus,
+ * nu poate fi ghicit È™i nimeni nu poate dezabona pe altcineva.
  */
 function magpress_unsub_token($email) {
     return substr(hash_hmac('sha256', strtolower(trim((string) $email)), wp_salt('auth') . '|magpress-unsub'), 0, 32);
@@ -3759,7 +3759,7 @@ function magpress_unsub_url($email) {
     ], home_url('/'));
 }
 
-/** Interceptează linkul de dezabonare și șterge abonatul din listă. */
+/** IntercepteazÄƒ linkul de dezabonare È™i È™terge abonatul din listÄƒ. */
 function magpress_handle_unsubscribe() {
     if (!isset($_GET['mgp_unsub'])) return;
 
@@ -3790,12 +3790,12 @@ function magpress_handle_unsubscribe() {
         </span>
         <?php if ($ok): ?>
           <h1 class="nlunsub__title">Te-ai dezabonat</h1>
-          <p class="nlunsub__desc">Adresa <strong><?php echo esc_html($email); ?></strong> a fost ștearsă din listă. Nu mai primești niciun email de la noi.</p>
+          <p class="nlunsub__desc">Adresa <strong><?php echo esc_html($email); ?></strong> a fost È™tearsÄƒ din listÄƒ. Nu mai primeÈ™ti niciun email de la noi.</p>
         <?php else: ?>
           <h1 class="nlunsub__title">Link invalid</h1>
-          <p class="nlunsub__desc">Linkul de dezabonare nu este valid sau a fost deja folosit. Dacă tot primești emailuri, scrie-ne și te scoatem manual din listă.</p>
+          <p class="nlunsub__desc">Linkul de dezabonare nu este valid sau a fost deja folosit. DacÄƒ tot primeÈ™ti emailuri, scrie-ne È™i te scoatem manual din listÄƒ.</p>
         <?php endif; ?>
-        <p><a class="nlunsub__btn" href="<?php echo esc_url(home_url('/')); ?>">Înapoi pe site</a></p>
+        <p><a class="nlunsub__btn" href="<?php echo esc_url(home_url('/')); ?>">ÃŽnapoi pe site</a></p>
       </div>
     </div>
     <?php
@@ -3804,7 +3804,7 @@ function magpress_handle_unsubscribe() {
 }
 add_action('template_redirect', 'magpress_handle_unsubscribe');
 
-/** Emailul de bun venit către un abonat nou (+ opțional notificare la admin). */
+/** Emailul de bun venit cÄƒtre un abonat nou (+ opÈ›ional notificare la admin). */
 function magpress_nlbar_send_welcome($email, $name) {
     list($from_email, $from_name) = magpress_nlbar_from();
     $headers = [
@@ -3813,8 +3813,8 @@ function magpress_nlbar_send_welcome($email, $name) {
         'Content-Type: text/plain; charset=UTF-8',
     ];
 
-    // Antet standard: Gmail/Outlook afișează un buton „Unsubscribe" lângă expeditor
-    // și tratează mai bine reputația domeniului.
+    // Antet standard: Gmail/Outlook afiÈ™eazÄƒ un buton â€žUnsubscribe" lÃ¢ngÄƒ expeditor
+    // È™i trateazÄƒ mai bine reputaÈ›ia domeniului.
     $sub_headers = array_merge($headers, [
         'List-Unsubscribe: <' . magpress_unsub_url($email) . '>',
         'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
@@ -3826,8 +3826,8 @@ function magpress_nlbar_send_welcome($email, $name) {
 
         $body = trim((string) get_theme_mod('magpress_nlbar_welcome_body', ''));
         if ($body === '') {
-            $body = "Salut{nume},\n\nÎți mulțumim că te-ai abonat la newsletterul {site}. "
-                  . "De acum primești pe email articolele noastre noi.\n\n"
+            $body = "Salut{nume},\n\nÃŽÈ›i mulÈ›umim cÄƒ te-ai abonat la newsletterul {site}. "
+                  . "De acum primeÈ™ti pe email articolele noastre noi.\n\n"
                   . "{site}\n{url}";
         }
         $unsub_url = magpress_unsub_url($email);
@@ -3841,10 +3841,10 @@ function magpress_nlbar_send_welcome($email, $name) {
             '{dezabonare}'  => $unsub_url,
             '{unsubscribe}' => $unsub_url,
         ]);
-        // Dacă textul nu conține deja linkul, îl adăugăm la final — dezabonarea
-        // trebuie să existe în ORICE email, chiar dacă userul rescrie mesajul.
+        // DacÄƒ textul nu conÈ›ine deja linkul, Ã®l adÄƒugÄƒm la final â€” dezabonarea
+        // trebuie sÄƒ existe Ã®n ORICE email, chiar dacÄƒ userul rescrie mesajul.
         if (!$has_token) {
-            $body .= "\n\n---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub_url;
+            $body .= "\n\n---\nNu mai vrei aceste emailuri? DezaboneazÄƒ-te aici:\n" . $unsub_url;
         }
         wp_mail($email, $subject, $body, $sub_headers);
     }
@@ -3854,8 +3854,8 @@ function magpress_nlbar_send_welcome($email, $name) {
         if ($to === '' || !is_email($to)) $to = get_option('admin_email');
         wp_mail(
             $to,
-            'Abonat nou la newsletter — ' . get_bloginfo('name'),
-            "Adresă: {$email}\nNume: " . ($name !== '' ? $name : '—') . "\n\nToți abonații: " . admin_url('themes.php?page=magpress-subscribers'),
+            'Abonat nou la newsletter â€” ' . get_bloginfo('name'),
+            "AdresÄƒ: {$email}\nNume: " . ($name !== '' ? $name : 'â€”') . "\n\nToÈ›i abonaÈ›ii: " . admin_url('themes.php?page=magpress-subscribers'),
             $headers
         );
     }
@@ -3865,7 +3865,7 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     $data = $request->get_json_params();
     if (!is_array($data)) $data = $request->get_params();
 
-    // Honeypot: câmp ascuns care trebuie să rămână gol (boții îl completează).
+    // Honeypot: cÃ¢mp ascuns care trebuie sÄƒ rÄƒmÃ¢nÄƒ gol (boÈ›ii Ã®l completeazÄƒ).
     if (!empty($data['website'])) {
         return new WP_REST_Response(['ok' => true, 'message' => 'Gata!'], 200);
     }
@@ -3873,15 +3873,15 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     $email = isset($data['email']) ? sanitize_email((string) $data['email']) : '';
     $name  = isset($data['name']) ? sanitize_text_field((string) $data['name']) : '';
     if (!$email || !is_email($email)) {
-        return new WP_REST_Response(['ok' => false, 'message' => 'Adresa de email nu pare validă.'], 400);
+        return new WP_REST_Response(['ok' => false, 'message' => 'Adresa de email nu pare validÄƒ.'], 400);
     }
 
-    // Rate-limit: max 5 înscrieri / oră / IP.
+    // Rate-limit: max 5 Ã®nscrieri / orÄƒ / IP.
     $ip   = isset($_SERVER['REMOTE_ADDR']) ? substr((string) $_SERVER['REMOTE_ADDR'], 0, 45) : '';
     $key  = 'mgp_sub_' . md5($ip);
     $hits = (int) get_transient($key);
     if ($hits >= 5) {
-        return new WP_REST_Response(['ok' => false, 'message' => 'Prea multe încercări. Reîncearcă mai târziu.'], 429);
+        return new WP_REST_Response(['ok' => false, 'message' => 'Prea multe Ã®ncercÄƒri. ReÃ®ncearcÄƒ mai tÃ¢rziu.'], 429);
     }
     set_transient($key, $hits + 1, HOUR_IN_SECONDS);
 
@@ -3892,7 +3892,7 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     $table    = magpress_subs_table();
     $existing = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE email = %s", $email));
     if ($existing) {
-        // Deja abonat: actualizăm doar numele dacă acum l-a completat. Fără email repetat.
+        // Deja abonat: actualizÄƒm doar numele dacÄƒ acum l-a completat. FÄƒrÄƒ email repetat.
         if ($name !== '') {
             $wpdb->update($table, ['name' => $name], ['id' => (int) $existing], ['%s'], ['%d']);
         }
@@ -3908,25 +3908,25 @@ function magpress_rest_subscribe(WP_REST_Request $request) {
     }
 
     $msg = trim((string) get_theme_mod('magpress_nlbar_success', ''));
-    if ($msg === '') $msg = 'Gata! Ți-am notat adresa — urmează articolele noastre.';
+    if ($msg === '') $msg = 'Gata! Èši-am notat adresa â€” urmeazÄƒ articolele noastre.';
     return new WP_REST_Response(['ok' => true, 'message' => $msg], 200);
 }
 
 /* ---------------------------------------------------------------------------
- * ARTICOLE NOI PE EMAIL (v0.9.175). La publicare trimitem articolul către
- * abonați, în loturi prin cron — ca să nu blocăm salvarea și să nu depășim
+ * ARTICOLE NOI PE EMAIL (v0.9.175). La publicare trimitem articolul cÄƒtre
+ * abonaÈ›i, Ã®n loturi prin cron â€” ca sÄƒ nu blocÄƒm salvarea È™i sÄƒ nu depÄƒÈ™im
  * limita de trimitere a hostingului.
  * ------------------------------------------------------------------------- */
 
-define('MAGPRESS_NL_BATCH', 40); // abonați per rulare
+define('MAGPRESS_NL_BATCH', 40); // abonaÈ›i per rulare
 
 function magpress_nl_on_publish($new_status, $old_status, $post) {
     if ($new_status !== 'publish' || $old_status === 'publish') return;
     if (!($post instanceof WP_Post) || $post->post_type !== 'post') return;
     if (!get_theme_mod('magpress_nlbar_enabled', 0)) return;
     if (!get_theme_mod('magpress_nlbar_autopost', 1)) return;
-    // În modul „rezumat zilnic" nu trimitem la publicare — articolul intră în
-    // digestul de dimineață.
+    // ÃŽn modul â€žrezumat zilnic" nu trimitem la publicare â€” articolul intrÄƒ Ã®n
+    // digestul de dimineaÈ›Äƒ.
     if (get_theme_mod('magpress_nlbar_send_mode', 'daily') !== 'instant') return;
     if (get_post_meta($post->ID, '_magpress_nl_sent', true)) return;
 
@@ -3936,7 +3936,7 @@ function magpress_nl_on_publish($new_status, $old_status, $post) {
 }
 add_action('transition_post_status', 'magpress_nl_on_publish', 10, 3);
 
-/** Trimite un lot pentru articolul dat; se reprogramează dacă mai sunt abonați. */
+/** Trimite un lot pentru articolul dat; se reprogrameazÄƒ dacÄƒ mai sunt abonaÈ›i. */
 function magpress_nl_send_batch($post_id) {
     global $wpdb;
     $post = get_post((int) $post_id);
@@ -3964,12 +3964,12 @@ function magpress_nl_send_batch($post_id) {
 add_action('magpress_nl_send_batch', 'magpress_nl_send_batch', 10, 1);
 
 /* ---------------------------------------------------------------------------
- * REZUMAT ZILNIC (v0.9.176) — UN singur email pe zi, la ora aleasă, cu toate
- * articolele publicate de la ultimul rezumat. Cron zilnic în fusul orar al
- * site-ului; trimiterea se face tot în loturi.
+ * REZUMAT ZILNIC (v0.9.176) â€” UN singur email pe zi, la ora aleasÄƒ, cu toate
+ * articolele publicate de la ultimul rezumat. Cron zilnic Ã®n fusul orar al
+ * site-ului; trimiterea se face tot Ã®n loturi.
  * ------------------------------------------------------------------------- */
 
-/** Următorul timestamp pentru ora dată, în fusul orar al site-ului. */
+/** UrmÄƒtorul timestamp pentru ora datÄƒ, Ã®n fusul orar al site-ului. */
 function magpress_nl_next_run_ts($hour) {
     $now = current_datetime();
     $run = $now->setTime((int) $hour, 0, 0);
@@ -3977,7 +3977,7 @@ function magpress_nl_next_run_ts($hour) {
     return $run->getTimestamp();
 }
 
-/** Ține cronul zilnic sincronizat cu setările (pornit/oprit + ora). */
+/** Èšine cronul zilnic sincronizat cu setÄƒrile (pornit/oprit + ora). */
 function magpress_nl_sync_daily_cron() {
     $on = get_theme_mod('magpress_nlbar_enabled', 0)
         && get_theme_mod('magpress_nlbar_autopost', 1)
@@ -3992,14 +3992,14 @@ function magpress_nl_sync_daily_cron() {
 
     $hour = max(0, min(23, (int) get_theme_mod('magpress_nlbar_daily_hour', 8)));
     if ($scheduled) {
-        if ((int) wp_date('G', $scheduled) === $hour) return; // deja la ora corectă
+        if ((int) wp_date('G', $scheduled) === $hour) return; // deja la ora corectÄƒ
         wp_unschedule_event($scheduled, 'magpress_nl_daily');
     }
     wp_schedule_event(magpress_nl_next_run_ts($hour), 'daily', 'magpress_nl_daily');
 }
 add_action('init', 'magpress_nl_sync_daily_cron', 21);
 
-/** Rulează rezumatul: strânge articolele noi și pornește trimiterea în loturi. */
+/** RuleazÄƒ rezumatul: strÃ¢nge articolele noi È™i porneÈ™te trimiterea Ã®n loturi. */
 function magpress_nl_daily_digest($force = false) {
     if (!$force && get_theme_mod('magpress_nlbar_send_mode', 'daily') !== 'daily') return 0;
 
@@ -4025,7 +4025,7 @@ function magpress_nl_daily_digest($force = false) {
 }
 add_action('magpress_nl_daily', 'magpress_nl_daily_digest');
 
-/** Trimite un lot din rezumatul curent; se reprogramează dacă mai sunt abonați. */
+/** Trimite un lot din rezumatul curent; se reprogrameazÄƒ dacÄƒ mai sunt abonaÈ›i. */
 function magpress_nl_digest_batch() {
     global $wpdb;
     $run = get_option('magpress_nl_digest', []);
@@ -4054,7 +4054,7 @@ function magpress_nl_digest_batch() {
 }
 add_action('magpress_nl_digest_batch', 'magpress_nl_digest_batch');
 
-/** Emailul-rezumat cu mai multe articole, către un abonat. */
+/** Emailul-rezumat cu mai multe articole, cÄƒtre un abonat. */
 function magpress_nl_send_digest_to($posts, $email, $name = '') {
     if (!$posts) return false;
     list($from_email, $from_name) = magpress_nlbar_from();
@@ -4069,17 +4069,17 @@ function magpress_nl_send_digest_to($posts, $email, $name = '') {
             '{data}'  => wp_date('j F Y'),
             '{titlu}' => $posts[array_key_first($posts)]->post_title,
           ])
-        : get_bloginfo('name') . ' — ' . ($count === 1 ? 'articolul de azi' : $count . ' articole noi');
+        : get_bloginfo('name') . ' â€” ' . ($count === 1 ? 'articolul de azi' : $count . ' articole noi');
 
     $body = 'Salut' . ($name !== '' ? ' ' . $name : '') . ",\n\n"
           . ($count === 1 ? "Articolul publicat azi pe {$from_name}:" : "Articolele publicate azi pe {$from_name}:") . "\n\n";
-    // v0.9.180: DOAR titlu + link (fără rezumat) — cerință user: cu 20+ articole
-    // pe zi, rezumatele făceau emailul interminabil.
+    // v0.9.180: DOAR titlu + link (fÄƒrÄƒ rezumat) â€” cerinÈ›Äƒ user: cu 20+ articole
+    // pe zi, rezumatele fÄƒceau emailul interminabil.
     foreach ($posts as $p) {
-        $body .= '• ' . $p->post_title . "\n" . get_permalink($p) . "\n\n";
+        $body .= 'â€¢ ' . $p->post_title . "\n" . get_permalink($p) . "\n\n";
     }
     $body .= get_bloginfo('name') . "\n" . home_url('/') . "\n\n"
-          . "---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub;
+          . "---\nNu mai vrei aceste emailuri? DezaboneazÄƒ-te aici:\n" . $unsub;
 
     return wp_mail($email, $subject, $body, [
         'From: ' . $from_name . ' <' . $from_email . '>',
@@ -4090,14 +4090,14 @@ function magpress_nl_send_digest_to($posts, $email, $name = '') {
     ]);
 }
 
-/** Emailul cu un articol, către un abonat. */
+/** Emailul cu un articol, cÄƒtre un abonat. */
 function magpress_nl_send_post_to(WP_Post $post, $email, $name = '') {
     list($from_email, $from_name) = magpress_nlbar_from();
     $unsub = magpress_unsub_url($email);
 
     $excerpt = has_excerpt($post)
         ? get_the_excerpt($post)
-        : wp_trim_words(wp_strip_all_tags(strip_shortcodes($post->post_content)), 45, '…');
+        : wp_trim_words(wp_strip_all_tags(strip_shortcodes($post->post_content)), 45, 'â€¦');
 
     $subject = trim((string) get_theme_mod('magpress_nlbar_post_subject', ''));
     $subject = $subject !== ''
@@ -4107,9 +4107,9 @@ function magpress_nl_send_post_to(WP_Post $post, $email, $name = '') {
     $body = 'Salut' . ($name !== '' ? ' ' . $name : '') . ",\n\n"
           . $post->post_title . "\n\n"
           . $excerpt . "\n\n"
-          . "Citește articolul:\n" . get_permalink($post) . "\n\n"
+          . "CiteÈ™te articolul:\n" . get_permalink($post) . "\n\n"
           . get_bloginfo('name') . "\n" . home_url('/') . "\n\n"
-          . "---\nNu mai vrei aceste emailuri? Dezabonează-te aici:\n" . $unsub;
+          . "---\nNu mai vrei aceste emailuri? DezaboneazÄƒ-te aici:\n" . $unsub;
 
     return wp_mail($email, $subject, $body, [
         'From: ' . $from_name . ' <' . $from_email . '>',
@@ -4120,9 +4120,9 @@ function magpress_nl_send_post_to(WP_Post $post, $email, $name = '') {
     ]);
 }
 
-/** Aspect → Abonați: listă + export CSV + ștergere. */
+/** Aspect â†’ AbonaÈ›i: listÄƒ + export CSV + È™tergere. */
 function magpress_subs_admin_menu() {
-    add_theme_page('Abonați newsletter', 'Abonați', 'manage_options', 'magpress-subscribers', 'magpress_render_subs_page');
+    add_theme_page('AbonaÈ›i newsletter', 'AbonaÈ›i', 'manage_options', 'magpress-subscribers', 'magpress_render_subs_page');
 }
 add_action('admin_menu', 'magpress_subs_admin_menu');
 
@@ -4151,28 +4151,28 @@ function magpress_render_subs_page() {
 
     if (isset($_POST['mgp_del']) && check_admin_referer('magpress_subs_del')) {
         $wpdb->delete($table, ['id' => (int) $_POST['mgp_del']], ['%d']);
-        echo '<div class="notice notice-success is-dismissible"><p>Abonat șters.</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>Abonat È™ters.</p></div>';
     }
 
     if (isset($_POST['mgp_test_to']) && check_admin_referer('magpress_subs_test')) {
         $to = sanitize_email((string) $_POST['mgp_test_to']);
         if (!$to || !is_email($to)) {
-            echo '<div class="notice notice-error is-dismissible"><p>Adresă de test invalidă.</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p>AdresÄƒ de test invalidÄƒ.</p></div>';
         } else {
             list($fe, $fn) = magpress_nlbar_from();
             $sent = wp_mail(
                 $to,
-                'Test newsletter — ' . get_bloginfo('name'),
-                "Acesta e un email de test trimis de pe {$fe}.\n\nDacă l-ai primit (și NU în Spam), expeditorul e configurat corect.",
+                'Test newsletter â€” ' . get_bloginfo('name'),
+                "Acesta e un email de test trimis de pe {$fe}.\n\nDacÄƒ l-ai primit (È™i NU Ã®n Spam), expeditorul e configurat corect.",
                 ['From: ' . $fn . ' <' . $fe . '>', 'Reply-To: ' . $fn . ' <' . $fe . '>', 'Content-Type: text/plain; charset=UTF-8']
             );
             echo $sent
-                ? '<div class="notice notice-success is-dismissible"><p>Test trimis către ' . esc_html($to) . ' de pe <code>' . esc_html($fe) . '</code>. Verifică și folderul Spam.</p></div>'
-                : '<div class="notice notice-error is-dismissible"><p>Serverul nu a putut trimite emailul (wp_mail a eșuat). Verifică setările de mail ale hostingului sau folosește un plugin SMTP.</p></div>';
+                ? '<div class="notice notice-success is-dismissible"><p>Test trimis cÄƒtre ' . esc_html($to) . ' de pe <code>' . esc_html($fe) . '</code>. VerificÄƒ È™i folderul Spam.</p></div>'
+                : '<div class="notice notice-error is-dismissible"><p>Serverul nu a putut trimite emailul (wp_mail a eÈ™uat). VerificÄƒ setÄƒrile de mail ale hostingului sau foloseÈ™te un plugin SMTP.</p></div>';
         }
     }
 
-    // Trimitere manuală a unui articol (pentru articole publicate înainte de
+    // Trimitere manualÄƒ a unui articol (pentru articole publicate Ã®nainte de
     // activarea newsletterului sau pentru retrimitere).
     if (isset($_POST['mgp_send_post']) && check_admin_referer('magpress_subs_send')) {
         $pid  = (int) $_POST['mgp_send_post'];
@@ -4183,7 +4183,7 @@ function magpress_render_subs_page() {
             update_post_meta($pid, '_magpress_nl_sent', current_time('mysql'));
             update_post_meta($pid, '_magpress_nl_offset', 0);
             magpress_nl_send_batch($pid);
-            echo '<div class="notice notice-success is-dismissible"><p>Am trimis „' . esc_html($post->post_title) . '" către abonați (primii ' . (int) MAGPRESS_NL_BATCH . ' acum, restul în fundal).</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>Am trimis â€ž' . esc_html($post->post_title) . '" cÄƒtre abonaÈ›i (primii ' . (int) MAGPRESS_NL_BATCH . ' acum, restul Ã®n fundal).</p></div>';
         }
     }
 
@@ -4191,7 +4191,7 @@ function magpress_render_subs_page() {
         $n = magpress_nl_daily_digest(true);
         echo $n
             ? '<div class="notice notice-success is-dismissible"><p>Rezumat trimis cu ' . (int) $n . ' articole.</p></div>'
-            : '<div class="notice notice-warning is-dismissible"><p>Niciun articol nou de la ultimul rezumat — nu am trimis nimic.</p></div>';
+            : '<div class="notice notice-warning is-dismissible"><p>Niciun articol nou de la ultimul rezumat â€” nu am trimis nimic.</p></div>';
     }
 
     list($from_email, $from_name) = magpress_nlbar_from();
@@ -4201,15 +4201,15 @@ function magpress_render_subs_page() {
     $total  = $exists ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}") : 0;
     ?>
     <div class="wrap">
-      <h1>Abonați newsletter</h1>
+      <h1>AbonaÈ›i newsletter</h1>
       <div class="notice notice-info inline" style="padding:.75rem 1rem;margin:1rem 0">
         <p style="margin:0 0 .5rem">
-          Emailurile pleacă de pe <code><?php echo esc_html($from_email); ?></code> (<?php echo esc_html($from_name); ?>).
-          Schimbi din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.
+          Emailurile pleacÄƒ de pe <code><?php echo esc_html($from_email); ?></code> (<?php echo esc_html($from_name); ?>).
+          Schimbi din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare â†’ Magpress: Bara newsletter</a>.
         </p>
         <form method="post" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0">
           <?php wp_nonce_field('magpress_subs_test'); ?>
-          <label for="mgp_test_to">Trimite un email de test către:</label>
+          <label for="mgp_test_to">Trimite un email de test cÄƒtre:</label>
           <input type="email" id="mgp_test_to" name="mgp_test_to" value="<?php echo esc_attr(get_option('admin_email')); ?>" class="regular-text" />
           <button class="button" type="submit">Trimite test</button>
         </form>
@@ -4218,15 +4218,15 @@ function magpress_render_subs_page() {
       $recent = get_posts(['numberposts' => 15, 'post_status' => 'publish']);
       if ($recent): ?>
       <div class="notice notice-info inline" style="padding:.75rem 1rem;margin:1rem 0">
-        <p style="margin:0 0 .5rem"><strong>Trimite un articol acum</strong> — util pentru articolele publicate înainte de a porni newsletterul.</p>
-        <form method="post" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0" onsubmit="return confirm('Trimiți acest articol tuturor abonaților?')">
+        <p style="margin:0 0 .5rem"><strong>Trimite un articol acum</strong> â€” util pentru articolele publicate Ã®nainte de a porni newsletterul.</p>
+        <form method="post" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:0" onsubmit="return confirm('TrimiÈ›i acest articol tuturor abonaÈ›ilor?')">
           <?php wp_nonce_field('magpress_subs_send'); ?>
           <select name="mgp_send_post">
             <?php foreach ($recent as $p): ?>
               <option value="<?php echo (int) $p->ID; ?>"><?php echo esc_html($p->post_title); ?><?php echo get_post_meta($p->ID, '_magpress_nl_sent', true) ? ' (deja trimis)' : ''; ?></option>
             <?php endforeach; ?>
           </select>
-          <button class="button button-primary" type="submit">Trimite abonaților</button>
+          <button class="button button-primary" type="submit">Trimite abonaÈ›ilor</button>
         </form>
         <?php
         $mgp_mode = get_theme_mod('magpress_nlbar_send_mode', 'daily');
@@ -4237,12 +4237,12 @@ function magpress_render_subs_page() {
           <strong>Rezumat zilnic:</strong>
           <?php if ($mgp_mode === 'daily'): ?>
             pornit, ora <?php echo (int) get_theme_mod('magpress_nlbar_daily_hour', 8); ?>:00.
-            <?php if ($mgp_next): ?>Următorul: <?php echo esc_html(wp_date('j M Y, H:i', $mgp_next)); ?>.<?php endif; ?>
+            <?php if ($mgp_next): ?>UrmÄƒtorul: <?php echo esc_html(wp_date('j M Y, H:i', $mgp_next)); ?>.<?php endif; ?>
           <?php else: ?>
-            oprit — acum se trimite câte un email la fiecare articol. Schimbi din Personalizare.
+            oprit â€” acum se trimite cÃ¢te un email la fiecare articol. Schimbi din Personalizare.
           <?php endif; ?>
         </p>
-        <form method="post" style="margin:0" onsubmit="return confirm('Trimiți acum rezumatul cu articolele noi?')">
+        <form method="post" style="margin:0" onsubmit="return confirm('TrimiÈ›i acum rezumatul cu articolele noi?')">
           <?php wp_nonce_field('magpress_subs_digest'); ?>
           <input type="hidden" name="mgp_send_digest" value="1" />
           <button class="button" type="submit">Trimite rezumatul acum</button>
@@ -4250,16 +4250,16 @@ function magpress_render_subs_page() {
       </div>
       <?php endif; ?>
       <?php if (!$exists): ?>
-        <p>Tabelul se creează automat când pornești bara din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare → Magpress: Bara newsletter</a>.</p>
+        <p>Tabelul se creeazÄƒ automat cÃ¢nd porneÈ™ti bara din <a href="<?php echo esc_url(admin_url('customize.php')); ?>">Personalizare â†’ Magpress: Bara newsletter</a>.</p>
       <?php else: ?>
         <p>
-          <strong><?php echo (int) $total; ?></strong> abonați.
+          <strong><?php echo (int) $total; ?></strong> abonaÈ›i.
           <?php if ($total): ?>
-            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=magpress_subs_export'), 'magpress_subs_export')); ?>">Descarcă CSV</a>
+            <a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=magpress_subs_export'), 'magpress_subs_export')); ?>">DescarcÄƒ CSV</a>
           <?php endif; ?>
         </p>
         <?php if (!$rows): ?>
-          <p>Niciun abonat încă.</p>
+          <p>Niciun abonat Ã®ncÄƒ.</p>
         <?php else: ?>
         <table class="widefat striped">
           <thead><tr><th>Email</th><th>Nume</th><th>Data</th><th></th></tr></thead>
@@ -4270,17 +4270,17 @@ function magpress_render_subs_page() {
               <td><?php echo esc_html($r['name']); ?></td>
               <td><?php echo esc_html($r['created_at']); ?></td>
               <td>
-                <form method="post" style="margin:0" onsubmit="return confirm('Ștergi acest abonat?')">
+                <form method="post" style="margin:0" onsubmit="return confirm('È˜tergi acest abonat?')">
                   <?php wp_nonce_field('magpress_subs_del'); ?>
                   <input type="hidden" name="mgp_del" value="<?php echo (int) $r['id']; ?>" />
-                  <button class="button-link button-link-delete" type="submit">Șterge</button>
+                  <button class="button-link button-link-delete" type="submit">È˜terge</button>
                 </form>
               </td>
             </tr>
           <?php endforeach; ?>
           </tbody>
         </table>
-        <?php if ($total > 500): ?><p><em>Se afișează ultimii 500. Exportul CSV conține tot.</em></p><?php endif; ?>
+        <?php if ($total > 500): ?><p><em>Se afiÈ™eazÄƒ ultimii 500. Exportul CSV conÈ›ine tot.</em></p><?php endif; ?>
         <?php endif; ?>
       <?php endif; ?>
     </div>
@@ -4288,8 +4288,8 @@ function magpress_render_subs_page() {
 }
 
 /**
- * Pagină admin "Magpress" cu buton "Verifică update acum".
- * Aspect → Magpress.
+ * PaginÄƒ admin "Magpress" cu buton "VerificÄƒ update acum".
+ * Aspect â†’ Magpress.
  */
 function magpress_admin_menu_page() {
     add_theme_page(
@@ -4312,13 +4312,13 @@ function magpress_render_settings_page() {
         // Force re-check: bypass GitHub raw CDN cache (max-age=300) cu cache-buster query string
         delete_transient('magpress_update_info');
         delete_site_transient('update_themes');
-        // Sterge si cache-ul LiteSpeed Object dacă există
+        // Sterge si cache-ul LiteSpeed Object dacÄƒ existÄƒ
         if (function_exists('wp_cache_delete')) {
             wp_cache_delete('magpress_update_info', 'transient');
             wp_cache_delete('update_themes', 'site-transient');
         }
 
-        // Fetch DIRECT din GitHub cu cache-buster ?_=timestamp ca să sărim peste CDN cache
+        // Fetch DIRECT din GitHub cu cache-buster ?_=timestamp ca sÄƒ sÄƒrim peste CDN cache
         $bust_url = MAGPRESS_UPDATE_INFO_URL . '?_=' . time();
         $response = wp_remote_get($bust_url, [
             'timeout' => 8,
@@ -4337,33 +4337,33 @@ function magpress_render_settings_page() {
         if (is_array($info) && !empty($info['version'])) {
             if (version_compare($current, $info['version'], '<')) {
                 if (magpress_auto_deploy_enabled()) {
-                    // Deploy instant, safe (fără maintenance mode) — la fel ca push.ps1, dar cu un click.
+                    // Deploy instant, safe (fÄƒrÄƒ maintenance mode) â€” la fel ca push.ps1, dar cu un click.
                     $deploy = magpress_run_auto_deploy();
                     if (!empty($deploy['ok']) && !empty($deploy['version'])) {
-                        $message = '✅ <strong>Actualizat automat la ' . esc_html($deploy['version']) . '</strong> (de la ' . esc_html($current) . '). Deploy fără maintenance mode — fără „Conexiune pierdută".';
+                        $message = 'âœ… <strong>Actualizat automat la ' . esc_html($deploy['version']) . '</strong> (de la ' . esc_html($current) . '). Deploy fÄƒrÄƒ maintenance mode â€” fÄƒrÄƒ â€žConexiune pierdutÄƒ".';
                         $message_type = 'success';
                     } elseif (!empty($deploy['skipped']) && $deploy['skipped'] === 'deploy_in_progress') {
-                        $message = '⏳ Un deploy e deja în curs. Reîncearcă în ~1 minut.';
+                        $message = 'â³ Un deploy e deja Ã®n curs. ReÃ®ncearcÄƒ Ã®n ~1 minut.';
                         $message_type = 'warning';
                     } else {
                         $err = $deploy['error'] ?? ($deploy['skipped'] ?? 'necunoscut');
-                        $message = '⚠️ Am detectat versiunea ' . esc_html($info['version']) . ', dar deploy-ul automat a eșuat (' . esc_html($err) . '). Poți rula <code>push.ps1</code> ca fallback.';
+                        $message = 'âš ï¸ Am detectat versiunea ' . esc_html($info['version']) . ', dar deploy-ul automat a eÈ™uat (' . esc_html($err) . '). PoÈ›i rula <code>push.ps1</code> ca fallback.';
                         $message_type = 'warning';
                     }
                 } else {
-                    $message = '✅ <strong>Versiune nouă pe GitHub:</strong> ' . esc_html($info['version']) . ' (instalată: ' . esc_html($current) . '). Auto-deploy e dezactivat — rulează <code>push.ps1</code> ca să se propage pe site-uri.';
+                    $message = 'âœ… <strong>Versiune nouÄƒ pe GitHub:</strong> ' . esc_html($info['version']) . ' (instalatÄƒ: ' . esc_html($current) . '). Auto-deploy e dezactivat â€” ruleazÄƒ <code>push.ps1</code> ca sÄƒ se propage pe site-uri.';
                     $message_type = 'success';
                 }
             } else {
-                $message = '✓ Tema e la zi. Versiune curentă: <strong>' . esc_html($current) . '</strong> (GitHub are tot ' . esc_html($info['version']) . ').';
+                $message = 'âœ“ Tema e la zi. Versiune curentÄƒ: <strong>' . esc_html($current) . '</strong> (GitHub are tot ' . esc_html($info['version']) . ').';
                 $message_type = 'success';
             }
         } else {
-            // Repo-ul stă PRIVAT între release-uri (politică asumată), deci verificarea
-            // pe GitHub returnează 404 în mod normal. Nu e o defecțiune → mesaj neutru,
-            // nu avertisment galben pe fiecare site din flotă. (v0.9.182)
-            $message = 'ℹ️ Verificarea pe GitHub nu a răspuns — normal cât timp repo-ul e privat între release-uri. '
-                     . 'Update-urile se livrează centralizat, nu din această pagină. Versiune instalată: <strong>'
+            // Repo-ul stÄƒ PRIVAT Ã®ntre release-uri (politicÄƒ asumatÄƒ), deci verificarea
+            // pe GitHub returneazÄƒ 404 Ã®n mod normal. Nu e o defecÈ›iune â†’ mesaj neutru,
+            // nu avertisment galben pe fiecare site din flotÄƒ. (v0.9.182)
+            $message = 'â„¹ï¸ Verificarea pe GitHub nu a rÄƒspuns â€” normal cÃ¢t timp repo-ul e privat Ã®ntre release-uri. '
+                     . 'Update-urile se livreazÄƒ centralizat, nu din aceastÄƒ paginÄƒ. Versiune instalatÄƒ: <strong>'
                      . esc_html(wp_get_theme()->get('Version')) . '</strong>.';
             $message_type = 'info';
         }
@@ -4376,7 +4376,7 @@ function magpress_render_settings_page() {
             update_option('magpress_site_type', $type);
             $force = !empty($_POST['magpress_force_schema']) ? 1 : 0;
             update_option('magpress_force_schema', $force);
-            $message = '✓ Setările schema au fost salvate.';
+            $message = 'âœ“ SetÄƒrile schema au fost salvate.';
             $message_type = 'success';
         }
     }
@@ -4385,7 +4385,7 @@ function magpress_render_settings_page() {
     if (isset($_POST['magpress_clear_errors']) && check_admin_referer('magpress_clear_errors_action')) {
         if (file_exists(MAGPRESS_ERROR_LOG_FILE))        { @unlink(MAGPRESS_ERROR_LOG_FILE); }
         if (file_exists(MAGPRESS_ERROR_LOG_FILE . '.old')) { @unlink(MAGPRESS_ERROR_LOG_FILE . '.old'); }
-        $message = '✓ Log-ul de erori a fost șters.';
+        $message = 'âœ“ Log-ul de erori a fost È™ters.';
         $message_type = 'success';
     }
 
@@ -4404,10 +4404,10 @@ function magpress_render_settings_page() {
         <?php endif; ?>
 
         <div class="card" style="max-width:720px;padding:1.5rem;margin-top:1rem">
-            <h2 style="margin-top:0">Status temă</h2>
+            <h2 style="margin-top:0">Status temÄƒ</h2>
             <table class="form-table">
                 <tr>
-                    <th scope="row">Versiune instalată</th>
+                    <th scope="row">Versiune instalatÄƒ</th>
                     <td><code><?php echo esc_html($current_version); ?></code></td>
                 </tr>
                 <tr>
@@ -4415,9 +4415,9 @@ function magpress_render_settings_page() {
                     <td>
                         <?php if ($last_modified): ?>
                             <?php echo esc_html(date_i18n('j F Y, H:i', $last_modified)); ?>
-                            <em>(<?php echo esc_html(human_time_diff($last_modified, current_time('U'))); ?> în urmă)</em>
+                            <em>(<?php echo esc_html(human_time_diff($last_modified, current_time('U'))); ?> Ã®n urmÄƒ)</em>
                         <?php else: ?>
-                            <em>—</em>
+                            <em>â€”</em>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -4426,11 +4426,11 @@ function magpress_render_settings_page() {
                     <td>
                         <?php if (magpress_auto_deploy_enabled()):
                             $next = wp_next_scheduled('magpress_auto_deploy_check');
-                            $next_txt = $next ? human_time_diff(time(), $next) : 'la următorul trafic';
+                            $next_txt = $next ? human_time_diff(time(), $next) : 'la urmÄƒtorul trafic';
                         ?>
-                            ✓ <strong>Activat</strong> — verificare la 5 minute + instant cât timp ești în wp-admin. Deploy fără maintenance mode (fără „Conexiune pierdută"). Următoarea verificare programată: <?php echo esc_html($next_txt); ?>.
+                            âœ“ <strong>Activat</strong> â€” verificare la 5 minute + instant cÃ¢t timp eÈ™ti Ã®n wp-admin. Deploy fÄƒrÄƒ maintenance mode (fÄƒrÄƒ â€žConexiune pierdutÄƒ"). UrmÄƒtoarea verificare programatÄƒ: <?php echo esc_html($next_txt); ?>.
                         <?php else: ?>
-                            ✗ Dezactivat. Deploy-ul se face manual prin <code>push.ps1</code>.
+                            âœ— Dezactivat. Deploy-ul se face manual prin <code>push.ps1</code>.
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -4440,13 +4440,13 @@ function magpress_render_settings_page() {
                 </tr>
             </table>
 
-            <h2>Verifică update manual</h2>
-            <p>Update-urile se aplică singure: instant cât timp ești în wp-admin, în maxim 5 minute în rest. Butonul e doar pentru confirmare imediată — verifică GitHub și, dacă e o versiune mai nouă, o instalează pe loc:</p>
+            <h2>VerificÄƒ update manual</h2>
+            <p>Update-urile se aplicÄƒ singure: instant cÃ¢t timp eÈ™ti Ã®n wp-admin, Ã®n maxim 5 minute Ã®n rest. Butonul e doar pentru confirmare imediatÄƒ â€” verificÄƒ GitHub È™i, dacÄƒ e o versiune mai nouÄƒ, o instaleazÄƒ pe loc:</p>
 
             <form method="post">
                 <?php wp_nonce_field('magpress_check_update_action'); ?>
                 <button type="submit" name="magpress_check_update" class="button button-primary button-large">
-                    🔄 Verifică update acum
+                    ðŸ”„ VerificÄƒ update acum
                 </button>
             </form>
 
@@ -4456,13 +4456,13 @@ function magpress_render_settings_page() {
             <form method="post">
                 <?php wp_nonce_field('magpress_send_ping_action'); ?>
                 <button type="submit" name="magpress_send_ping" class="button">
-                    📡 Trimite ping acum
+                    ðŸ“¡ Trimite ping acum
                 </button>
             </form>
 
             <h2 style="margin-top:2rem">Tip site (pentru schema.org JSON-LD homepage)</h2>
             <?php $current_site_type = get_option('magpress_site_type', 'auto'); ?>
-            <p>Alege tipul de site — schema.org JSON-LD pe homepage va folosi tipul corespunzător. Influențează eligibilitatea pentru Google News, Discover, Knowledge Graph și rich results.</p>
+            <p>Alege tipul de site â€” schema.org JSON-LD pe homepage va folosi tipul corespunzÄƒtor. InfluenÈ›eazÄƒ eligibilitatea pentru Google News, Discover, Knowledge Graph È™i rich results.</p>
             <form method="post">
                 <?php wp_nonce_field('magpress_site_type_action'); ?>
                 <table class="form-table">
@@ -4471,21 +4471,21 @@ function magpress_render_settings_page() {
                         <td>
                             <select name="magpress_site_type" id="magpress_site_type" style="min-width:380px">
                                 <option value="auto"     <?php selected('auto', $current_site_type); ?>>Auto-detect din domain (default)</option>
-                                <option value="news"     <?php selected('news', $current_site_type); ?>>Site de știri / publicație news → <strong>NewsMediaOrganization</strong></option>
-                                <option value="magazine" <?php selected('magazine', $current_site_type); ?>>Revistă / Magazine lifestyle → <strong>Organization</strong></option>
-                                <option value="blog"     <?php selected('blog', $current_site_type); ?>>Blog (personal / specialist) → <strong>Organization</strong></option>
-                                <option value="business" <?php selected('business', $current_site_type); ?>>Site business / servicii → <strong>OnlineBusiness</strong></option>
+                                <option value="news"     <?php selected('news', $current_site_type); ?>>Site de È™tiri / publicaÈ›ie news â†’ <strong>NewsMediaOrganization</strong></option>
+                                <option value="magazine" <?php selected('magazine', $current_site_type); ?>>RevistÄƒ / Magazine lifestyle â†’ <strong>Organization</strong></option>
+                                <option value="blog"     <?php selected('blog', $current_site_type); ?>>Blog (personal / specialist) â†’ <strong>Organization</strong></option>
+                                <option value="business" <?php selected('business', $current_site_type); ?>>Site business / servicii â†’ <strong>OnlineBusiness</strong></option>
                             </select>
                             <p class="description">
-                                <strong>News</strong> = pentru știri actuale, comunicate, evenimente curente. Eligibil pentru Google News + boost Discover.<br>
-                                <strong>Magazine/Lifestyle</strong> = pentru reviste, sfaturi, ghiduri (casa, modă, sănătate, parenting).<br>
+                                <strong>News</strong> = pentru È™tiri actuale, comunicate, evenimente curente. Eligibil pentru Google News + boost Discover.<br>
+                                <strong>Magazine/Lifestyle</strong> = pentru reviste, sfaturi, ghiduri (casa, modÄƒ, sÄƒnÄƒtate, parenting).<br>
                                 <strong>Blog</strong> = pentru content personal/specialist (specific autor).<br>
                                 <strong>Business</strong> = pentru site de companie cu servicii / produse.
                             </p>
                         </td>
                     </tr>
                 </table>
-                <button type="submit" name="magpress_save_site_type" class="button button-primary">💾 Salvează tipul site-ului</button>
+                <button type="submit" name="magpress_save_site_type" class="button button-primary">ðŸ’¾ SalveazÄƒ tipul site-ului</button>
             </form>
 
         </div>
@@ -4493,13 +4493,13 @@ function magpress_render_settings_page() {
         <div class="card" style="max-width:1100px;padding:1.5rem;margin-top:1rem">
             <h2 style="margin-top:0">
                 <?php if ($errors_count > 0): ?>
-                    ⚠️ Erori temă (<?php echo $errors_count; ?>)
+                    âš ï¸ Erori temÄƒ (<?php echo $errors_count; ?>)
                 <?php else: ?>
-                    ✓ Erori temă (zero)
+                    âœ“ Erori temÄƒ (zero)
                 <?php endif; ?>
             </h2>
             <?php if ($errors_count > 0): ?>
-                <p>Mai jos vezi ultimele 50 de erori PHP din fișierele Magpress. Trimite-mi screenshot la suport pentru fix rapid.</p>
+                <p>Mai jos vezi ultimele 50 de erori PHP din fiÈ™ierele Magpress. Trimite-mi screenshot la suport pentru fix rapid.</p>
                 <pre style="background:#1e1e1e;color:#dcdcdc;padding:1rem;border-radius:6px;max-height:400px;overflow-y:auto;font-size:.8rem;line-height:1.5;font-family:'Consolas',monospace;white-space:pre-wrap;word-break:break-word"><?php
                 foreach ($errors as $line) {
                     $color = '#dcdcdc';
@@ -4510,17 +4510,17 @@ function magpress_render_settings_page() {
                 }
                 ?></pre>
                 <p style="margin-top:1rem">
-                    <strong>Fișier log:</strong> <code>/wp-content/magpress-errors.log</code>
+                    <strong>FiÈ™ier log:</strong> <code>/wp-content/magpress-errors.log</code>
                 </p>
                 <form method="post" style="margin-top:1rem">
                     <?php wp_nonce_field('magpress_clear_errors_action'); ?>
-                    <button type="submit" name="magpress_clear_errors" class="button" onclick="return confirm('Ești sigur că vrei să ștergi log-ul de erori?')">
-                        🗑️ Șterge log erori
+                    <button type="submit" name="magpress_clear_errors" class="button" onclick="return confirm('EÈ™ti sigur cÄƒ vrei sÄƒ È™tergi log-ul de erori?')">
+                        ðŸ—‘ï¸ È˜terge log erori
                     </button>
                 </form>
             <?php else: ?>
-                <p>Niciun fișier al temei nu a generat erori. Totul funcționează curat. 🎉</p>
-                <p><em>Log-ul se înregistrează automat când apar erori PHP din fișiere Magpress.</em></p>
+                <p>Niciun fiÈ™ier al temei nu a generat erori. Totul funcÈ›ioneazÄƒ curat. ðŸŽ‰</p>
+                <p><em>Log-ul se Ã®nregistreazÄƒ automat cÃ¢nd apar erori PHP din fiÈ™iere Magpress.</em></p>
             <?php endif; ?>
         </div>
     </div>
@@ -4547,7 +4547,7 @@ function magpress_theme_update_info($result, $action, $args) {
         'requires_php' => $info['requires_php'] ?? '8.0',
         'download_link'=> $info['package']      ?? '',
         'sections'     => [
-            'description' => 'Tema WordPress magazine ultra-performantă pentru rețeaua de site-uri SEO Digital.',
+            'description' => 'Tema WordPress magazine ultra-performantÄƒ pentru reÈ›eaua de site-uri SEO Digital.',
             'changelog'   => '<p>Vezi <a href="' . esc_url($info['changelog_url'] ?? 'https://github.com/kreatorteam-collab/magpress/commits/main') . '" target="_blank">istoricul commit-urilor pe GitHub</a>.</p>',
         ],
     ];
@@ -4555,7 +4555,7 @@ function magpress_theme_update_info($result, $action, $args) {
 add_filter('themes_api', 'magpress_theme_update_info', 10, 3);
 
 /**
- * Calculeaza timestamp-ul celui mai recent fisier modificat din temă
+ * Calculeaza timestamp-ul celui mai recent fisier modificat din temÄƒ
  * (cel mai bun indicator pentru "ultima actualizare via deploy automat").
  */
 function magpress_last_modified_timestamp() {
@@ -4577,8 +4577,8 @@ function magpress_last_modified_timestamp() {
 }
 
 /**
- * Adaugă în panoul de detalii temă (Aspect → Teme) o linie cu "Ultima actualizare: ..."
- * Așa Eduard vede instant dacă deploy-ul automat a venit.
+ * AdaugÄƒ Ã®n panoul de detalii temÄƒ (Aspect â†’ Teme) o linie cu "Ultima actualizare: ..."
+ * AÈ™a Eduard vede instant dacÄƒ deploy-ul automat a venit.
  */
 function magpress_theme_details_last_update($themes) {
     $slug = get_stylesheet();
@@ -4587,7 +4587,7 @@ function magpress_theme_details_last_update($themes) {
     if (!$ts) return $themes;
 
     $human_date = date_i18n('j F Y, H:i', $ts);
-    $relative   = human_time_diff($ts, current_time('U')) . ' în urmă';
+    $relative   = human_time_diff($ts, current_time('U')) . ' Ã®n urmÄƒ';
     $appendix = '<br><br><strong>Ultima actualizare:</strong> ' . esc_html($human_date) . ' <em>(' . esc_html($relative) . ')</em>';
     $themes[$slug]['description'] .= $appendix;
     return $themes;
@@ -4613,7 +4613,7 @@ function magpress_featured_excluded_cat_ids() {
 }
 
 /**
- * Avatar custom per utilizator — upload din profilul user (admin → Utilizatori).
+ * Avatar custom per utilizator â€” upload din profilul user (admin â†’ Utilizatori).
  * Inlocuieste Gravatar-ul cu poza locala daca exista.
  */
 function magpress_user_profile_avatar_field($user) {
@@ -4634,8 +4634,8 @@ function magpress_user_profile_avatar_field($user) {
                 </div>
                 <input type="hidden" name="magpress_avatar_id" id="magpress_avatar_id" value="<?php echo esc_attr($attachment_id); ?>" />
                 <button type="button" class="button" id="magpress-avatar-upload">Alege imagine</button>
-                <button type="button" class="button" id="magpress-avatar-remove" style="<?php echo $attachment_id ? '' : 'display:none;'; ?>">Șterge</button>
-                <p class="description">Imaginea înlocuiește Gravatar-ul în tot site-ul (author box, comentarii etc.). Recomandat: pătrată, minim 200×200 px.</p>
+                <button type="button" class="button" id="magpress-avatar-remove" style="<?php echo $attachment_id ? '' : 'display:none;'; ?>">È˜terge</button>
+                <p class="description">Imaginea Ã®nlocuieÈ™te Gravatar-ul Ã®n tot site-ul (author box, comentarii etc.). Recomandat: pÄƒtratÄƒ, minim 200Ã—200 px.</p>
                 <script>
                 (function(){
                     var frame;
@@ -4646,7 +4646,7 @@ function magpress_user_profile_avatar_field($user) {
                     btnUpload.addEventListener('click', function(e){
                         e.preventDefault();
                         if (frame) { frame.open(); return; }
-                        frame = wp.media({ title: 'Alege avatar', button: { text: 'Folosește această imagine' }, multiple: false, library: { type: 'image' } });
+                        frame = wp.media({ title: 'Alege avatar', button: { text: 'FoloseÈ™te aceastÄƒ imagine' }, multiple: false, library: { type: 'image' } });
                         frame.on('select', function(){
                             var att = frame.state().get('selection').first().toJSON();
                             input.value = att.id;
@@ -4725,17 +4725,17 @@ add_filter('pre_get_avatar_data', 'magpress_filter_avatar_data', 10, 2);
  * Auth: header X-Magpress-Signature = hash_hmac('sha256', body, deploy_secret per site din wp_options)
  * Body: JSON cu {ref: "main", sha: "..."} (informativ, nu obligatoriu)
  *
- * Flux: validare HMAC → descarcă zipball GitHub → backup → înlocuiește tema → purge LiteSpeed.
+ * Flux: validare HMAC â†’ descarcÄƒ zipball GitHub â†’ backup â†’ Ã®nlocuieÈ™te tema â†’ purge LiteSpeed.
  * Rate limit: 1 deploy / 60 sec (transient).
  *
- * Apelat de PowerShell-ul de push după ce împinge commit-ul pe GitHub. Lista site-urilor o
- * citește din magpress_sites pe targetseo.ro.
+ * Apelat de PowerShell-ul de push dupÄƒ ce Ã®mpinge commit-ul pe GitHub. Lista site-urilor o
+ * citeÈ™te din magpress_sites pe targetseo.ro.
  */
 add_action('rest_api_init', function () {
     register_rest_route('magpress/v1', '/deploy', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_deploy',
-        'permission_callback' => '__return_true', // validăm HMAC manual
+        'permission_callback' => '__return_true', // validÄƒm HMAC manual
     ]);
     register_rest_route('magpress/v1', '/version', [
         'methods'             => 'GET',
@@ -4752,49 +4752,49 @@ add_action('rest_api_init', function () {
     register_rest_route('magpress/v1', '/diag', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_diag',
-        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
+        'permission_callback' => '__return_true', // validÄƒm HMAC manual (deploy_secret per-site)
     ]);
     register_rest_route('magpress/v1', '/errorlog', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_errorlog',
-        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
+        'permission_callback' => '__return_true', // validÄƒm HMAC manual (deploy_secret per-site)
     ]);
-    // Force ping — apelat din dashboard-ul de pe targetseo.ro ("Ping now")
+    // Force ping â€” apelat din dashboard-ul de pe targetseo.ro ("Ping now")
     register_rest_route('magpress/v1', '/send-ping', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_send_ping',
         'permission_callback' => '__return_true',
     ]);
-    // Upsert pagini legale (terms / cookies / privacy) — apelat din magpress-legal.php pe targetseo.ro
+    // Upsert pagini legale (terms / cookies / privacy) â€” apelat din magpress-legal.php pe targetseo.ro
     register_rest_route('magpress/v1', '/pages/upsert', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_pages_upsert',
         'permission_callback' => '__return_true',
     ]);
-    // Status pagini legale (public, doar verificare existență — info nesensibilă, paginile sunt publice oricum)
+    // Status pagini legale (public, doar verificare existenÈ›Äƒ â€” info nesensibilÄƒ, paginile sunt publice oricum)
     register_rest_route('magpress/v1', '/legal-status', [
         'methods'             => 'GET',
         'callback'            => 'magpress_rest_legal_status',
         'permission_callback' => '__return_true',
     ]);
-    // Abonare newsletter (public; honeypot + rate-limit în callback, fără nonce
-    // fiindcă paginile sunt cache-uite de LiteSpeed).
+    // Abonare newsletter (public; honeypot + rate-limit Ã®n callback, fÄƒrÄƒ nonce
+    // fiindcÄƒ paginile sunt cache-uite de LiteSpeed).
     register_rest_route('magpress/v1', '/subscribe', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_subscribe',
         'permission_callback' => '__return_true',
     ]);
-    // Instalare/upgrade plugin fleet-wide — broadcast semnat HMAC (push-plugin.ps1).
+    // Instalare/upgrade plugin fleet-wide â€” broadcast semnat HMAC (push-plugin.ps1).
     register_rest_route('magpress/v1', '/install-plugin', [
         'methods'             => 'POST',
         'callback'            => 'magpress_rest_install_plugin',
-        'permission_callback' => '__return_true', // validăm HMAC manual (deploy_secret per-site)
+        'permission_callback' => '__return_true', // validÄƒm HMAC manual (deploy_secret per-site)
     ]);
 });
 
 /**
- * Diagnostic imagini — ce editor alege WP pentru JPEG, ce extensii există, memorie, opcache.
- * Auth: HMAC-SHA256 pe body cu deploy_secret PER-SITE (ca /errorlog, /deploy) — NU mai folosim
+ * Diagnostic imagini â€” ce editor alege WP pentru JPEG, ce extensii existÄƒ, memorie, opcache.
+ * Auth: HMAC-SHA256 pe body cu deploy_secret PER-SITE (ca /errorlog, /deploy) â€” NU mai folosim
  * secretul comun hardcodat (care ajunge public la release). Folosit la debugging fleet multi-site.
  */
 function magpress_rest_diag($req) {
@@ -4807,9 +4807,9 @@ function magpress_rest_diag($req) {
     $args = ['mime_type' => 'image/jpeg'];
     $chosen = function_exists('_wp_image_editor_choose') ? _wp_image_editor_choose($args) : 'unknown';
 
-    // Test REAL de procesare: generăm o imagine de mărime normală de articol (1600x1200)
-    // și o redimensionăm cu editorul ales. Dacă pică aici, editorul chiar nu poate procesa
-    // pe acest host (policy.xml restrictiv / delegate lipsă) — nu e concurență.
+    // Test REAL de procesare: generÄƒm o imagine de mÄƒrime normalÄƒ de articol (1600x1200)
+    // È™i o redimensionÄƒm cu editorul ales. DacÄƒ picÄƒ aici, editorul chiar nu poate procesa
+    // pe acest host (policy.xml restrictiv / delegate lipsÄƒ) â€” nu e concurenÈ›Äƒ.
     $img_test = 'skip';
     $tmp = tempnam(sys_get_temp_dir(), 'mptest');
     try {
@@ -4836,7 +4836,7 @@ function magpress_rest_diag($req) {
     @unlink($tmp);
 
     // Diagnostic cache: WP_CACHE + drop-in-uri + object cache (read-only).
-    // NU mai returnăm căi absolute / conținut de fișiere (evităm fingerprinting server dacă gate-ul e slab).
+    // NU mai returnÄƒm cÄƒi absolute / conÈ›inut de fiÈ™iere (evitÄƒm fingerprinting server dacÄƒ gate-ul e slab).
     $adv = WP_CONTENT_DIR . '/advanced-cache.php';
 
     return [
@@ -4866,7 +4866,7 @@ function magpress_rest_diag($req) {
 }
 
 /**
- * Tail al unui fișier — ultimele $lines linii, citind cel mult $max_bytes de la final.
+ * Tail al unui fiÈ™ier â€” ultimele $lines linii, citind cel mult $max_bytes de la final.
  */
 function magpress_tail_file($path, $lines = 400, $max_bytes = 524288) {
     $size = @filesize($path);
@@ -4886,8 +4886,8 @@ function magpress_tail_file($path, $lines = 400, $max_bytes = 524288) {
 
 /**
  * Citire error_log per-site pentru debugging fleet. POST semnat HMAC cu deploy_secret
- * (același mecanism ca /deploy — secret per-site, NU în repo public). Întoarce un sumar
- * cu semnăturile unice de erori + count; trimite {"raw":true} ca să adaugi coada brută.
+ * (acelaÈ™i mecanism ca /deploy â€” secret per-site, NU Ã®n repo public). ÃŽntoarce un sumar
+ * cu semnÄƒturile unice de erori + count; trimite {"raw":true} ca sÄƒ adaugi coada brutÄƒ.
  */
 function magpress_rest_errorlog(WP_REST_Request $req) {
     $body     = (string) $req->get_body();
@@ -4912,7 +4912,7 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
     $candidates[] = dirname(ABSPATH) . '/error_log';
     $candidates[] = dirname(dirname(ABSPATH)) . '/error_log';
 
-    // Golire log-uri (fresh start) — trunchiază TOATE fișierele de log găsite, nu doar primul.
+    // Golire log-uri (fresh start) â€” trunchiazÄƒ TOATE fiÈ™ierele de log gÄƒsite, nu doar primul.
     if ($clear) {
         $cleared = [];
         $failed  = [];
@@ -4941,7 +4941,7 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
 
     $tail = magpress_tail_file($found, $lines);
 
-    // Sumar: scoatem [timestamp]-ul din față și numărăm semnăturile unice.
+    // Sumar: scoatem [timestamp]-ul din faÈ›Äƒ È™i numÄƒrÄƒm semnÄƒturile unice.
     $counts = [];
     foreach (explode("\n", (string) $tail) as $ln) {
         $ln = trim($ln);
@@ -5000,14 +5000,14 @@ function magpress_rest_send_ping(WP_REST_Request $request) {
     if (!hash_equals($sig_expected, $sig_received)) {
         return new WP_REST_Response(['ok' => false, 'error' => 'invalid_signature'], 403);
     }
-    // Trimite ping sincron (blocking) ca să returnăm rezultatul
+    // Trimite ping sincron (blocking) ca sÄƒ returnÄƒm rezultatul
     magpress_send_ping(true);
     return new WP_REST_Response(['ok' => true, 'sent' => true, 'version' => wp_get_theme()->get('Version')], 200);
 }
 
 /**
- * Upsert pagină legală (terms / cookies / privacy) — apelat de targetseo.ro la sync.
- * Validare HMAC cu deploy_secret per site (același mecanism ca /deploy).
+ * Upsert paginÄƒ legalÄƒ (terms / cookies / privacy) â€” apelat de targetseo.ro la sync.
+ * Validare HMAC cu deploy_secret per site (acelaÈ™i mecanism ca /deploy).
  * Slug-uri permise: termeni-si-conditii, politica-cookies, politica-confidentialitate.
  */
 function magpress_rest_pages_upsert(WP_REST_Request $request) {
@@ -5038,15 +5038,15 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
         return new WP_REST_Response(['ok' => false, 'error' => 'empty_title_or_content'], 400);
     }
 
-    // Sanitize content (păstrăm HTML safe pentru paginile editate)
+    // Sanitize content (pÄƒstrÄƒm HTML safe pentru paginile editate)
     $content = wp_kses_post($content);
 
-    // Update-only cu fuzzy matching: găsim pagina existentă (chiar dacă are alt slug)
-    // și o schimbăm la slug-ul canonic. WP păstrează automat _wp_old_slug → redirect 301 vechi → nou.
+    // Update-only cu fuzzy matching: gÄƒsim pagina existentÄƒ (chiar dacÄƒ are alt slug)
+    // È™i o schimbÄƒm la slug-ul canonic. WP pÄƒstreazÄƒ automat _wp_old_slug â†’ redirect 301 vechi â†’ nou.
     $existing = magpress_find_legal_page($slug);
     if (!$existing) {
-        // CREATE (v0.9.164): pe instalări noi pagina nu există deloc — o creăm direct
-        // publicată cu slug-ul canonic + marcaj managed, în loc să refuzăm cu 404.
+        // CREATE (v0.9.164): pe instalÄƒri noi pagina nu existÄƒ deloc â€” o creÄƒm direct
+        // publicatÄƒ cu slug-ul canonic + marcaj managed, Ã®n loc sÄƒ refuzÄƒm cu 404.
         $new_id = wp_insert_post([
             'post_title'   => $title,
             'post_name'    => $slug,
@@ -5081,14 +5081,14 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
         'post_title'   => $title,
         'post_content' => $content,
         'post_type'    => 'page',
-        // NU schimbăm post_status (lăsăm cum a fost setat de admin: publish/draft/private)
+        // NU schimbÄƒm post_status (lÄƒsÄƒm cum a fost setat de admin: publish/draft/private)
         'meta_input'   => [
             '_magpress_managed' => '1',
         ],
     ];
     if ($needs_slug_change) {
         $page_args['post_name'] = $slug;
-        // WP va salva automat _wp_old_slug = $old_slug → redirect 301 funcționează
+        // WP va salva automat _wp_old_slug = $old_slug â†’ redirect 301 funcÈ›ioneazÄƒ
     }
 
     $result = wp_update_post($page_args, true);
@@ -5112,14 +5112,14 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
 }
 
 /**
- * v0.9.192 — paginile legale nu au ce căuta în index.
- * Termeni, cookies și confidențialitate sunt obligatorii legal, dar nu aduc trafic;
- * indexate, doar diluează. Emitem `noindex, follow` — follow, ca linkurile din ele
- * (spre home, contact) să rămână utile. NU punem `nofollow` la nivel de pagină: ar
- * tăia degeaba fluxul intern, iar `rel="nofollow"` pe linkurile din footer e o
- * practică abandonată din 2009.
+ * v0.9.192 â€” paginile legale nu au ce cÄƒuta Ã®n index.
+ * Termeni, cookies È™i confidenÈ›ialitate sunt obligatorii legal, dar nu aduc trafic;
+ * indexate, doar dilueazÄƒ. Emitem `noindex, follow` â€” follow, ca linkurile din ele
+ * (spre home, contact) sÄƒ rÄƒmÃ¢nÄƒ utile. NU punem `nofollow` la nivel de paginÄƒ: ar
+ * tÄƒia degeaba fluxul intern, iar `rel="nofollow"` pe linkurile din footer e o
+ * practicÄƒ abandonatÄƒ din 2009.
  * Identificare: marcajul propriu `_magpress_managed` SAU orice slug din lista
- * canonică + alternativele cunoscute (site-urile vechi au slug-uri diferite).
+ * canonicÄƒ + alternativele cunoscute (site-urile vechi au slug-uri diferite).
  */
 function magpress_legal_slug_aliases() {
     return [
@@ -5155,28 +5155,35 @@ function magpress_legal_page_robots($robots) {
 add_filter('wp_robots', 'magpress_legal_page_robots');
 
 /**
- * SEOPress își emite propriul meta robots și l-ar contrazice pe al nostru (două
- * tag-uri pe aceeași pagină). Îi spunem și lui același lucru, prin filtrele lui;
- * dacă pluginul lipsește sau filtrele nu există, nu se întâmplă nimic.
+ * SEOPress emite PROPRIUL meta robots È™i Ã®l scoate pe cel din nucleu (`wp_robots`),
+ * deci filtrul de mai sus n-are efect pe site-urile cu SEOPress.
+ * Prima Ã®ncercare (v0.9.192) a folosit filtrele `seopress_titles_noindex` /
+ * `seopress_robots_index` È™i a fost GREÈ˜ITÄ‚: valorile lor ajungeau concatenate Ã®n
+ * conÈ›inutul tag-ului (â€žindex, follow, 1, â€¦") Ã®n loc sÄƒ-l schimbe.
+ *
+ * Ce È›ine: Ã®i servim lui SEOPress exact valoarea pe care ar citi-o dacÄƒ bifa
+ * â€žnoindex" ar fi pusÄƒ manual Ã®n paginÄƒ â€” interceptÄƒm CITIREA meta-cheii, fÄƒrÄƒ sÄƒ
+ * scriem nimic Ã®n baza de date (reversibil: se stinge odatÄƒ cu comutatorul).
+ * DacÄƒ SEOPress lipseÈ™te, nimeni nu cere cheia È™i filtrul e inert.
  */
-function magpress_legal_page_seopress() {
-    if (!is_page() || !get_theme_mod('magpress_legal_noindex', 1)) return;
-    if (!magpress_is_legal_page(get_queried_object_id())) return;
-    add_filter('seopress_titles_noindex', '__return_true');
-    add_filter('seopress_robots_index', function () { return 'noindex'; });
+function magpress_legal_page_seopress_meta($value, $object_id, $meta_key, $single) {
+    if ($meta_key !== '_seopress_robots_index') return $value;
+    if (!get_theme_mod('magpress_legal_noindex', 1)) return $value;
+    if (!magpress_is_legal_page($object_id)) return $value;
+    return $single ? 'yes' : ['yes']; // 'yes' = noindex, Ã®n convenÈ›ia SEOPress
 }
-add_action('template_redirect', 'magpress_legal_page_seopress');
+add_filter('get_post_metadata', 'magpress_legal_page_seopress_meta', 10, 4);
 
 /**
- * Fuzzy find pentru pagini legale: caută prin slug exact, slug-uri alternative comune,
- * apoi prin title LIKE. Returnează prima pagină publish găsită sau null.
+ * Fuzzy find pentru pagini legale: cautÄƒ prin slug exact, slug-uri alternative comune,
+ * apoi prin title LIKE. ReturneazÄƒ prima paginÄƒ publish gÄƒsitÄƒ sau null.
  */
 function magpress_find_legal_page($target_slug) {
     // 1. Slug exact
     $page = get_page_by_path($target_slug, OBJECT, 'page');
     if ($page && $page->post_status === 'publish') return $page;
 
-    // 2. Slug-uri alternative comune (vezi și magpress_legal_slug_aliases())
+    // 2. Slug-uri alternative comune (vezi È™i magpress_legal_slug_aliases())
     $alternatives = [
         'termeni-si-conditii' => [
             'termeni', 'terms', 'terms-and-conditions', 't-c', 'termeni-conditii',
@@ -5248,7 +5255,7 @@ function magpress_rest_deploy(WP_REST_Request $request) {
     $result = magpress_perform_deploy();
 
     delete_transient('magpress_deploy_lock');
-    // Bust update-info cache ca să nu mai propună update vechi după deploy
+    // Bust update-info cache ca sÄƒ nu mai propunÄƒ update vechi dupÄƒ deploy
     delete_transient('magpress_update_info');
 
     $status = !empty($result['ok']) ? 200 : 500;
@@ -5258,9 +5265,9 @@ function magpress_rest_deploy(WP_REST_Request $request) {
 /**
  * REST: instalare/upgrade plugin fleet-wide.
  * POST {site}/wp-json/magpress/v1/install-plugin
- * Auth: X-Magpress-Signature = hash_hmac('sha256', body, deploy_secret) — la fel ca /deploy.
- * Body JSON: { slug, zip_b64 (ZIP-ul plugin-ului în base64), activate (bool) }
- * Instalează SAU upgradează (overwrite_package) prin Plugin_Upgrader, opțional activează.
+ * Auth: X-Magpress-Signature = hash_hmac('sha256', body, deploy_secret) â€” la fel ca /deploy.
+ * Body JSON: { slug, zip_b64 (ZIP-ul plugin-ului Ã®n base64), activate (bool) }
+ * InstaleazÄƒ SAU upgradeazÄƒ (overwrite_package) prin Plugin_Upgrader, opÈ›ional activeazÄƒ.
  */
 function magpress_rest_install_plugin(WP_REST_Request $request) {
     $body = $request->get_body();
@@ -5339,7 +5346,7 @@ function magpress_rest_install_plugin(WP_REST_Request $request) {
 }
 
 function magpress_perform_deploy() {
-    // wp_tempnam() trăiește în wp-admin/includes/file.php — REST nu îl încarcă by default
+    // wp_tempnam() trÄƒieÈ™te Ã®n wp-admin/includes/file.php â€” REST nu Ã®l Ã®ncarcÄƒ by default
     if (!function_exists('wp_tempnam')) {
         require_once ABSPATH . 'wp-admin/includes/file.php';
     }
@@ -5359,7 +5366,7 @@ function magpress_perform_deploy() {
     $tmp_zip     = wp_tempnam('magpress-deploy.zip');
     $tmp_extract = $backups_dir . '/_tmp-extract-' . uniqid();
 
-    // 1. Descarcă zipball
+    // 1. DescarcÄƒ zipball
     $url = 'https://api.github.com/repos/kreatorteam-collab/magpress/zipball/main';
     $log_msg("Download: {$url}");
     $resp = wp_remote_get($url, [
@@ -5392,8 +5399,8 @@ function magpress_perform_deploy() {
     if (!is_dir($tmp_extract)) {
         @mkdir($tmp_extract, 0755, true);
     }
-    // Gardă zip-slip: refuzăm orice intrare care iese din directorul țintă (../, cale absolută)
-    // înainte de a extrage — o arhivă coruptă/malițioasă nu poate scrie în afara $tmp_extract.
+    // GardÄƒ zip-slip: refuzÄƒm orice intrare care iese din directorul È›intÄƒ (../, cale absolutÄƒ)
+    // Ã®nainte de a extrage â€” o arhivÄƒ coruptÄƒ/maliÈ›ioasÄƒ nu poate scrie Ã®n afara $tmp_extract.
     for ($zi = 0; $zi < $zip->numFiles; $zi++) {
         $entry = $zip->getNameIndex($zi);
         if ($entry === false || $entry === '') { continue; }
@@ -5416,7 +5423,7 @@ function magpress_perform_deploy() {
     $extracted = $dirs[0];
     $log_msg("Extracted to: " . basename($extracted));
 
-    // 3. Backup tema existentă
+    // 3. Backup tema existentÄƒ
     if (is_dir($target_dir)) {
         if (!_magpress_rcopy($target_dir, $backup_dir)) {
             _magpress_rrmdir($tmp_extract);
@@ -5440,14 +5447,14 @@ function magpress_perform_deploy() {
     _magpress_rrmdir($tmp_extract);
     $log_msg('Theme deployed: ' . $current_slug);
 
-    // 4b. Reset opcache — altfel PHP servește functions.php VECHI din cache pe hosturi cu
-    //     opcache.validate_timestamps=0 (codul nou nu se activează până la restart PHP).
+    // 4b. Reset opcache â€” altfel PHP serveÈ™te functions.php VECHI din cache pe hosturi cu
+    //     opcache.validate_timestamps=0 (codul nou nu se activeazÄƒ pÃ¢nÄƒ la restart PHP).
     if (function_exists('opcache_reset')) {
         @opcache_reset();
         $log_msg('opcache reset');
     }
 
-    // 5. Păstrăm ultimele 3 backup-uri
+    // 5. PÄƒstrÄƒm ultimele 3 backup-uri
     $old = glob($backups_dir . '/' . $current_slug . '-bak-*', GLOB_ONLYDIR);
     if ($old && count($old) > 3) {
         sort($old);
@@ -5457,10 +5464,10 @@ function magpress_perform_deploy() {
         }
     }
 
-    // 6. Purge LiteSpeed (dacă există). ATENȚIE: litespeed_purge_all golește DOAR page cache-ul;
-    //    CSS/JS-ul combinat din /wp-content/litespeed/css/ rămâne stale după un update de temă,
-    //    deci modificările de stil nu apar până la un purge CSS/JS manual. Purgem explicit și
-    //    cssjs + critical/unique CSS ca deploy-ul să fie vizibil imediat.
+    // 6. Purge LiteSpeed (dacÄƒ existÄƒ). ATENÈšIE: litespeed_purge_all goleÈ™te DOAR page cache-ul;
+    //    CSS/JS-ul combinat din /wp-content/litespeed/css/ rÄƒmÃ¢ne stale dupÄƒ un update de temÄƒ,
+    //    deci modificÄƒrile de stil nu apar pÃ¢nÄƒ la un purge CSS/JS manual. Purgem explicit È™i
+    //    cssjs + critical/unique CSS ca deploy-ul sÄƒ fie vizibil imediat.
     if (defined('LSCWP_V')) {
         do_action('litespeed_purge_all');
         do_action('litespeed_purge_all_cssjs');
@@ -5472,9 +5479,9 @@ function magpress_perform_deploy() {
         $log_msg('LiteSpeed cache purged');
     }
 
-    // 6b. Fallback: pe unele instalări (UCSS/QUIC.cloud) hook-urile de purge NU regenerează
-    //     fișierele CSS generate — rămân stale și modificările de stil nu apar. Ștergem fizic
-    //     directoarele generate; LiteSpeed le recreează la următorul request.
+    // 6b. Fallback: pe unele instalÄƒri (UCSS/QUIC.cloud) hook-urile de purge NU regenereazÄƒ
+    //     fiÈ™ierele CSS generate â€” rÄƒmÃ¢n stale È™i modificÄƒrile de stil nu apar. È˜tergem fizic
+    //     directoarele generate; LiteSpeed le recreeazÄƒ la urmÄƒtorul request.
     foreach (['css', 'ucss', 'ccss'] as $ls_sub) {
         $ls_dir = WP_CONTENT_DIR . '/litespeed/' . $ls_sub;
         if (is_dir($ls_dir)) {
@@ -5483,7 +5490,7 @@ function magpress_perform_deploy() {
         }
     }
 
-    // 7. Citim noua versiune (din style.css proaspăt copiat)
+    // 7. Citim noua versiune (din style.css proaspÄƒt copiat)
     $new_version = '?';
     $style_path = $target_dir . '/style.css';
     if (is_readable($style_path)) {
@@ -5493,8 +5500,8 @@ function magpress_perform_deploy() {
         }
     }
 
-    // 8. Update transient cu versiunea proaspăt-deployată ca să eliminăm discrepanța
-    //    "Versiune locală 0.9.8, GitHub are 0.9.7" cauzată de GitHub raw CDN cache (max 5 min).
+    // 8. Update transient cu versiunea proaspÄƒt-deployatÄƒ ca sÄƒ eliminÄƒm discrepanÈ›a
+    //    "Versiune localÄƒ 0.9.8, GitHub are 0.9.7" cauzatÄƒ de GitHub raw CDN cache (max 5 min).
     if ($new_version !== '?') {
         $update_info = [
             'name'         => 'Magpress',
@@ -5544,22 +5551,22 @@ function _magpress_rcopy($src, $dst) {
 
 /**
  * ============================================================
- * NEWS FEATURES — opționale, toate default OFF
+ * NEWS FEATURES â€” opÈ›ionale, toate default OFF
  * ============================================================
- * Setări specifice pentru site-uri de știri:
- *   - Most Read widget (top 5 articole în ultimele 48h)
+ * SetÄƒri specifice pentru site-uri de È™tiri:
+ *   - Most Read widget (top 5 articole Ã®n ultimele 48h)
  *   - Tags vizibile sub articol
  *   - Color-coded categories pe badges
  *
- * Toate funcțiile fac early return dacă toggle-ul respectiv e OFF.
- * Pe site-urile non-news, zero overhead în HTML/JS/CSS output.
+ * Toate funcÈ›iile fac early return dacÄƒ toggle-ul respectiv e OFF.
+ * Pe site-urile non-news, zero overhead Ã®n HTML/JS/CSS output.
  */
 
 // --- Customizer section ---
 function magpress_register_news_features($wp_customize) {
     $wp_customize->add_section('magpress_news', [
         'title'       => 'Magpress: News features',
-        'description' => 'Setări specifice pentru site-uri de știri. TOATE default OFF — activează doar pe site-uri de news. Pe site-urile non-news (toggle OFF), zero overhead în pagină.',
+        'description' => 'SetÄƒri specifice pentru site-uri de È™tiri. TOATE default OFF â€” activeazÄƒ doar pe site-uri de news. Pe site-urile non-news (toggle OFF), zero overhead Ã®n paginÄƒ.',
         'priority'    => 40,
     ]);
 
@@ -5570,8 +5577,8 @@ function magpress_register_news_features($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_news_most_read', [
-        'label'       => 'Widget „Cele mai citite" (sub articol + sub featured pe homepage)',
-        'description' => 'Afișează top 5 articole vizualizate în ultimele 48h. Counter prin REST endpoint (bypass LiteSpeed cache).',
+        'label'       => 'Widget â€žCele mai citite" (sub articol + sub featured pe homepage)',
+        'description' => 'AfiÈ™eazÄƒ top 5 articole vizualizate Ã®n ultimele 48h. Counter prin REST endpoint (bypass LiteSpeed cache).',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
@@ -5584,12 +5591,12 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_post_tags', [
         'label'       => 'Tags vizibile sub articol',
-        'description' => 'Listează tags-urile postului ca pill-uri cu link la pagina de tag.',
+        'description' => 'ListeazÄƒ tags-urile postului ca pill-uri cu link la pagina de tag.',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
 
-    // 3. Color-coded categories — toggle
+    // 3. Color-coded categories â€” toggle
     $wp_customize->add_setting('magpress_news_category_colors', [
         'default'           => 0,
         'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
@@ -5597,7 +5604,7 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_category_colors', [
         'label'       => 'Color-coded categories pe badges',
-        'description' => 'Aplică culori distincte pe badge-urile categoriei (Politică = roșu, Sport = verde, etc.).',
+        'description' => 'AplicÄƒ culori distincte pe badge-urile categoriei (PoliticÄƒ = roÈ™u, Sport = verde, etc.).',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
@@ -5610,33 +5617,33 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_category_colors_map', [
         'label'       => 'Mapare culori categorii',
-        'description' => 'Una pe rând în formatul: <code>slug-categorie:#HEX</code>. Exemplu: <code>politica:#d32f2f</code>. Slug-urile le găsești în Articole → Categorii.',
+        'description' => 'Una pe rÃ¢nd Ã®n formatul: <code>slug-categorie:#HEX</code>. Exemplu: <code>politica:#d32f2f</code>. Slug-urile le gÄƒseÈ™ti Ã®n Articole â†’ Categorii.',
         'section'     => 'magpress_news',
         'type'        => 'textarea',
     ]);
 
-    // 4b. „Actualizat la <dată>" pe articole (v0.9.187)
+    // 4b. â€žActualizat la <datÄƒ>" pe articole (v0.9.187)
     $wp_customize->add_setting('magpress_show_updated', [
         'default'           => 1,
         'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_show_updated', [
-        'label'       => 'Afișează „Actualizat la <dată>"',
-        'description' => 'Pe articolele modificate după publicare. Data afișată nu poate fi niciodată mai veche decât data publicării, iar modificările din primele 24h de la publicare (corecturi) nu se anunță.',
+        'label'       => 'AfiÈ™eazÄƒ â€žActualizat la <datÄƒ>"',
+        'description' => 'Pe articolele modificate dupÄƒ publicare. Data afiÈ™atÄƒ nu poate fi niciodatÄƒ mai veche decÃ¢t data publicÄƒrii, iar modificÄƒrile din primele 24h de la publicare (corecturi) nu se anunÈ›Äƒ.',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
 
-    // 4c. Pragul de la care contează o modificare (v0.9.188)
+    // 4c. Pragul de la care conteazÄƒ o modificare (v0.9.188)
     $wp_customize->add_setting('magpress_updated_since', [
         'default'           => '',
         'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_updated_since', [
-        'label'       => 'Ignoră actualizările dinainte de (AAAA-LL-ZZ)',
-        'description' => 'Operațiunile în masă (linkuri interne, migrări) au schimbat data de modificare pe mii de articole care n-au fost editate niciodată. Modificările anterioare acestei date nu se afișează. Gol = <code>' . esc_html(MAGPRESS_UPDATED_SINCE_DEFAULT) . '</code> (data introducerii regulii). Scrie <code>0</code> ca să afișezi orice modificare. Articolele împrospătate real de modulul de conținut se afișează întotdeauna.',
+        'label'       => 'IgnorÄƒ actualizÄƒrile dinainte de (AAAA-LL-ZZ)',
+        'description' => 'OperaÈ›iunile Ã®n masÄƒ (linkuri interne, migrÄƒri) au schimbat data de modificare pe mii de articole care n-au fost editate niciodatÄƒ. ModificÄƒrile anterioare acestei date nu se afiÈ™eazÄƒ. Gol = <code>' . esc_html(MAGPRESS_UPDATED_SINCE_DEFAULT) . '</code> (data introducerii regulii). Scrie <code>0</code> ca sÄƒ afiÈ™ezi orice modificare. Articolele Ã®mprospÄƒtate real de modulul de conÈ›inut se afiÈ™eazÄƒ Ã®ntotdeauna.',
         'section'     => 'magpress_news',
         'type'        => 'text',
     ]);
@@ -5649,7 +5656,7 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_author_byline', [
         'label'       => 'Author byline puternic (E-E-A-T)',
-        'description' => 'Înlocuiește meta-ul simplu de pe single cu byline rich: avatar + autor link + data publicării + „Actualizat acum X" dacă postul e modificat ulterior + reading time.',
+        'description' => 'ÃŽnlocuieÈ™te meta-ul simplu de pe single cu byline rich: avatar + autor link + data publicÄƒrii + â€žActualizat acum X" dacÄƒ postul e modificat ulterior + reading time.',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
@@ -5662,7 +5669,7 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_push_enabled', [
         'label'       => 'Push notifications (OneSignal)',
-        'description' => 'Activează SDK OneSignal pentru notificări browser. Necesită cont gratuit la <a href="https://onesignal.com" target="_blank">onesignal.com</a> + App ID configurat mai jos.',
+        'description' => 'ActiveazÄƒ SDK OneSignal pentru notificÄƒri browser. NecesitÄƒ cont gratuit la <a href="https://onesignal.com" target="_blank">onesignal.com</a> + App ID configurat mai jos.',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
@@ -5676,7 +5683,7 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_onesignal_app_id', [
         'label'       => 'OneSignal App ID (UUID)',
-        'description' => 'Format UUID (ex: 12345678-abcd-1234-abcd-1234567890ab). Îl găsești în Settings → Keys & IDs din OneSignal Dashboard.',
+        'description' => 'Format UUID (ex: 12345678-abcd-1234-abcd-1234567890ab). ÃŽl gÄƒseÈ™ti Ã®n Settings â†’ Keys & IDs din OneSignal Dashboard.',
         'section'     => 'magpress_news',
         'type'        => 'text',
         'input_attrs' => ['placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'],
@@ -5690,13 +5697,13 @@ function magpress_register_news_features($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_news_onesignal_safari_id', [
-        'label'       => 'OneSignal Safari Web ID (opțional)',
-        'description' => 'Format: <code>web.onesignal.auto.xxxxxxxx</code>. Doar dacă vrei suport Safari pe macOS.',
+        'label'       => 'OneSignal Safari Web ID (opÈ›ional)',
+        'description' => 'Format: <code>web.onesignal.auto.xxxxxxxx</code>. Doar dacÄƒ vrei suport Safari pe macOS.',
         'section'     => 'magpress_news',
         'type'        => 'text',
     ]);
 
-    // 8. News font preset (combinație Google Fonts pereche headline + body)
+    // 8. News font preset (combinaÈ›ie Google Fonts pereche headline + body)
     $wp_customize->add_setting('magpress_news_font_preset', [
         'default'           => 'default',
         'sanitize_callback' => function ($v) {
@@ -5706,19 +5713,19 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_font_preset', [
         'label'       => 'News font preset',
-        'description' => 'Pereche font Google pentru news/editorial (headline serif + body sans). Override-uiește setarea „Google Font" din Culori. Lasă „Default" ca să folosești fontul curent.',
+        'description' => 'Pereche font Google pentru news/editorial (headline serif + body sans). Override-uieÈ™te setarea â€žGoogle Font" din Culori. LasÄƒ â€žDefault" ca sÄƒ foloseÈ™ti fontul curent.',
         'section'     => 'magpress_news',
         'type'        => 'select',
         'choices'     => [
-            'default'   => 'Default (păstrează fontul actual)',
-            'editorial' => 'News editorial — Merriweather + Inter',
-            'magazine'  => 'Magazine premium — Playfair Display + Lato',
-            'digital'   => 'Modern digital — Lora + Inter',
-            'compact'   => 'News compact — Roboto Slab + Roboto',
+            'default'   => 'Default (pÄƒstreazÄƒ fontul actual)',
+            'editorial' => 'News editorial â€” Merriweather + Inter',
+            'magazine'  => 'Magazine premium â€” Playfair Display + Lato',
+            'digital'   => 'Modern digital â€” Lora + Inter',
+            'compact'   => 'News compact â€” Roboto Slab + Roboto',
         ],
     ]);
 
-    // 8b. Font meniu (stil site de știri, ex. Mediafax) — DOAR navigația, independent de preset.
+    // 8b. Font meniu (stil site de È™tiri, ex. Mediafax) â€” DOAR navigaÈ›ia, independent de preset.
     $wp_customize->add_setting('magpress_menu_font', [
         'default'           => 'default',
         'sanitize_callback' => function ($v) {
@@ -5727,18 +5734,18 @@ function magpress_register_news_features($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_menu_font', [
-        'label'       => 'Font meniu (stil știri)',
-        'description' => 'Schimbă DOAR fontul meniului de navigație (nu titlurile/textul). Ideal pentru site-urile de știri — look tip Mediafax. Lasă „Default" pentru fontul temei.',
+        'label'       => 'Font meniu (stil È™tiri)',
+        'description' => 'SchimbÄƒ DOAR fontul meniului de navigaÈ›ie (nu titlurile/textul). Ideal pentru site-urile de È™tiri â€” look tip Mediafax. LasÄƒ â€žDefault" pentru fontul temei.',
         'section'     => 'magpress_news',
         'type'        => 'select',
         'choices'     => [
             'default'          => 'Default (fontul temei)',
-            'oswald'           => 'Oswald — condensat bold (stil Mediafax)',
+            'oswald'           => 'Oswald â€” condensat bold (stil Mediafax)',
             'roboto-condensed' => 'Roboto Condensed',
             'archivo-narrow'   => 'Archivo Narrow',
             'barlow-condensed' => 'Barlow Condensed',
-            'bebas'            => 'Bebas Neue — majuscule display',
-            'anton'            => 'Anton — gros, impact',
+            'bebas'            => 'Bebas Neue â€” majuscule display',
+            'anton'            => 'Anton â€” gros, impact',
             'fjalla'           => 'Fjalla One',
         ],
     ]);
@@ -5751,7 +5758,7 @@ function magpress_register_news_features($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_news_web_stories', [
         'label'       => 'Web Stories carousel pe homepage',
-        'description' => 'Afișează carousel cu ultimele Web Stories pe homepage (sub featured grid). Necesită plugin <a href="https://wordpress.org/plugins/web-stories/" target="_blank">Web Stories de la Google</a> instalat.',
+        'description' => 'AfiÈ™eazÄƒ carousel cu ultimele Web Stories pe homepage (sub featured grid). NecesitÄƒ plugin <a href="https://wordpress.org/plugins/web-stories/" target="_blank">Web Stories de la Google</a> instalat.',
         'section'     => 'magpress_news',
         'type'        => 'checkbox',
     ]);
@@ -5760,7 +5767,7 @@ add_action('customize_register', 'magpress_register_news_features');
 
 
 // =========================================================================
-// MOST READ — counter views + getter + widget
+// MOST READ â€” counter views + getter + widget
 // =========================================================================
 
 // REST endpoint pentru tracking views (bypass LiteSpeed cache)
@@ -5784,7 +5791,7 @@ function magpress_news_record_view(WP_REST_Request $request) {
     if (!$post || $post->post_status !== 'publish' || $post->post_type !== 'post') {
         return new WP_REST_Response(['ok' => false, 'reason' => 'invalid'], 200);
     }
-    // Anti-spam basic: 1 view / IP / post / oră (transient)
+    // Anti-spam basic: 1 view / IP / post / orÄƒ (transient)
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     if ($ip) {
         $key = 'magv_' . md5($ip . '_' . $id);
@@ -5798,7 +5805,7 @@ function magpress_news_record_view(WP_REST_Request $request) {
     return new WP_REST_Response(['ok' => true], 200);
 }
 
-// JS tracker (sendBeacon → REST endpoint) — emis doar pe single, când toggle ON
+// JS tracker (sendBeacon â†’ REST endpoint) â€” emis doar pe single, cÃ¢nd toggle ON
 function magpress_news_track_view_script() {
     if (!is_singular('post')) return;
     if (!get_theme_mod('magpress_news_most_read', 0)) return;
@@ -5820,7 +5827,7 @@ function magpress_news_track_view_script() {
 }
 add_action('wp_footer', 'magpress_news_track_view_script', 50);
 
-// Cron daily: mută counter-ul today → yesterday, reset today
+// Cron daily: mutÄƒ counter-ul today â†’ yesterday, reset today
 add_action('init', function () {
     if (!wp_next_scheduled('magpress_news_views_rotate')) {
         wp_schedule_event(strtotime('tomorrow 00:00'), 'daily', 'magpress_news_views_rotate');
@@ -5834,12 +5841,12 @@ add_action('magpress_news_views_rotate', function () {
     delete_transient('magpress_news_most_read_10');
 });
 
-// Cleanup la dezactivare temă
+// Cleanup la dezactivare temÄƒ
 add_action('switch_theme', function () {
     wp_clear_scheduled_hook('magpress_news_views_rotate');
 });
 
-// Getter: top N articole în ultimele 48h (today + yesterday meta), cached 5 min
+// Getter: top N articole Ã®n ultimele 48h (today + yesterday meta), cached 5 min
 function magpress_get_most_read($limit = 5) {
     if (!get_theme_mod('magpress_news_most_read', 0)) return [];
     $limit = max(1, min(20, (int) $limit));
@@ -5952,7 +5959,7 @@ function magpress_get_category_colors_map() {
     return $cache;
 }
 
-// CSS inline per categorie (în <head>)
+// CSS inline per categorie (Ã®n <head>)
 function magpress_news_inline_category_colors() {
     $map = magpress_get_category_colors_map();
     if (empty($map)) return;
@@ -5968,7 +5975,7 @@ function magpress_news_inline_category_colors() {
 }
 add_action('wp_head', 'magpress_news_inline_category_colors', 20);
 
-// Helper: returnează clasa CSS pentru o categorie (folosită în card.php, single.php)
+// Helper: returneazÄƒ clasa CSS pentru o categorie (folositÄƒ Ã®n card.php, single.php)
 function magpress_category_color_class($cat) {
     if (!$cat || empty($cat->slug)) return '';
     if (!get_theme_mod('magpress_news_category_colors', 0)) return '';
@@ -5980,13 +5987,13 @@ function magpress_category_color_class($cat) {
 // AUTHOR BYLINE RICH (D)
 // =========================================================================
 /**
- * Timestamp-ul de afișat pentru „Actualizat la", sau 0 dacă nu se afișează nimic.
+ * Timestamp-ul de afiÈ™at pentru â€žActualizat la", sau 0 dacÄƒ nu se afiÈ™eazÄƒ nimic.
  * v0.9.187. Reguli:
- *  - data afișată NU poate fi niciodată mai veche decât data publicării (dacă
- *    post_modified < post_date — se întâmplă la articole importate/backdatate —
- *    nu afișăm nimic, nu afișăm data publicării ca „actualizare");
- *  - o diferență sub prag (implicit 24h) e o corectură la publicare, nu o
- *    actualizare de conținut: n-o anunțăm.
+ *  - data afiÈ™atÄƒ NU poate fi niciodatÄƒ mai veche decÃ¢t data publicÄƒrii (dacÄƒ
+ *    post_modified < post_date â€” se Ã®ntÃ¢mplÄƒ la articole importate/backdatate â€”
+ *    nu afiÈ™Äƒm nimic, nu afiÈ™Äƒm data publicÄƒrii ca â€žactualizare");
+ *  - o diferenÈ›Äƒ sub prag (implicit 24h) e o corecturÄƒ la publicare, nu o
+ *    actualizare de conÈ›inut: n-o anunÈ›Äƒm.
  */
 function magpress_updated_ts($post = null) {
     if (!get_theme_mod('magpress_show_updated', 1)) return 0;
@@ -5997,24 +6004,24 @@ function magpress_updated_ts($post = null) {
     $min_gap = (int) apply_filters('magpress_updated_min_gap', DAY_IN_SECONDS);
     if (($mod - $pub) < $min_gap) return 0;
 
-    // v0.9.188 — nu anunțăm ATINGERILE TEHNICE. Pe flotă, operațiuni în masă
-    // (inserarea de linkuri interne, redenumiri de categorii, migrări) au schimbat
-    // post_modified pe mii de articole care n-au fost editate editorial niciodată.
-    // Afișăm data DOAR dacă: (a) articolul a fost chiar împrospătat de modulul de
-    // conținut (meta _hzr_done), SAU (b) modificarea e ulterioară pragului de mai jos.
+    // v0.9.188 â€” nu anunÈ›Äƒm ATINGERILE TEHNICE. Pe flotÄƒ, operaÈ›iuni Ã®n masÄƒ
+    // (inserarea de linkuri interne, redenumiri de categorii, migrÄƒri) au schimbat
+    // post_modified pe mii de articole care n-au fost editate editorial niciodatÄƒ.
+    // AfiÈ™Äƒm data DOAR dacÄƒ: (a) articolul a fost chiar Ã®mprospÄƒtat de modulul de
+    // conÈ›inut (meta _hzr_done), SAU (b) modificarea e ulterioarÄƒ pragului de mai jos.
     $p = get_post($post);
     if ($p && get_post_meta($p->ID, '_hzr_done', true)) return $mod;
 
     $since = trim((string) get_theme_mod('magpress_updated_since', ''));
     if ($since === '') { $since = MAGPRESS_UPDATED_SINCE_DEFAULT; }
-    if ($since === '0') return $mod; // prag dezactivat explicit: se afișează orice
+    if ($since === '0') return $mod; // prag dezactivat explicit: se afiÈ™eazÄƒ orice
     $cut = strtotime($since . ' 00:00:00 UTC');
     if ($cut && $mod < $cut) return 0;
 
     return $mod;
 }
 
-/** Fragmentul „Actualizat la <dată>" (gol dacă nu e cazul). */
+/** Fragmentul â€žActualizat la <datÄƒ>" (gol dacÄƒ nu e cazul). */
 function magpress_updated_html($post = null, $prefix = 'Actualizat la ') {
     $ts = magpress_updated_ts($post);
     if (!$ts) return '';
@@ -6038,7 +6045,7 @@ function magpress_render_article_meta() {
             <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
             <?php if ($updated !== '') : ?>
                 <span class="sep">|</span>
-                <?php echo $updated; // deja escapat în magpress_updated_html() ?>
+                <?php echo $updated; // deja escapat Ã®n magpress_updated_html() ?>
             <?php endif; ?>
             <span class="sep">|</span>
             <span><?php echo (int) magpress_reading_time(); ?> min citire</span>
@@ -6051,8 +6058,8 @@ function magpress_render_article_meta() {
     $author_id = (int) get_the_author_meta('ID');
     $name = get_the_author_meta('display_name', $author_id);
     $url = get_author_posts_url($author_id);
-    // v0.9.187: aceeași regulă ca pe meta-ul simplu — data actualizării nu poate fi
-    // mai veche decât publicarea, iar sub prag nu o anunțăm deloc.
+    // v0.9.187: aceeaÈ™i regulÄƒ ca pe meta-ul simplu â€” data actualizÄƒrii nu poate fi
+    // mai veche decÃ¢t publicarea, iar sub prag nu o anunÈ›Äƒm deloc.
     $updated = magpress_updated_html();
     $reading = (int) magpress_reading_time();
 
@@ -6068,10 +6075,10 @@ function magpress_render_article_meta() {
                 <div class="article-meta__dates">
                     <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y, H:i')); ?></time>
                     <?php if ($updated !== ''): ?>
-                        <span class="sep">·</span>
-                        <?php echo $updated; // deja escapat în magpress_updated_html() ?>
+                        <span class="sep">Â·</span>
+                        <?php echo $updated; // deja escapat Ã®n magpress_updated_html() ?>
                     <?php endif; ?>
-                    <span class="sep">·</span>
+                    <span class="sep">Â·</span>
                     <span class="article-meta__reading"><?php echo $reading; ?> min citire</span>
                 </div>
             </div>
@@ -6114,7 +6121,7 @@ add_action('wp_head', 'magpress_news_onesignal_init', 8);
 // =========================================================================
 function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') {
     if (!get_theme_mod('magpress_news_web_stories', 0)) return '';
-    // Verificăm dacă plugin-ul Web Stories de la Google e activ (înregistrează post type 'web-story')
+    // VerificÄƒm dacÄƒ plugin-ul Web Stories de la Google e activ (Ã®nregistreazÄƒ post type 'web-story')
     if (!post_type_exists('web-story')) return '';
 
     $q = new WP_Query([
@@ -6130,7 +6137,7 @@ function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') 
     <section class="web-stories-carousel">
         <div class="web-stories-carousel__head">
             <h2 class="web-stories-carousel__title">
-                <span class="web-stories-carousel__icon" aria-hidden="true">▶</span>
+                <span class="web-stories-carousel__icon" aria-hidden="true">â–¶</span>
                 <?php echo esc_html($heading); ?>
             </h2>
         </div>
@@ -6157,17 +6164,17 @@ function magpress_render_web_stories_carousel($limit = 8, $heading = 'Stories') 
 
 /**
  * ============================================================
- * SCHEMA.ORG JSON-LD — articole + breadcrumb (+ homepage opțional)
+ * SCHEMA.ORG JSON-LD â€” articole + breadcrumb (+ homepage opÈ›ional)
  * ============================================================
  * SEOPress emite Organization + WebSite pe homepage, DAR nu emite Article schema pe single posts.
- * Magpress acoperă golul: NewsArticle/Article pe single + BreadcrumbList pe single+archive.
- * Toggle Customizer pentru a dezactiva (dacă altă sursă emite deja).
+ * Magpress acoperÄƒ golul: NewsArticle/Article pe single + BreadcrumbList pe single+archive.
+ * Toggle Customizer pentru a dezactiva (dacÄƒ altÄƒ sursÄƒ emite deja).
  */
 
 function magpress_register_schema_settings($wp_customize) {
     $wp_customize->add_section('magpress_schema', [
         'title'       => 'Magpress: Schema.org JSON-LD',
-        'description' => 'Adaugă schema.org structured data în <head>. Util pentru Google Discover, Top Stories, rich results. SEOPress emite deja Organization+WebSite pe homepage; Magpress completează cu Article schema pe single posts și BreadcrumbList.',
+        'description' => 'AdaugÄƒ schema.org structured data Ã®n <head>. Util pentru Google Discover, Top Stories, rich results. SEOPress emite deja Organization+WebSite pe homepage; Magpress completeazÄƒ cu Article schema pe single posts È™i BreadcrumbList.',
         'priority'    => 41,
     ]);
 
@@ -6177,8 +6184,8 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_enabled', [
-        'label'       => 'Activează Schema.org JSON-LD (recomandat)',
-        'description' => 'Emite NewsArticle/Article pe single + BreadcrumbList pe single & archive. Dezactivează doar dacă alt plugin (Rank Math, Yoast, SEOPress Pro) emite deja Article schema (verifică în Search Console „Rich Results Test").',
+        'label'       => 'ActiveazÄƒ Schema.org JSON-LD (recomandat)',
+        'description' => 'Emite NewsArticle/Article pe single + BreadcrumbList pe single & archive. DezactiveazÄƒ doar dacÄƒ alt plugin (Rank Math, Yoast, SEOPress Pro) emite deja Article schema (verificÄƒ Ã®n Search Console â€žRich Results Test").',
         'section'     => 'magpress_schema',
         'type'        => 'checkbox',
     ]);
@@ -6196,8 +6203,8 @@ function magpress_register_schema_settings($wp_customize) {
         'section'     => 'magpress_schema',
         'type'        => 'select',
         'choices'     => [
-            'Article'     => 'Article (default — generic, sigur)',
-            'NewsArticle' => 'NewsArticle (site-uri news/publicații)',
+            'Article'     => 'Article (default â€” generic, sigur)',
+            'NewsArticle' => 'NewsArticle (site-uri news/publicaÈ›ii)',
             'BlogPosting' => 'BlogPosting (blog personal)',
         ],
     ]);
@@ -6208,8 +6215,8 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_homepage_extra', [
-        'label'       => 'Adaugă Organization+WebSite pe homepage (setare veche)',
-        'description' => 'Înlocuită de „Forțează Organization+WebSite" de mai jos. Nu mai are efect.',
+        'label'       => 'AdaugÄƒ Organization+WebSite pe homepage (setare veche)',
+        'description' => 'ÃŽnlocuitÄƒ de â€žForÈ›eazÄƒ Organization+WebSite" de mai jos. Nu mai are efect.',
         'section'     => 'magpress_schema',
         'type'        => 'checkbox',
     ]);
@@ -6220,8 +6227,8 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_org_force', [
-        'label'       => 'Forțează Organization+WebSite pe homepage',
-        'description' => 'Tema emite mereu entitatea site-ului (Organization/NewsMediaOrganization) + WebSite. Debifează doar dacă vezi schema dublată în Rich Results Test.',
+        'label'       => 'ForÈ›eazÄƒ Organization+WebSite pe homepage',
+        'description' => 'Tema emite mereu entitatea site-ului (Organization/NewsMediaOrganization) + WebSite. DebifeazÄƒ doar dacÄƒ vezi schema dublatÄƒ Ã®n Rich Results Test.',
         'section'     => 'magpress_schema',
         'type'        => 'checkbox',
     ]);
@@ -6232,8 +6239,8 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_override_seo', [
-        'label'       => 'Tema are prioritate față de schema din SEOPress',
-        'description' => 'Oprește blocurile echivalente emise de SEOPress (Person, Organization, WebSite, Breadcrumb), ca schema să fie gestionată dintr-un singur loc pe toate site-urile.',
+        'label'       => 'Tema are prioritate faÈ›Äƒ de schema din SEOPress',
+        'description' => 'OpreÈ™te blocurile echivalente emise de SEOPress (Person, Organization, WebSite, Breadcrumb), ca schema sÄƒ fie gestionatÄƒ dintr-un singur loc pe toate site-urile.',
         'section'     => 'magpress_schema',
         'type'        => 'checkbox',
     ]);
@@ -6247,7 +6254,7 @@ function magpress_register_schema_settings($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_schema_publisher_type', [
         'label'       => 'Tip publisher (schema entity)',
-        'description' => '<code>Auto-detect</code> (default) = tema decide pe baza domain-ului (NewsMediaOrganization pentru site-uri news cunoscute, Organization pentru rest). <code>Organization</code> = override manual sigur. <code>NewsMediaOrganization</code> = override pentru publicații news.',
+        'description' => '<code>Auto-detect</code> (default) = tema decide pe baza domain-ului (NewsMediaOrganization pentru site-uri news cunoscute, Organization pentru rest). <code>Organization</code> = override manual sigur. <code>NewsMediaOrganization</code> = override pentru publicaÈ›ii news.',
         'section'     => 'magpress_schema',
         'type'        => 'select',
         'choices'     => [
@@ -6264,8 +6271,8 @@ function magpress_register_schema_settings($wp_customize) {
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_schema_publisher_logo', [
-        'label'       => 'URL logo publisher (opțional)',
-        'description' => 'Pentru schema publisher.logo. Recomandat ≥600×60px PNG/SVG. Lasă gol → folosește custom logo din Customizer → Site Identity sau site name.',
+        'label'       => 'URL logo publisher (opÈ›ional)',
+        'description' => 'Pentru schema publisher.logo. Recomandat â‰¥600Ã—60px PNG/SVG. LasÄƒ gol â†’ foloseÈ™te custom logo din Customizer â†’ Site Identity sau site name.',
         'section'     => 'magpress_schema',
         'type'        => 'url',
     ]);
@@ -6273,10 +6280,10 @@ function magpress_register_schema_settings($wp_customize) {
 add_action('customize_register', 'magpress_register_schema_settings');
 
 /**
- * FAQPage schema — DOAR dacă articolul are o secțiune reală de Întrebări frecvente.
- * Detectează heading-ul FAQ (h2/h3) + perechile h3 întrebare / paragraf răspuns.
- * Exclude disclaimerele (text italic / „rol pur educativ" / „nu înlocuiesc consultul").
- * Folosește wpautop pe conținutul brut (fără side-effects de la filtre the_content).
+ * FAQPage schema â€” DOAR dacÄƒ articolul are o secÈ›iune realÄƒ de ÃŽntrebÄƒri frecvente.
+ * DetecteazÄƒ heading-ul FAQ (h2/h3) + perechile h3 Ã®ntrebare / paragraf rÄƒspuns.
+ * Exclude disclaimerele (text italic / â€žrol pur educativ" / â€žnu Ã®nlocuiesc consultul").
+ * FoloseÈ™te wpautop pe conÈ›inutul brut (fÄƒrÄƒ side-effects de la filtre the_content).
  */
 function magpress_build_faq_schema($post) {
     if (!$post || empty($post->post_content)) return null;
@@ -6284,11 +6291,11 @@ function magpress_build_faq_schema($post) {
     if (stripos($raw, 'frecvente') === false && stripos($raw, 'FAQ') === false) return null;
 
     $html = wpautop($raw);
-    // izolează zona de la heading-ul FAQ încolo
-    if (!preg_match('/<h[23][^>]*>[^<]*(?:întrebări\s+frecvente|intrebari\s+frecvente|întrebări\s+și\s+răspunsuri|\bFAQ\b)[^<]*<\/h[23]>(.*)$/isu', $html, $mm)) {
+    // izoleazÄƒ zona de la heading-ul FAQ Ã®ncolo
+    if (!preg_match('/<h[23][^>]*>[^<]*(?:Ã®ntrebÄƒri\s+frecvente|intrebari\s+frecvente|Ã®ntrebÄƒri\s+È™i\s+rÄƒspunsuri|\bFAQ\b)[^<]*<\/h[23]>(.*)$/isu', $html, $mm)) {
         return null;
     }
-    // taie la următorul h2 (sfârșit de secțiune)
+    // taie la urmÄƒtorul h2 (sfÃ¢rÈ™it de secÈ›iune)
     $region = preg_split('/<h2\b/i', $mm[1])[0];
 
     if (!preg_match_all('/<h[34][^>]*>(.*?)<\/h[34]>(.*?)(?=<h[34]\b|$)/isu', $region, $pairs, PREG_SET_ORDER)) {
@@ -6304,7 +6311,7 @@ function magpress_build_faq_schema($post) {
                 if (preg_match('/^\s*<(?:i|em)\b/i', $pp)) continue; // disclaimer italic
                 $plain = trim(html_entity_decode(wp_strip_all_tags($pp), ENT_QUOTES, 'UTF-8'));
                 if ($plain === '') continue;
-                if (preg_match('/(rol pur educativ|nu înlocuie|consult(?:ă|ul)? (?:medic|de specialitate)|Informațiile prezentate)/iu', $plain)) continue;
+                if (preg_match('/(rol pur educativ|nu Ã®nlocuie|consult(?:Äƒ|ul)? (?:medic|de specialitate)|InformaÈ›iile prezentate)/iu', $plain)) continue;
                 $ans .= ($ans !== '' ? ' ' : '') . $plain;
             }
         }
@@ -6315,7 +6322,7 @@ function magpress_build_faq_schema($post) {
             'acceptedAnswer' => ['@type' => 'Answer', 'text' => $ans],
         ];
     }
-    if (count($entities) < 2) return null; // FAQPage are sens cu ≥2 perechi
+    if (count($entities) < 2) return null; // FAQPage are sens cu â‰¥2 perechi
 
     return [
         '@context'   => 'https://schema.org',
@@ -6325,11 +6332,11 @@ function magpress_build_faq_schema($post) {
 }
 
 /**
- * SEOPress emite propria schemă (pe unele site-uri din flotă un „Person" ca entitate
- * principală, care ținea locul lui Organization). Tema e sursa unică de adevăr pentru
- * schema, ca să poată fi gestionată centralizat pe toate site-urile → oprim blocurile
- * echivalente din SEOPress. Filtrele lipsă sunt inofensive: dacă pluginul nu e activ
- * sau nu are filtrul, nu se întâmplă nimic.
+ * SEOPress emite propria schemÄƒ (pe unele site-uri din flotÄƒ un â€žPerson" ca entitate
+ * principalÄƒ, care È›inea locul lui Organization). Tema e sursa unicÄƒ de adevÄƒr pentru
+ * schema, ca sÄƒ poatÄƒ fi gestionatÄƒ centralizat pe toate site-urile â†’ oprim blocurile
+ * echivalente din SEOPress. Filtrele lipsÄƒ sunt inofensive: dacÄƒ pluginul nu e activ
+ * sau nu are filtrul, nu se Ã®ntÃ¢mplÄƒ nimic.
  * v0.9.183
  */
 function magpress_suppress_seopress_schema() {
@@ -6357,30 +6364,30 @@ function magpress_emit_schema_jsonld() {
         if ($article) $schemas[] = $article;
         $bc = magpress_build_breadcrumb_schema_single();
         if ($bc) $schemas[] = $bc;
-        $faq = magpress_build_faq_schema(get_post()); // doar dacă articolul are secțiune FAQ reală
+        $faq = magpress_build_faq_schema(get_post()); // doar dacÄƒ articolul are secÈ›iune FAQ realÄƒ
         if ($faq) $schemas[] = $faq;
     } elseif (is_category() || is_tag() || is_author() || is_archive()) {
         $bc = magpress_build_breadcrumb_schema_archive();
         if ($bc) $schemas[] = $bc;
     } elseif (is_front_page() || is_home()) {
-        // v0.9.183: Organization + WebSite se emit ACUM ÎNTOTDEAUNA. Cheia veche
-        // `magpress_schema_homepage_extra` era salvată pe 0 pe TOATĂ flota (74/74 nu
-        // aveau Organization), așa că folosim o cheie NOUĂ, ca zerourile vechi să nu
-        // mai blocheze nimic. Opt-out per site: debifezi „Forțează Organization".
+        // v0.9.183: Organization + WebSite se emit ACUM ÃŽNTOTDEAUNA. Cheia veche
+        // `magpress_schema_homepage_extra` era salvatÄƒ pe 0 pe TOATÄ‚ flota (74/74 nu
+        // aveau Organization), aÈ™a cÄƒ folosim o cheie NOUÄ‚, ca zerourile vechi sÄƒ nu
+        // mai blocheze nimic. Opt-out per site: debifezi â€žForÈ›eazÄƒ Organization".
         if (get_theme_mod('magpress_schema_org_force', 1)) {
             $org = magpress_build_organization_schema();
             if ($org) $schemas[] = $org;
             $ws = magpress_build_website_schema();
             if ($ws) $schemas[] = $ws;
         }
-        // ItemList pe homepage — featured posts (Rich Results Test va detecta acest schema)
+        // ItemList pe homepage â€” featured posts (Rich Results Test va detecta acest schema)
         $itemlist = magpress_build_homepage_itemlist_schema();
         if ($itemlist) $schemas[] = $itemlist;
     }
 
-    // v0.9.183: marcăm blocurile NOASTRE cu data-magpress. Filtrul de buffer de mai jos
-    // identifica „schema străină" după slash-urile escapate (\/), dar emiterea de aici NU
-    // folosea JSON_UNESCAPED_SLASHES → tema își ștergea PROPRIILE Organization și WebSite,
+    // v0.9.183: marcÄƒm blocurile NOASTRE cu data-magpress. Filtrul de buffer de mai jos
+    // identifica â€žschema strÄƒinÄƒ" dupÄƒ slash-urile escapate (\/), dar emiterea de aici NU
+    // folosea JSON_UNESCAPED_SLASHES â†’ tema Ã®È™i È™tergea PROPRIILE Organization È™i WebSite,
     // pe toate cele 74 de site-uri. Marcajul e determinist, nu depinde de escaping.
     foreach ($schemas as $s) {
         echo '<script type="application/ld+json" data-magpress="1">'
@@ -6410,21 +6417,21 @@ function magpress_end_head_buffer() {
     $buffer = ob_get_clean();
 
     // Strip schema duplicate emise de SEOPress (Organization, NewsMediaOrganization, WebSite).
-    // Identificare: SEOPress folosește json_encode default cu escape slashes (\/), Magpress folosește
-    // JSON_UNESCAPED_SLASHES (//). Astfel păstrăm DOAR schema Magpress fără confuzie pentru Google.
+    // Identificare: SEOPress foloseÈ™te json_encode default cu escape slashes (\/), Magpress foloseÈ™te
+    // JSON_UNESCAPED_SLASHES (//). Astfel pÄƒstrÄƒm DOAR schema Magpress fÄƒrÄƒ confuzie pentru Google.
     // v0.9.183: identificarea se face pe MARCAJUL nostru (data-magpress), nu pe
-    // escaping-ul slash-urilor — euristica veche ștergea și blocurile temei.
+    // escaping-ul slash-urilor â€” euristica veche È™tergea È™i blocurile temei.
     $buffer = preg_replace_callback(
         '/<script\b[^>]*type="application\/ld\+json"[^>]*>\s*(\{[\s\S]*?\})\s*<\/script>/i',
         function ($m) {
             if (stripos($m[0], 'data-magpress') !== false) {
-                return $m[0]; // blocul temei — sursa unică de adevăr
+                return $m[0]; // blocul temei â€” sursa unicÄƒ de adevÄƒr
             }
             if (!get_theme_mod('magpress_schema_override_seo', 1)) {
-                return $m[0]; // userul a ales să lase pluginul SEO să emită
+                return $m[0]; // userul a ales sÄƒ lase pluginul SEO sÄƒ emitÄƒ
             }
-            // Entitatea site-ului emisă de alt plugin (SEOPress: Person/Organization/
-            // WebSite) → o scoatem, ca să nu concureze cu cea a temei.
+            // Entitatea site-ului emisÄƒ de alt plugin (SEOPress: Person/Organization/
+            // WebSite) â†’ o scoatem, ca sÄƒ nu concureze cu cea a temei.
             $data = json_decode($m[1], true);
             $type = is_array($data) && isset($data['@type']) ? $data['@type'] : '';
             $dup  = ['Organization', 'NewsMediaOrganization', 'OnlineBusiness', 'LocalBusiness', 'WebSite', 'Person'];
@@ -6441,29 +6448,29 @@ function magpress_end_head_buffer() {
 add_action('wp_head', 'magpress_end_head_buffer', 999);
 
 /**
- * Fix titluri dublu-codate (SEOPress): separatorul salvat ca text „&raquo;"
- * mai e codat o dată la output → în tab/Google apare literal „&raquo;" în loc
- * de „»". Decodăm doar dublu-codările (&amp;raquo; → &raquo;), fără să atingem
- * ampersand-urile legitime (&amp; venit dintr-un „&" real rămâne intact).
+ * Fix titluri dublu-codate (SEOPress): separatorul salvat ca text â€ž&raquo;"
+ * mai e codat o datÄƒ la output â†’ Ã®n tab/Google apare literal â€ž&raquo;" Ã®n loc
+ * de â€žÂ»". DecodÄƒm doar dublu-codÄƒrile (&amp;raquo; â†’ &raquo;), fÄƒrÄƒ sÄƒ atingem
+ * ampersand-urile legitime (&amp; venit dintr-un â€ž&" real rÄƒmÃ¢ne intact).
  */
 function magpress_fix_double_encoded_title($title) {
     if (!is_string($title) || $title === '') { return $title; }
     return preg_replace('/&amp;(#?[a-zA-Z0-9]+;)/', '&$1', $title);
 }
-// SEOPress scurtcircuitează titlul prin pre_get_document_title; rulăm după el.
+// SEOPress scurtcircuiteazÄƒ titlul prin pre_get_document_title; rulÄƒm dupÄƒ el.
 add_filter('pre_get_document_title', 'magpress_fix_double_encoded_title', 9999);
 // Fallback pentru titlurile generate de WP core.
 add_filter('document_title', 'magpress_fix_double_encoded_title', 9999);
-// SEOPress: filtrul lui de titlu (dacă pluginul e activ).
+// SEOPress: filtrul lui de titlu (dacÄƒ pluginul e activ).
 add_filter('seopress_titles_title', 'magpress_fix_double_encoded_title', 9999);
 
 /**
- * BULLETPROOF: SEOPress escapează separatorul DUPĂ filtrele de mai sus, așa că
- * uneori „&amp;raquo;" ajunge totuși în <title>. Prindem tag-ul <title> direct
- * în output-ul din <head>, indiferent cine îl generează, și decodăm dublu-
- * codările DOAR în interiorul lui. Bufferul înfășoară tot <head>-ul: pornit
- * la prioritate -100 (înaintea oricărui alt buffer din head) și închis la 1000
- * (DUPĂ bufferul de schema homepage, care e 1→999), ca nesting-ul să rămână
+ * BULLETPROOF: SEOPress escapeazÄƒ separatorul DUPÄ‚ filtrele de mai sus, aÈ™a cÄƒ
+ * uneori â€ž&amp;raquo;" ajunge totuÈ™i Ã®n <title>. Prindem tag-ul <title> direct
+ * Ã®n output-ul din <head>, indiferent cine Ã®l genereazÄƒ, È™i decodÄƒm dublu-
+ * codÄƒrile DOAR Ã®n interiorul lui. Bufferul Ã®nfÄƒÈ™oarÄƒ tot <head>-ul: pornit
+ * la prioritate -100 (Ã®naintea oricÄƒrui alt buffer din head) È™i Ã®nchis la 1000
+ * (DUPÄ‚ bufferul de schema homepage, care e 1â†’999), ca nesting-ul sÄƒ rÄƒmÃ¢nÄƒ
  * corect (LIFO) pe toate paginile.
  */
 function magpress_title_buffer_start() { ob_start(); }
@@ -6483,12 +6490,12 @@ function magpress_title_buffer_end() {
 add_action('wp_head', 'magpress_title_buffer_end', 1000);
 
 /**
- * Determină tipul de publisher schema pentru site-ul curent.
+ * DeterminÄƒ tipul de publisher schema pentru site-ul curent.
  * - Customizer setting (override manual) are prioritate
  * - Altfel, auto-detect din domain (NewsMediaOrganization pe domenii news cunoscute, Organization altfel)
  */
 function magpress_resolve_publisher_type() {
-    // 1. PRIORITATE: setarea din admin (Aspect → Magpress → Tip site)
+    // 1. PRIORITATE: setarea din admin (Aspect â†’ Magpress â†’ Tip site)
     $site_type = (string) get_option('magpress_site_type', 'auto');
     $admin_map = [
         'news'     => 'NewsMediaOrganization',
@@ -6504,7 +6511,7 @@ function magpress_resolve_publisher_type() {
     $setting = (string) get_theme_mod('magpress_schema_publisher_type', 'auto');
     if ($setting && $setting !== 'auto') return $setting;
 
-    // 3. Auto-detect din domain. Lista poate fi extinsă via filter `magpress_news_domains`.
+    // 3. Auto-detect din domain. Lista poate fi extinsÄƒ via filter `magpress_news_domains`.
     $news_domains = apply_filters('magpress_news_domains', [
         'comunicateinpresa.ro',
         'centruldebusiness.ro',
@@ -6522,10 +6529,10 @@ function magpress_resolve_publisher_type() {
 }
 
 /**
- * Default valori pentru câmpurile publisher schema.
- * Datele firmei (telefon, adresă, foundingDate) sunt hardcodate pentru SEO Digital S.R.L.
+ * Default valori pentru cÃ¢mpurile publisher schema.
+ * Datele firmei (telefon, adresÄƒ, foundingDate) sunt hardcodate pentru SEO Digital S.R.L.
  * Restul (name, url, email, description) sunt derivate automat din WP/domain.
- * Extensibil via filter `magpress_publisher_defaults` (orice site care folosește tema poate modifica).
+ * Extensibil via filter `magpress_publisher_defaults` (orice site care foloseÈ™te tema poate modifica).
  */
 function magpress_publisher_default($key) {
     $host = preg_replace('/^www\./i', '', parse_url(home_url(), PHP_URL_HOST));
@@ -6535,7 +6542,7 @@ function magpress_publisher_default($key) {
         'alternate_name'      => '',
         'description'         => get_bloginfo('description'),
         'email'               => $host ? 'contact@' . $host : '',
-        // Date firmă publisher (SEO Digital S.R.L. — Eduard) — comune pe toate site-urile
+        // Date firmÄƒ publisher (SEO Digital S.R.L. â€” Eduard) â€” comune pe toate site-urile
         'phone'               => '0747394863',
         'address_street'      => 'Strada Planetei',
         'address_locality'    => 'Giroc',
@@ -6548,7 +6555,7 @@ function magpress_publisher_default($key) {
 }
 
 /**
- * Citește un câmp publisher: dacă admin l-a setat, returnează acea valoare; altfel default.
+ * CiteÈ™te un cÃ¢mp publisher: dacÄƒ admin l-a setat, returneazÄƒ acea valoare; altfel default.
  */
 function magpress_get_publisher_field($key) {
     $val = get_option('magpress_publisher_' . $key, '');
@@ -6557,7 +6564,7 @@ function magpress_get_publisher_field($key) {
 }
 
 /**
- * Publisher MINIMAL pentru Article schema — doar câmpurile Google-required (name, url, logo).
+ * Publisher MINIMAL pentru Article schema â€” doar cÃ¢mpurile Google-required (name, url, logo).
  * NU include telefon, address, foundingDate (acele date apar doar pe homepage Organization, nu per articol).
  */
 function magpress_get_publisher_data_minimal() {
@@ -6596,7 +6603,7 @@ function magpress_get_publisher_data() {
         'url'   => home_url('/'),
     ];
 
-    // Câmpuri extra publisher (legalName, description, address, etc.) — citite din admin Magpress
+    // CÃ¢mpuri extra publisher (legalName, description, address, etc.) â€” citite din admin Magpress
     $legal = magpress_get_publisher_field('legal_name');
     if ($legal && $legal !== $cache['name']) $cache['legalName'] = $legal;
 
@@ -6612,7 +6619,7 @@ function magpress_get_publisher_data() {
     $phone = magpress_get_publisher_field('phone');
     if ($phone) $cache['telephone'] = $phone;
 
-    // PostalAddress (compus din mai multe câmpuri)
+    // PostalAddress (compus din mai multe cÃ¢mpuri)
     $street   = magpress_get_publisher_field('address_street');
     $locality = magpress_get_publisher_field('address_locality');
     $postal   = magpress_get_publisher_field('address_postal_code');
@@ -6660,7 +6667,7 @@ function magpress_build_article_schema() {
             $image_h = $img[2];
         }
     }
-    // Fallback: fără imagine reprezentativă → logo-ul site-ului, ca Article schema să aibă mereu 'image'
+    // Fallback: fÄƒrÄƒ imagine reprezentativÄƒ â†’ logo-ul site-ului, ca Article schema sÄƒ aibÄƒ mereu 'image'
     // (recomandat de Google pentru rich results).
     if ($image_url === '') {
         $logo_id = (int) get_theme_mod('custom_logo');
@@ -6677,16 +6684,16 @@ function magpress_build_article_schema() {
     $keywords = ($tags && !is_wp_error($tags)) ? wp_list_pluck($tags, 'name') : [];
 
     $excerpt = has_excerpt($post) ? get_the_excerpt($post) : wp_trim_words(strip_shortcodes(strip_tags($post->post_content)), 35, '...');
-    // description ≤160 caractere (tăiat la limită de cuvânt), recomandat de validatoare.
+    // description â‰¤160 caractere (tÄƒiat la limitÄƒ de cuvÃ¢nt), recomandat de validatoare.
     $desc = wp_strip_all_tags($excerpt);
     if (mb_strlen($desc) > 160) {
         $desc = mb_substr($desc, 0, 157);
         $sp = mb_strrpos($desc, ' ');
         if ($sp !== false && $sp > 100) { $desc = mb_substr($desc, 0, $sp); }
-        $desc = rtrim($desc, " ,.;:–-") . '…';
+        $desc = rtrim($desc, " ,.;:â€“-") . 'â€¦';
     }
 
-    // Autor = Person îmbogățit (E-E-A-T): jobTitle, image (avatar), worksFor (publisher), sameAs (site autor).
+    // Autor = Person Ã®mbogÄƒÈ›it (E-E-A-T): jobTitle, image (avatar), worksFor (publisher), sameAs (site autor).
     $author = [
         '@type' => 'Person',
         'name'  => $author_name,
@@ -6714,12 +6721,12 @@ function magpress_build_article_schema() {
         'headline'         => mb_substr(wp_strip_all_tags(get_the_title($post)), 0, 110),
         'description'      => $desc,
         'datePublished'    => get_the_date('c', $post),
-        // v0.9.187: dateModified nu poate fi mai vechi decât datePublished (articolele
-        // importate/backdatate au post_modified < post_date → validatoarele reclamă).
+        // v0.9.187: dateModified nu poate fi mai vechi decÃ¢t datePublished (articolele
+        // importate/backdatate au post_modified < post_date â†’ validatoarele reclamÄƒ).
         'dateModified'     => ((int) get_post_modified_time('U', true, $post) < (int) get_post_time('U', true, $post))
                                 ? get_the_date('c', $post)
                                 : get_the_modified_date('c', $post),
-        // un singur autor → obiect Person îmbogățit (vezi $author mai sus).
+        // un singur autor â†’ obiect Person Ã®mbogÄƒÈ›it (vezi $author mai sus).
         'author'           => $author,
         // Publisher MINIMAL pe Article (doar Google-required: name + logo). Datele complete (address,
         // telephone, foundingDate) apar DOAR pe homepage Organization, nu duplicate per articol.
@@ -6743,7 +6750,7 @@ function magpress_build_article_schema() {
         $schema['keywords'] = implode(', ', $keywords);
     }
 
-    // wordCount — recomandat pentru NewsArticle
+    // wordCount â€” recomandat pentru NewsArticle
     $word_count = str_word_count(strip_shortcodes(strip_tags($post->post_content)));
     if ($word_count > 0) {
         $schema['wordCount'] = $word_count;
@@ -6764,14 +6771,14 @@ function magpress_build_breadcrumb_schema_single() {
     $items[] = [
         '@type'    => 'ListItem',
         'position' => $position++,
-        'name'     => 'Acasă',
+        'name'     => 'AcasÄƒ',
         'item'     => home_url('/'),
     ];
 
     $cats = get_the_category($post->ID);
     if ($cats && !is_wp_error($cats)) {
         $cat = $cats[0];
-        // Categoriile părinte, de sus în jos — schema trebuie să reflecte exact
+        // Categoriile pÄƒrinte, de sus Ã®n jos â€” schema trebuie sÄƒ reflecte exact
         // firimiturile vizibile (v0.9.181).
         foreach (array_reverse(get_ancestors($cat->term_id, 'category')) as $aid) {
             $a = get_term($aid, 'category');
@@ -6810,7 +6817,7 @@ function magpress_build_breadcrumb_schema_archive() {
     $items = [[
         '@type'    => 'ListItem',
         'position' => 1,
-        'name'     => 'Acasă',
+        'name'     => 'AcasÄƒ',
         'item'     => home_url('/'),
     ]];
 
@@ -6858,7 +6865,7 @@ function magpress_build_breadcrumb_schema_archive() {
         }
     }
 
-    if (count($items) < 2) return null; // doar Acasă — fără breadcrumb
+    if (count($items) < 2) return null; // doar AcasÄƒ â€” fÄƒrÄƒ breadcrumb
 
     return [
         '@context'        => 'https://schema.org',
@@ -6868,7 +6875,7 @@ function magpress_build_breadcrumb_schema_archive() {
 }
 
 /**
- * ItemList schema pe homepage — lista articolelor featured (sticky sau ultimele).
+ * ItemList schema pe homepage â€” lista articolelor featured (sticky sau ultimele).
  * Asta produce rich result detectabil de Rich Results Test (categoria Carousels/ItemList).
  */
 function magpress_build_homepage_itemlist_schema() {
@@ -6913,7 +6920,7 @@ function magpress_build_homepage_itemlist_schema() {
     return [
         '@context'        => 'https://schema.org',
         '@type'           => 'ItemList',
-        'name'            => 'Articole featured — ' . get_bloginfo('name'),
+        'name'            => 'Articole featured â€” ' . get_bloginfo('name'),
         'numberOfItems'   => count($items),
         'itemListElement' => $items,
     ];
@@ -6938,19 +6945,19 @@ function magpress_build_website_schema() {
 
 function magpress_build_organization_schema() {
     $pub = magpress_get_publisher_data();
-    // sameAs deliberat omis — social URLs din Customizer pot fi cross-contaminate între site-uri
-    // (user setează același cont social pe mai multe site-uri); mai sigur să nu emit decât să confundăm Google.
+    // sameAs deliberat omis â€” social URLs din Customizer pot fi cross-contaminate Ã®ntre site-uri
+    // (user seteazÄƒ acelaÈ™i cont social pe mai multe site-uri); mai sigur sÄƒ nu emit decÃ¢t sÄƒ confundÄƒm Google.
     $org = [
         '@context' => 'https://schema.org',
         '@type'    => $pub['@type'],
         'name'     => $pub['name'],
         'url'      => $pub['url'],
     ];
-    // Câmpuri publisher complete din magpress_get_publisher_data (legalName, description, address, etc.)
+    // CÃ¢mpuri publisher complete din magpress_get_publisher_data (legalName, description, address, etc.)
     foreach (['legalName', 'alternateName', 'description', 'email', 'telephone', 'address', 'foundingDate', 'logo'] as $k) {
         if (!empty($pub[$k])) $org[$k] = $pub[$k];
     }
-    // image: Google Organization rich result recomandă să existe. Folosim logo-ul ca image generic.
+    // image: Google Organization rich result recomandÄƒ sÄƒ existe. Folosim logo-ul ca image generic.
     if (!empty($pub['logo']['url'])) {
         $org['image'] = $pub['logo']['url'];
     }
@@ -6977,19 +6984,19 @@ function magpress_body_classes($classes) {
 add_filter('body_class', 'magpress_body_classes');
 
 /* =====================================================================
- * SECURITY HARDENING — central, pe toate site-urile.
- * Răspuns la rapoarte beg-bounty:
+ * SECURITY HARDENING â€” central, pe toate site-urile.
+ * RÄƒspuns la rapoarte beg-bounty:
  *   - XML-RPC: pingback.ping (SSRF orb) + system.multicall (brute-force).
  *   - Enumerare utilizatori: REST /wp/v2/users, ?_embed, oEmbed, ?author=N.
- * NOTĂ: tema expune INTENȚIONAT autorul (byline + /author/slug/ + schema
- * E-E-A-T), deci slug-ul public rămâne vizibil by design. Aici ascundem
- * LISTA de utilizatori și vectorii machine-readable, nu existența autorilor.
- * Deploy-ul Magpress folosește REST (magpress/v1), NU XML-RPC.
- * rsd/wlw/generator sunt deja scoase în magpress_remove_bloat().
+ * NOTÄ‚: tema expune INTENÈšIONAT autorul (byline + /author/slug/ + schema
+ * E-E-A-T), deci slug-ul public rÄƒmÃ¢ne vizibil by design. Aici ascundem
+ * LISTA de utilizatori È™i vectorii machine-readable, nu existenÈ›a autorilor.
+ * Deploy-ul Magpress foloseÈ™te REST (magpress/v1), NU XML-RPC.
+ * rsd/wlw/generator sunt deja scoase Ã®n magpress_remove_bloat().
  * ===================================================================== */
 
-// 1) XML-RPC complet oprit. xmlrpc.php definește XMLRPC_REQUEST înainte de
-//    a încărca tema → blocăm direct accesul la fișier (403).
+// 1) XML-RPC complet oprit. xmlrpc.php defineÈ™te XMLRPC_REQUEST Ã®nainte de
+//    a Ã®ncÄƒrca tema â†’ blocÄƒm direct accesul la fiÈ™ier (403).
 if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
     http_response_code(403);
     exit('XML-RPC disabled.');
@@ -7001,15 +7008,15 @@ add_filter('wp_headers', function ($headers) {
     return $headers;
 });
 
-// 2) Anti user-enumeration (fără a strica paginile /author/slug/).
-//    a) ascunde lista REST de utilizatori pentru neautentificați.
+// 2) Anti user-enumeration (fÄƒrÄƒ a strica paginile /author/slug/).
+//    a) ascunde lista REST de utilizatori pentru neautentificaÈ›i.
 add_filter('rest_endpoints', function ($endpoints) {
     if (!is_user_logged_in()) {
         unset($endpoints['/wp/v2/users'], $endpoints['/wp/v2/users/(?P<id>[\d]+)']);
     }
     return $endpoints;
 });
-//    b) scoate slug-ul (username) din payload-ul REST de user — acoperă și ?_embed.
+//    b) scoate slug-ul (username) din payload-ul REST de user â€” acoperÄƒ È™i ?_embed.
 add_filter('rest_prepare_user', function ($response) {
     if (!is_user_logged_in() && is_object($response) && method_exists($response, 'get_data')) {
         $data = $response->get_data();
@@ -7023,7 +7030,7 @@ add_filter('oembed_response_data', function ($data) {
     unset($data['author_name'], $data['author_url']);
     return $data;
 });
-//    d) omoară enumerarea numerică ?author=N înainte de canonical redirect.
+//    d) omoarÄƒ enumerarea numericÄƒ ?author=N Ã®nainte de canonical redirect.
 add_action('parse_request', function ($wp) {
     if (!is_user_logged_in() && isset($wp->query_vars['author'])
         && is_numeric($wp->query_vars['author'])) {
@@ -7031,39 +7038,39 @@ add_action('parse_request', function ($wp) {
         exit;
     }
 });
-//    e) mesaj de login generic (nu mai distinge user greșit vs parolă greșită);
-//       excepție: dacă IP-ul e blocat de throttle, arătăm mesajul de blocare.
+//    e) mesaj de login generic (nu mai distinge user greÈ™it vs parolÄƒ greÈ™itÄƒ);
+//       excepÈ›ie: dacÄƒ IP-ul e blocat de throttle, arÄƒtÄƒm mesajul de blocare.
 add_filter('login_errors', function () {
     if (!empty($GLOBALS['magpress_login_locked'])) {
-        return __('<strong>Prea multe încercări eșuate.</strong> Reîncearcă peste 15 minute.', 'magpress');
+        return __('<strong>Prea multe Ã®ncercÄƒri eÈ™uate.</strong> ReÃ®ncearcÄƒ peste 15 minute.', 'magpress');
     }
     return __('Date de autentificare incorecte.', 'magpress');
 });
 //    f) defense-in-depth: scoate providerul "users" din sitemap-ul WP core.
-//       (No-op dacă SEOPress servește sitemap-ul — verifică setarea Authors din SEOPress.)
+//       (No-op dacÄƒ SEOPress serveÈ™te sitemap-ul â€” verificÄƒ setarea Authors din SEOPress.)
 add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
     return ('users' === $name) ? false : $provider;
 }, 10, 2);
 
 /* =====================================================================
- * SECURITY HARDENING 2 — headere + reducere amprentă (theme-fixable).
- * Restul (login rate-limit, deny fișiere .log/.bak/.sql, HSTS, directory
- * listing) e la nivel de server LiteSpeed/.htaccess, NU din temă.
+ * SECURITY HARDENING 2 â€” headere + reducere amprentÄƒ (theme-fixable).
+ * Restul (login rate-limit, deny fiÈ™iere .log/.bak/.sql, HSTS, directory
+ * listing) e la nivel de server LiteSpeed/.htaccess, NU din temÄƒ.
  * ===================================================================== */
 
-// Defense-in-depth: nu afișa erori PHP la vizitator (anti full-path disclosure).
+// Defense-in-depth: nu afiÈ™a erori PHP la vizitator (anti full-path disclosure).
 @ini_set('display_errors', '0');
 
 // Reduce spam-ul din debug.log: nu mai loga warnings/notices/deprecations
 // (ex. "Undefined array key width/height/file" din wp-includes/media.php pe
-// articole cu metadata de imagine stricată). Erorile REALE (fatal/parse) rămân.
-// WordPress forțează E_ALL când WP_DEBUG e on; revenim la nivel de producție
-// DOAR dacă nu ești în debug activ (WP_DEBUG_DISPLAY off).
+// articole cu metadata de imagine stricatÄƒ). Erorile REALE (fatal/parse) rÄƒmÃ¢n.
+// WordPress forÈ›eazÄƒ E_ALL cÃ¢nd WP_DEBUG e on; revenim la nivel de producÈ›ie
+// DOAR dacÄƒ nu eÈ™ti Ã®n debug activ (WP_DEBUG_DISPLAY off).
 if (!defined('WP_DEBUG_DISPLAY') || !WP_DEBUG_DISPLAY) {
     error_reporting(E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR);
 }
 
-// Dezactivează Application Passwords (deploy-ul folosește HMAC, nu app passwords).
+// DezactiveazÄƒ Application Passwords (deploy-ul foloseÈ™te HMAC, nu app passwords).
 add_filter('wp_is_application_passwords_available', '__return_false');
 
 // Security response headers + ascunde X-Powered-By (versiunea PHP).
@@ -7075,12 +7082,12 @@ add_action('send_headers', function () {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    // Blocăm doar funcții device-sensitive; NU atingem features de ads (browsing-topics etc.).
+    // BlocÄƒm doar funcÈ›ii device-sensitive; NU atingem features de ads (browsing-topics etc.).
     header('Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()');
 }, 1);
 
 // Ascunde versiunea WordPress din ?ver= pe asset-urile core
-// (păstrează cache-busting pentru temă/plugin-uri, care au alt ver).
+// (pÄƒstreazÄƒ cache-busting pentru temÄƒ/plugin-uri, care au alt ver).
 function magpress_hide_wp_version_assets($src) {
     global $wp_version;
     if (!$src) {
@@ -7100,11 +7107,11 @@ add_filter('style_loader_src', 'magpress_hide_wp_version_assets', 9999);
 add_filter('script_loader_src', 'magpress_hide_wp_version_assets', 9999);
 
 /* =====================================================================
- * SECURITY HARDENING 3 — injector .htaccess (server-level, via temă).
- * Scrie un bloc între markeri în .htaccess-ul site-ului, O SINGURĂ DATĂ
- * per versiune, cu BACKUP + SELF-HEAL: dacă după scriere homepage-ul cade
- * în 5xx (ex. host fără AllowOverride), restaurează automat .htaccess.
- * Gardat de un option + transient lock (evită recursia din loopback).
+ * SECURITY HARDENING 3 â€” injector .htaccess (server-level, via temÄƒ).
+ * Scrie un bloc Ã®ntre markeri Ã®n .htaccess-ul site-ului, O SINGURÄ‚ DATÄ‚
+ * per versiune, cu BACKUP + SELF-HEAL: dacÄƒ dupÄƒ scriere homepage-ul cade
+ * Ã®n 5xx (ex. host fÄƒrÄƒ AllowOverride), restaureazÄƒ automat .htaccess.
+ * Gardat de un option + transient lock (evitÄƒ recursia din loopback).
  * ===================================================================== */
 add_action('init', 'magpress_inject_htaccess_hardening', 99);
 function magpress_inject_htaccess_hardening() {
@@ -7113,21 +7120,21 @@ function magpress_inject_htaccess_hardening() {
         return;
     }
     if (get_transient('magpress_htaccess_lock')) {
-        return; // request-ul de loopback (sau un al doilea load) nu reintră
+        return; // request-ul de loopback (sau un al doilea load) nu reintrÄƒ
     }
 
     require_once ABSPATH . 'wp-admin/includes/misc.php';
     require_once ABSPATH . 'wp-admin/includes/file.php';
 
-    // Doar unde .htaccess contează (Apache/LiteSpeed cu mod_rewrite).
+    // Doar unde .htaccess conteazÄƒ (Apache/LiteSpeed cu mod_rewrite).
     if (function_exists('got_url_rewrite') && !got_url_rewrite()) {
-        update_option('magpress_htaccess_hardened', $target); // nu se aplică aici
+        update_option('magpress_htaccess_hardened', $target); // nu se aplicÄƒ aici
         return;
     }
 
     $file = get_home_path() . '.htaccess';
     if (!file_exists($file) || !is_writable($file)) {
-        return; // reîncearcă la următorul load
+        return; // reÃ®ncearcÄƒ la urmÄƒtorul load
     }
 
     set_transient('magpress_htaccess_lock', 1, 2 * MINUTE_IN_SECONDS);
@@ -7159,16 +7166,16 @@ function magpress_inject_htaccess_hardening() {
 
     if (!insert_with_markers($file, 'Magpress Security', $rules)) {
         delete_transient('magpress_htaccess_lock');
-        return; // n-a putut scrie; reîncearcă
+        return; // n-a putut scrie; reÃ®ncearcÄƒ
     }
 
-    // Self-heal: verifică homepage prin loopback; rollback DOAR la 5xx.
+    // Self-heal: verificÄƒ homepage prin loopback; rollback DOAR la 5xx.
     $resp = wp_remote_get(home_url('/'), array('timeout' => 10, 'sslverify' => false, 'redirection' => 0));
     $code = is_wp_error($resp) ? 0 : (int) wp_remote_retrieve_response_code($resp);
 
     if ($code >= 500) {
         if (file_exists($backup)) {
-            @copy($backup, $file); // restaurează .htaccess original
+            @copy($backup, $file); // restaureazÄƒ .htaccess original
         } else {
             insert_with_markers($file, 'Magpress Security', array()); // scoate blocul
         }
@@ -7180,9 +7187,9 @@ function magpress_inject_htaccess_hardening() {
 }
 
 /* =====================================================================
- * SECURITY HARDENING 4 — login throttle nativ (anti brute-force).
- * Blochează IP-ul după 5 încercări eșuate, timp de 15 min. Reset la login
- * reușit. Cheia = REMOTE_ADDR (IP real pe LiteSpeed direct, nespoofabil).
+ * SECURITY HARDENING 4 â€” login throttle nativ (anti brute-force).
+ * BlocheazÄƒ IP-ul dupÄƒ 5 Ã®ncercÄƒri eÈ™uate, timp de 15 min. Reset la login
+ * reuÈ™it. Cheia = REMOTE_ADDR (IP real pe LiteSpeed direct, nespoofabil).
  * ===================================================================== */
 define('MAGPRESS_LOGIN_MAX_FAILS', 5);
 define('MAGPRESS_LOGIN_LOCK_MINUTES', 15);
@@ -7195,34 +7202,34 @@ function magpress_login_throttle_key() {
     return 'magpress_lla_' . md5($ip);
 }
 
-// Blochează ÎNAINTE de verificarea parolei dacă IP-ul a depășit limita.
+// BlocheazÄƒ ÃŽNAINTE de verificarea parolei dacÄƒ IP-ul a depÄƒÈ™it limita.
 add_filter('authenticate', function ($user, $username) {
     if (empty($username)) {
         return $user;
     }
     if ((int) get_transient(magpress_login_throttle_key()) >= MAGPRESS_LOGIN_MAX_FAILS) {
         $GLOBALS['magpress_login_locked'] = true;
-        return new WP_Error('magpress_locked', __('Prea multe încercări eșuate. Reîncearcă mai târziu.', 'magpress'));
+        return new WP_Error('magpress_locked', __('Prea multe Ã®ncercÄƒri eÈ™uate. ReÃ®ncearcÄƒ mai tÃ¢rziu.', 'magpress'));
     }
     return $user;
 }, 30, 2);
 
-// Incrementează contorul la fiecare login eșuat.
+// IncrementeazÄƒ contorul la fiecare login eÈ™uat.
 add_action('wp_login_failed', function () {
     $key   = magpress_login_throttle_key();
     $fails = (int) get_transient($key);
     set_transient($key, $fails + 1, MAGPRESS_LOGIN_LOCK_MINUTES * MINUTE_IN_SECONDS);
 });
 
-// Reset la login reușit.
+// Reset la login reuÈ™it.
 add_action('wp_login', function () {
     delete_transient(magpress_login_throttle_key());
 });
 
 /* =====================================================================
- * FIX PUNCTUAL — business-entrepreneur.ro: WP Rocket rula în paralel cu
- * LiteSpeed (dublu page-cache). Dezactivăm WP Rocket (LiteSpeed rămâne
- * singurul cache). Gardat pe HOST + o singură dată. No-op pe restul flotei.
+ * FIX PUNCTUAL â€” business-entrepreneur.ro: WP Rocket rula Ã®n paralel cu
+ * LiteSpeed (dublu page-cache). DezactivÄƒm WP Rocket (LiteSpeed rÄƒmÃ¢ne
+ * singurul cache). Gardat pe HOST + o singurÄƒ datÄƒ. No-op pe restul flotei.
  * ===================================================================== */
 add_action('init', 'magpress_fix_be_wprocket', 99);
 function magpress_fix_be_wprocket() {
@@ -7238,9 +7245,9 @@ function magpress_fix_be_wprocket() {
     }
     $pf = 'wp-rocket/wp-rocket.php';
     if (is_plugin_active($pf)) {
-        deactivate_plugins($pf); // silent=false → rulează hook-ul de cleanup al WP Rocket
+        deactivate_plugins($pf); // silent=false â†’ ruleazÄƒ hook-ul de cleanup al WP Rocket
     }
-    // Fallback: dacă advanced-cache.php a rămas și e al WP Rocket, îl scoatem.
+    // Fallback: dacÄƒ advanced-cache.php a rÄƒmas È™i e al WP Rocket, Ã®l scoatem.
     $adv = WP_CONTENT_DIR . '/advanced-cache.php';
     if (@file_exists($adv)) {
         $c = (string) @file_get_contents($adv, false, null, 0, 400);
@@ -7252,14 +7259,14 @@ function magpress_fix_be_wprocket() {
 }
 
 /* =====================================================================
- * AGE GATE 18+ — overlay de confirmare vârstă pe articole MARCATE.
- * Pentru subiecte cu restricție de vârstă (alcool, tutun etc.).
- * 100% client-side (cookie) → compatibil cu full-page cache LiteSpeed.
- * Conținutul rămâne în DOM (SEO-safe). Overlay vizibil DEFAULT, ascuns de
- * JS dacă există cookie-ul de consimțământ. 0 bytes pe articolele nemarcate.
+ * AGE GATE 18+ â€” overlay de confirmare vÃ¢rstÄƒ pe articole MARCATE.
+ * Pentru subiecte cu restricÈ›ie de vÃ¢rstÄƒ (alcool, tutun etc.).
+ * 100% client-side (cookie) â†’ compatibil cu full-page cache LiteSpeed.
+ * ConÈ›inutul rÄƒmÃ¢ne Ã®n DOM (SEO-safe). Overlay vizibil DEFAULT, ascuns de
+ * JS dacÄƒ existÄƒ cookie-ul de consimÈ›ÄƒmÃ¢nt. 0 bytes pe articolele nemarcate.
  * ===================================================================== */
 
-// Per-articol: meta + checkbox în editor.
+// Per-articol: meta + checkbox Ã®n editor.
 add_action('init', function () {
     register_post_meta('post', '_magpress_adult', [
         'type'          => 'boolean',
@@ -7269,14 +7276,14 @@ add_action('init', function () {
     ]);
 });
 add_action('add_meta_boxes', function () {
-    add_meta_box('magpress_adult_box', 'Restricție vârstă 18+', 'magpress_adult_box_cb', 'post', 'side', 'default');
+    add_meta_box('magpress_adult_box', 'RestricÈ›ie vÃ¢rstÄƒ 18+', 'magpress_adult_box_cb', 'post', 'side', 'default');
 });
 function magpress_adult_box_cb($post) {
     wp_nonce_field('magpress_adult_save', 'magpress_adult_nonce');
     $on = (bool) get_post_meta($post->ID, '_magpress_adult', true);
     echo '<label style="display:flex;gap:.5rem;align-items:flex-start;line-height:1.4">';
     echo '<input type="checkbox" name="magpress_adult" value="1" ' . checked($on, true, false) . '>';
-    echo '<span>Articol <strong>18+</strong> — afișează confirmare de vârstă înainte de conținut (alcool, tutun etc.).</span>';
+    echo '<span>Articol <strong>18+</strong> â€” afiÈ™eazÄƒ confirmare de vÃ¢rstÄƒ Ã®nainte de conÈ›inut (alcool, tutun etc.).</span>';
     echo '</label>';
 }
 add_action('save_post_post', function ($post_id) {
@@ -7293,7 +7300,7 @@ function magpress_is_age_gated() {
     return false;
 }
 
-// Anti-flash: în <head>, dacă există cookie-ul, marcăm <html> ca age-ok ÎNAINTE de paint.
+// Anti-flash: Ã®n <head>, dacÄƒ existÄƒ cookie-ul, marcÄƒm <html> ca age-ok ÃŽNAINTE de paint.
 add_action('wp_head', function () {
     if (!magpress_is_age_gated()) return;
     ?>
@@ -7318,12 +7325,12 @@ html.age-ok .magpress-age-gate{display:none}
     <?php
 }, 2);
 
-// Overlay-ul propriu-zis, imediat după <body> (conținutul rămâne în DOM dedesubt).
+// Overlay-ul propriu-zis, imediat dupÄƒ <body> (conÈ›inutul rÄƒmÃ¢ne Ã®n DOM dedesubt).
 add_action('wp_body_open', function () {
     if (!magpress_is_age_gated()) return;
-    $text = apply_filters('magpress_age_gate_text', 'Pentru a continua, vă rugăm să vă confirmați vârsta. Aveți peste 18 ani?');
+    $text = apply_filters('magpress_age_gate_text', 'Pentru a continua, vÄƒ rugÄƒm sÄƒ vÄƒ confirmaÈ›i vÃ¢rsta. AveÈ›i peste 18 ani?');
     ?>
-<div class="magpress-age-gate" id="magpress-age-gate" role="dialog" aria-modal="true" aria-label="Confirmare vârstă 18+">
+<div class="magpress-age-gate" id="magpress-age-gate" role="dialog" aria-modal="true" aria-label="Confirmare vÃ¢rstÄƒ 18+">
   <div class="magpress-age-gate__panel">
     <p><?php echo esc_html($text); ?></p>
     <div class="magpress-age-gate__actions">
@@ -7349,9 +7356,9 @@ if(y)y.addEventListener('click',ok);if(n)n.addEventListener('click',no);})();</s
 });
 
 /* =========================================================================
- * CURS VALUTAR BNR — widget + shortcode [curs_bnr]
- * Sursa: feed-ul oficial BNR (10 zile, ca să putem arăta direcția față de
- * ziua precedentă). Cache transient 6h; complet inert până e plasat widgetul.
+ * CURS VALUTAR BNR â€” widget + shortcode [curs_bnr]
+ * Sursa: feed-ul oficial BNR (10 zile, ca sÄƒ putem arÄƒta direcÈ›ia faÈ›Äƒ de
+ * ziua precedentÄƒ). Cache transient 6h; complet inert pÃ¢nÄƒ e plasat widgetul.
  * ========================================================================= */
 
 /**
@@ -7365,8 +7372,8 @@ function magpress_bnr_rates($force = false) {
     }
 
     // v0.9.189: BNR a MUTAT feed-ul pe curs.bnr.ro. Vechiul www.bnr.ro/nbrfxrates10days.xml
-    // nu dă 404, ci întoarce HTTP 200 cu PAGINA LOR HTML (catch-all) — de-aia parsarea
-    // ieșea goală și bara dispărea. Încercăm sursele pe rând și acceptăm doar XML valid.
+    // nu dÄƒ 404, ci Ã®ntoarce HTTP 200 cu PAGINA LOR HTML (catch-all) â€” de-aia parsarea
+    // ieÈ™ea goalÄƒ È™i bara dispÄƒrea. ÃŽncercÄƒm sursele pe rÃ¢nd È™i acceptÄƒm doar XML valid.
     $sources = apply_filters('magpress_bnr_sources', [
         'https://curs.bnr.ro/nbrfxrates10days.xml',
         'https://www.bnr.ro/nbrfxrates10days.xml',
@@ -7378,7 +7385,7 @@ function magpress_bnr_rates($force = false) {
         if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) continue;
 
         $body = wp_remote_retrieve_body($resp);
-        // Un răspuns HTML (redirect spre homepage) nu e o eroare de rețea: îl respingem aici.
+        // Un rÄƒspuns HTML (redirect spre homepage) nu e o eroare de reÈ›ea: Ã®l respingem aici.
         if (stripos(ltrim($body), '<!doctype') === 0 || stripos(ltrim($body), '<html') === 0) continue;
 
         $xml = @simplexml_load_string($body);
@@ -7394,11 +7401,11 @@ function magpress_bnr_rates($force = false) {
                 if ($cur && $val > 0) $rates[$date][$cur] = ['value' => $val, 'multiplier' => $mul];
             }
         }
-        if ($rates) break; // sursă bună găsită
+        if ($rates) break; // sursÄƒ bunÄƒ gÄƒsitÄƒ
     }
 
-    // Orice eșec (rețea, HTML în loc de XML, XML fără cursuri) păstrează ultimele date
-    // bune în loc să golească bara. Reîncercăm peste 30 de minute.
+    // Orice eÈ™ec (reÈ›ea, HTML Ã®n loc de XML, XML fÄƒrÄƒ cursuri) pÄƒstreazÄƒ ultimele date
+    // bune Ã®n loc sÄƒ goleascÄƒ bara. ReÃ®ncercÄƒm peste 30 de minute.
     if (!$rates) {
         $stale = get_transient('magpress_bnr_rates_stale');
         if (is_array($stale) && !empty($stale['dates'])) {
@@ -7410,12 +7417,12 @@ function magpress_bnr_rates($force = false) {
     krsort($rates); // cele mai noi primele
     $out = ['dates' => array_keys($rates), 'rates' => $rates];
     set_transient('magpress_bnr_rates_v1', $out, 6 * HOUR_IN_SECONDS);
-    set_transient('magpress_bnr_rates_stale', $out, 7 * DAY_IN_SECONDS); // fallback la eșec de fetch
+    set_transient('magpress_bnr_rates_stale', $out, 7 * DAY_IN_SECONDS); // fallback la eÈ™ec de fetch
     return $out;
 }
 
 /**
- * Randează lista de cursuri (stil rânduri gri + săgeată direcție vs ziua anterioară).
+ * RandeazÄƒ lista de cursuri (stil rÃ¢nduri gri + sÄƒgeatÄƒ direcÈ›ie vs ziua anterioarÄƒ).
  * $currencies: array de coduri ISO (ex. ['EUR','USD','GBP','CHF']).
  */
 function magpress_render_curs_bnr($currencies = ['CHF', 'EUR', 'GBP', 'USD'], $show_date = true) {
@@ -7441,11 +7448,11 @@ function magpress_render_curs_bnr($currencies = ['CHF', 'EUR', 'GBP', 'USD'], $s
         $cur = strtoupper(trim($cur));
         if (!isset($data['rates'][$today][$cur])) continue;
         $now = $data['rates'][$today][$cur];
-        $dir = 'flat'; $sym = '→';
+        $dir = 'flat'; $sym = 'â†’';
         if ($prev && isset($data['rates'][$prev][$cur])) {
             $old = $data['rates'][$prev][$cur];
-            if ($now['value'] > $old['value'])      { $dir = 'up';   $sym = '↑'; }
-            elseif ($now['value'] < $old['value'])  { $dir = 'down'; $sym = '↓'; }
+            if ($now['value'] > $old['value'])      { $dir = 'up';   $sym = 'â†‘'; }
+            elseif ($now['value'] < $old['value'])  { $dir = 'down'; $sym = 'â†“'; }
         }
         $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
         $rows .= '<div class="mp-curs__row"><span>' . (int) $now['multiplier'] . ' ' . esc_html($cur)
@@ -7456,7 +7463,7 @@ function magpress_render_curs_bnr($currencies = ['CHF', 'EUR', 'GBP', 'USD'], $s
 
     $date_html = '';
     if ($show_date) {
-        $date_html = '<div class="mp-curs__date">Curs BNR — ' . esc_html(date_i18n('j F Y', strtotime($today))) . '</div>';
+        $date_html = '<div class="mp-curs__date">Curs BNR â€” ' . esc_html(date_i18n('j F Y', strtotime($today))) . '</div>';
     }
     return $css . '<div class="mp-curs">' . $rows . $date_html . '</div>';
 }
@@ -7471,14 +7478,14 @@ add_shortcode('curs_bnr', function ($atts) {
 class Magpress_Curs_BNR_Widget extends WP_Widget {
     public function __construct() {
         parent::__construct('magpress_curs_bnr', 'Magpress: Curs valutar BNR', [
-            'description' => 'Cursul oficial BNR cu direcția față de ziua precedentă (cache 6h).',
+            'description' => 'Cursul oficial BNR cu direcÈ›ia faÈ›Äƒ de ziua precedentÄƒ (cache 6h).',
         ]);
     }
     public function widget($args, $instance) {
         $title = !empty($instance['title']) ? $instance['title'] : 'Curs valutar';
         $curs  = !empty($instance['currencies']) ? $instance['currencies'] : 'CHF,EUR,GBP,USD';
         $html  = magpress_render_curs_bnr(array_filter(array_map('trim', explode(',', $curs))));
-        if ($html === '') return; // feed indisponibil -> nu afișăm nimic stricat
+        if ($html === '') return; // feed indisponibil -> nu afiÈ™Äƒm nimic stricat
         echo $args['before_widget'];
         if ($title) echo $args['before_title'] . esc_html($title) . $args['after_title'];
         echo $html;
@@ -7490,9 +7497,9 @@ class Magpress_Curs_BNR_Widget extends WP_Widget {
         ?>
         <p><label for="<?php echo esc_attr($this->get_field_id('title')); ?>">Titlu:</label>
         <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($title); ?>"></p>
-        <p><label for="<?php echo esc_attr($this->get_field_id('currencies')); ?>">Valute (coduri ISO, separate prin virgulă):</label>
+        <p><label for="<?php echo esc_attr($this->get_field_id('currencies')); ?>">Valute (coduri ISO, separate prin virgulÄƒ):</label>
         <input class="widefat" id="<?php echo esc_attr($this->get_field_id('currencies')); ?>" name="<?php echo esc_attr($this->get_field_name('currencies')); ?>" type="text" value="<?php echo esc_attr($curs); ?>">
-        <small>Ex: EUR,USD,GBP,CHF — orice cod din feed-ul BNR (HUF, PLN, TRY, XAU...).</small></p>
+        <small>Ex: EUR,USD,GBP,CHF â€” orice cod din feed-ul BNR (HUF, PLN, TRY, XAU...).</small></p>
         <?php
     }
     public function update($new, $old) {
@@ -7505,50 +7512,50 @@ class Magpress_Curs_BNR_Widget extends WP_Widget {
 add_action('widgets_init', function () { register_widget('Magpress_Curs_BNR_Widget'); });
 
 /**
- * Top bar cu cursul BNR — bandă subțire deasupra header-ului (ambele layout-uri).
- * Activare din Customizer -> „Magpress: Curs valutar BNR" (implicit OFF).
+ * Top bar cu cursul BNR â€” bandÄƒ subÈ›ire deasupra header-ului (ambele layout-uri).
+ * Activare din Customizer -> â€žMagpress: Curs valutar BNR" (implicit OFF).
  */
 add_action('wp_body_open', 'magpress_curs_topbar_output', 5);
 
 /* ============================================================
- * BARA VREME — top bar (sub Curs BNR) + widget + shortcode [vreme_bar]
- * Sursa: feed-ul oficial ANM (prognoza pe orașe), cache 3h + fallback stale 24h.
- * Ticker care derulează lent orașele; link către ultimul articol de vreme.
+ * BARA VREME â€” top bar (sub Curs BNR) + widget + shortcode [vreme_bar]
+ * Sursa: feed-ul oficial ANM (prognoza pe oraÈ™e), cache 3h + fallback stale 24h.
+ * Ticker care deruleazÄƒ lent oraÈ™ele; link cÄƒtre ultimul articol de vreme.
  * ============================================================ */
 
-/** Iconiță dedusă din descrierea ANM (text ASCII, fără diacritice). */
+/** IconiÈ›Äƒ dedusÄƒ din descrierea ANM (text ASCII, fÄƒrÄƒ diacritice). */
 function magpress_weather_icon($desc) {
     $d = strtolower($desc);
-    if (strpos($d, 'descarcari electrice') !== false || strpos($d, 'oraj') !== false) { return '⛈️'; }
-    if (strpos($d, 'nins') !== false)                                                  { return '❄️'; }
-    if (strpos($d, 'ploaie') !== false || strpos($d, 'averse') !== false || strpos($d, 'burnita') !== false) { return '🌧️'; }
-    if (strpos($d, 'ceata') !== false)                                                 { return '🌫️'; }
-    if (strpos($d, 'senin') !== false)                                                 { return '☀️'; }
-    if (strpos($d, 'noros') !== false || strpos($d, 'innorat') !== false || strpos($d, 'acoperit') !== false) { return '☁️'; }
-    if (strpos($d, 'variabil') !== false || strpos($d, 'partial') !== false)           { return '⛅'; }
-    return '🌡️';
+    if (strpos($d, 'descarcari electrice') !== false || strpos($d, 'oraj') !== false) { return 'â›ˆï¸'; }
+    if (strpos($d, 'nins') !== false)                                                  { return 'â„ï¸'; }
+    if (strpos($d, 'ploaie') !== false || strpos($d, 'averse') !== false || strpos($d, 'burnita') !== false) { return 'ðŸŒ§ï¸'; }
+    if (strpos($d, 'ceata') !== false)                                                 { return 'ðŸŒ«ï¸'; }
+    if (strpos($d, 'senin') !== false)                                                 { return 'â˜€ï¸'; }
+    if (strpos($d, 'noros') !== false || strpos($d, 'innorat') !== false || strpos($d, 'acoperit') !== false) { return 'â˜ï¸'; }
+    if (strpos($d, 'variabil') !== false || strpos($d, 'partial') !== false)           { return 'â›…'; }
+    return 'ðŸŒ¡ï¸';
 }
 
-/** Diacritice în descrierea ANM (strtr, fără mbstring). */
+/** Diacritice Ã®n descrierea ANM (strtr, fÄƒrÄƒ mbstring). */
 function magpress_weather_beautify($d) {
     return strtr($d, [
-        ' si ' => ' și ', 'descarcari' => 'descărcări', 'slaba' => 'slabă',
-        'ceata' => 'ceață', 'innorat' => 'înnorat', 'burnita' => 'burniță',
-        'vant' => 'vânt', 'insemnate' => 'însemnate', 'moderata' => 'moderată',
-        'puternica' => 'puternică', 'ridicata' => 'ridicată', 'scazuta' => 'scăzută',
+        ' si ' => ' È™i ', 'descarcari' => 'descÄƒrcÄƒri', 'slaba' => 'slabÄƒ',
+        'ceata' => 'ceaÈ›Äƒ', 'innorat' => 'Ã®nnorat', 'burnita' => 'burniÈ›Äƒ',
+        'vant' => 'vÃ¢nt', 'insemnate' => 'Ã®nsemnate', 'moderata' => 'moderatÄƒ',
+        'puternica' => 'puternicÄƒ', 'ridicata' => 'ridicatÄƒ', 'scazuta' => 'scÄƒzutÄƒ',
     ]);
 }
 
-/** Normalizează un nume de oraș pentru potrivire (fără diacritice, lowercase). */
+/** NormalizeazÄƒ un nume de oraÈ™ pentru potrivire (fÄƒrÄƒ diacritice, lowercase). */
 function magpress_weather_norm($s) {
     $s = strtr(trim($s), [
-        'ă'=>'a','Ă'=>'a','â'=>'a','Â'=>'a','î'=>'i','Î'=>'i',
-        'ș'=>'s','Ș'=>'s','ş'=>'s','Ş'=>'s','ț'=>'t','Ț'=>'t','ţ'=>'t','Ţ'=>'t',
+        'Äƒ'=>'a','Ä‚'=>'a','Ã¢'=>'a','Ã‚'=>'a','Ã®'=>'i','ÃŽ'=>'i',
+        'È™'=>'s','È˜'=>'s','ÅŸ'=>'s','Åž'=>'s','È›'=>'t','Èš'=>'t','Å£'=>'t','Å¢'=>'t',
     ]);
     return strtolower($s);
 }
 
-/** Link către ultimul articol de vreme; fallback pe categoria „Vremea". */
+/** Link cÄƒtre ultimul articol de vreme; fallback pe categoria â€žVremea". */
 function magpress_weather_latest_link() {
     $q = new WP_Query([
         'post_type' => 'post', 'posts_per_page' => 1, 'fields' => 'ids',
@@ -7565,42 +7572,42 @@ function magpress_weather_latest_link() {
     return '';
 }
 
-/** Orașe care NU sunt în feed-ul ANM (nume => [lat, lon]); aduse din Open-Meteo. */
+/** OraÈ™e care NU sunt Ã®n feed-ul ANM (nume => [lat, lon]); aduse din Open-Meteo. */
 function magpress_weather_extra_cities() {
     return [
-        'Timișoara' => [45.7489, 21.2087],
+        'TimiÈ™oara' => [45.7489, 21.2087],
     ];
 }
 
-/** Iconiță din codul WMO (Open-Meteo). */
+/** IconiÈ›Äƒ din codul WMO (Open-Meteo). */
 function magpress_weather_icon_wmo($code) {
-    if ($code === 0)                    { return '☀️'; }
-    if ($code === 1 || $code === 2)     { return '⛅'; }
-    if ($code === 3)                    { return '☁️'; }
-    if ($code === 45 || $code === 48)   { return '🌫️'; }
-    if ($code >= 71 && $code <= 77)     { return '❄️'; }
-    if ($code === 85 || $code === 86)   { return '❄️'; }
-    if ($code >= 95)                    { return '⛈️'; }
-    if ($code >= 51 && $code <= 82)     { return '🌧️'; }
-    return '🌡️';
+    if ($code === 0)                    { return 'â˜€ï¸'; }
+    if ($code === 1 || $code === 2)     { return 'â›…'; }
+    if ($code === 3)                    { return 'â˜ï¸'; }
+    if ($code === 45 || $code === 48)   { return 'ðŸŒ«ï¸'; }
+    if ($code >= 71 && $code <= 77)     { return 'â„ï¸'; }
+    if ($code === 85 || $code === 86)   { return 'â„ï¸'; }
+    if ($code >= 95)                    { return 'â›ˆï¸'; }
+    if ($code >= 51 && $code <= 82)     { return 'ðŸŒ§ï¸'; }
+    return 'ðŸŒ¡ï¸';
 }
 
-/** Descriere scurtă RO din codul WMO (pentru tooltip). */
+/** Descriere scurtÄƒ RO din codul WMO (pentru tooltip). */
 function magpress_weather_desc_wmo($code) {
     if ($code === 0)                    { return 'Cer senin'; }
     if ($code === 1 || $code === 2)     { return 'Variabil'; }
-    if ($code === 3)                    { return 'Înnorat'; }
-    if ($code === 45 || $code === 48)   { return 'Ceață'; }
-    if ($code >= 51 && $code <= 57)     { return 'Burniță'; }
+    if ($code === 3)                    { return 'ÃŽnnorat'; }
+    if ($code === 45 || $code === 48)   { return 'CeaÈ›Äƒ'; }
+    if ($code >= 51 && $code <= 57)     { return 'BurniÈ›Äƒ'; }
     if ($code >= 61 && $code <= 67)     { return 'Ploaie'; }
     if ($code >= 71 && $code <= 77)     { return 'Ninsoare'; }
     if ($code >= 80 && $code <= 82)     { return 'Averse'; }
     if ($code === 85 || $code === 86)   { return 'Ninsoare'; }
-    if ($code >= 95)                    { return 'Furtună'; }
+    if ($code >= 95)                    { return 'FurtunÄƒ'; }
     return '';
 }
 
-/** Prognoza de azi pentru orașele extra (Open-Meteo). Întoarce [nume => [min,max,icon,desc]]. */
+/** Prognoza de azi pentru oraÈ™ele extra (Open-Meteo). ÃŽntoarce [nume => [min,max,icon,desc]]. */
 function magpress_weather_openmeteo($extra) {
     $out = [];
     foreach ($extra as $name => $ll) {
@@ -7621,7 +7628,7 @@ function magpress_weather_openmeteo($extra) {
     return $out;
 }
 
-/** Datele de vreme pentru azi (cache 3h + stale 24h): ANM + orașe extra (Open-Meteo). */
+/** Datele de vreme pentru azi (cache 3h + stale 24h): ANM + oraÈ™e extra (Open-Meteo). */
 function magpress_weather_data($force = false) {
     if (!$force) {
         $cached = get_transient('magpress_weather_v1');
@@ -7645,10 +7652,10 @@ function magpress_weather_data($force = false) {
     }
 
     $names = [
-        'Bucuresti' => 'București', 'Iasi' => 'Iași', 'Botosani' => 'Botoșani',
+        'Bucuresti' => 'BucureÈ™ti', 'Iasi' => 'IaÈ™i', 'Botosani' => 'BotoÈ™ani',
         'Cluj-Napoca' => 'Cluj-Napoca', 'Sibiu' => 'Sibiu', 'Arad' => 'Arad',
-        'Craiova' => 'Craiova', 'Rm. Valcea' => 'Râmnicu Vâlcea',
-        'Constanta' => 'Constanța', 'Sulina' => 'Sulina',
+        'Craiova' => 'Craiova', 'Rm. Valcea' => 'RÃ¢mnicu VÃ¢lcea',
+        'Constanta' => 'ConstanÈ›a', 'Sulina' => 'Sulina',
     ];
     $today  = current_time('Y-m-d');
     $cities = [];
@@ -7669,7 +7676,7 @@ function magpress_weather_data($force = false) {
             'desc' => $desc !== '' ? magpress_weather_beautify($desc) : '',
         ];
     }
-    // Orașe care NU sunt în feed-ul ANM (ex. Timișoara) — aduse din Open-Meteo.
+    // OraÈ™e care NU sunt Ã®n feed-ul ANM (ex. TimiÈ™oara) â€” aduse din Open-Meteo.
     foreach (magpress_weather_openmeteo(magpress_weather_extra_cities()) as $n => $d) {
         $cities[$n] = $d;
     }
@@ -7682,14 +7689,14 @@ function magpress_weather_data($force = false) {
     return $out;
 }
 
-/** CSS-ul barei (o singură dată pe request). */
+/** CSS-ul barei (o singurÄƒ datÄƒ pe request). */
 function magpress_weather_css() {
     static $done = false;
     if ($done) { return ''; }
     $done = true;
     return '<style id="mp-wx-css">'
         . '.mp-wx-bar{margin:2.75rem auto -.75rem}'  // auto=centrat orizontal; 2.75rem sus / -.75rem jos = centrat vertical (compenseaza padding-top .site-content 24px + margin sectiune 32px => gol egal 44px sus/jos, verificat live)
-        . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:var(--c-accent,#1f6fb2);color:#fff;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'  // „Închis" = accent plin (culoarea brandului site-ului)
+        . '.mp-wx-bar__inner{display:flex;align-items:center;justify-content:center;gap:1rem;background:var(--c-accent,#1f6fb2);color:#fff;font-family:var(--f-sans,system-ui,sans-serif);font-size:.82rem;line-height:1;border-radius:8px;padding:.55rem 1.1rem}'  // â€žÃŽnchis" = accent plin (culoarea brandului site-ului)
         . '.mp-wx-bar__label{color:rgba(255,255,255,.82);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.72rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;flex:0 0 auto}'
         . '.mp-wx-bar__ticker{flex:0 1 auto;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent);mask-image:linear-gradient(to right,transparent,#000 2.5%,#000 97.5%,transparent)}'
         . '.mp-wx__track{display:inline-flex;align-items:center;white-space:nowrap;animation-name:mp-wx-scroll;animation-timing-function:linear;animation-iteration-count:infinite;will-change:transform}'
@@ -7702,7 +7709,7 @@ function magpress_weather_css() {
         . '.mp-wx__sep{color:rgba(255,255,255,.4);margin:0 .12rem}.mp-wx__mx{color:#fff;font-weight:700}'
         . '.mp-wx__link{flex:0 0 auto;color:#fff;text-decoration:none;font-weight:700;white-space:nowrap;font-size:.78rem}'
         . '.mp-wx__link:hover{color:rgba(255,255,255,.8)}'
-        // Varianta DESCHISĂ (fundal gri deschis, text închis)
+        // Varianta DESCHISÄ‚ (fundal gri deschis, text Ã®nchis)
         . '.mp-wx-bar--light .mp-wx-bar__inner{background:#eef1f5;color:#374151;border:1px solid #e2e6ec}'
         . '.mp-wx-bar--light .mp-wx-bar__label{color:#6b7280}'
         . '.mp-wx-bar--light .mp-wx__nm{color:#374151}'
@@ -7718,20 +7725,20 @@ function magpress_weather_css() {
 }
 
 /**
- * Construiește orașele (track). Dacă e dată o listă, RESPECTĂ ordinea din listă
- * (nu ordinea feed-ului); listă goală = toate, în ordinea din date. '' dacă n-are date.
+ * ConstruieÈ™te oraÈ™ele (track). DacÄƒ e datÄƒ o listÄƒ, RESPECTÄ‚ ordinea din listÄƒ
+ * (nu ordinea feed-ului); listÄƒ goalÄƒ = toate, Ã®n ordinea din date. '' dacÄƒ n-are date.
  */
 function magpress_weather_items($cities_filter = []) {
     $data = magpress_weather_data();
     if (empty($data['cities'])) { return ''; }
 
-    // Index pe nume normalizat, ca să potrivim intrările din listă cu orașele disponibile.
+    // Index pe nume normalizat, ca sÄƒ potrivim intrÄƒrile din listÄƒ cu oraÈ™ele disponibile.
     $byNorm = [];
     foreach ($data['cities'] as $name => $c) {
         $byNorm[magpress_weather_norm($name)] = ['name' => $name, 'c' => $c];
     }
 
-    // Ordinea de afișare: lista userului (în ordinea ei) sau toate orașele.
+    // Ordinea de afiÈ™are: lista userului (Ã®n ordinea ei) sau toate oraÈ™ele.
     $order = [];
     $filter = array_filter(array_map('trim', (array) $cities_filter), 'strlen');
     if ($filter) {
@@ -7749,19 +7756,19 @@ function magpress_weather_items($cities_filter = []) {
         $items .= '<span class="mp-wx__item"' . ($c['desc'] !== '' ? ' title="' . esc_attr($c['desc']) . '"' : '') . '>'
             . '<span class="mp-wx__ic" aria-hidden="true">' . $c['icon'] . '</span>'
             . '<span class="mp-wx__nm">' . esc_html($name) . '</span> '
-            . '<span class="mp-wx__mn">' . (int) $c['min'] . '°</span>'
+            . '<span class="mp-wx__mn">' . (int) $c['min'] . 'Â°</span>'
             . '<span class="mp-wx__sep">/</span>'
-            . '<span class="mp-wx__mx">' . (int) $c['max'] . '°</span>'
+            . '<span class="mp-wx__mx">' . (int) $c['max'] . 'Â°</span>'
             . '</span>';
     }
     return $items;
 }
 
-/** Bara se randează ÎNTRE header și conținut (hook magpress_after_header din header.php). */
+/** Bara se randeazÄƒ ÃŽNTRE header È™i conÈ›inut (hook magpress_after_header din header.php). */
 add_action('magpress_after_header', 'magpress_weather_topbar_output');
 /**
- * Blocul ticker. $scroll=true → derulează (track dublat + animație, ~8s/oraș);
- * $scroll=false → FIX (statice, fără animație; scroll orizontal manual la overflow).
+ * Blocul ticker. $scroll=true â†’ deruleazÄƒ (track dublat + animaÈ›ie, ~8s/oraÈ™);
+ * $scroll=false â†’ FIX (statice, fÄƒrÄƒ animaÈ›ie; scroll orizontal manual la overflow).
  */
 function magpress_weather_ticker($items, $scroll) {
     if ($scroll) {
@@ -7774,7 +7781,7 @@ function magpress_weather_ticker($items, $scroll) {
 
 function magpress_weather_topbar_output() {
     if (!get_theme_mod('magpress_topbar_vreme', 0)) { return; }
-    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'București,Timișoara,Cluj-Napoca,Iași,Constanța');
+    $list   = get_theme_mod('magpress_topbar_vreme_orase', 'BucureÈ™ti,TimiÈ™oara,Cluj-Napoca,IaÈ™i,ConstanÈ›a');
     $cities = array_filter(array_map('trim', explode(',', $list)));
 
     $items = magpress_weather_items($cities);
@@ -7784,19 +7791,19 @@ function magpress_weather_topbar_output() {
     $light  = get_theme_mod('magpress_topbar_vreme_tema', 'inchis') === 'deschis' ? ' mp-wx-bar--light' : '';
     $data   = magpress_weather_data();
     $link   = !empty($data['link'])
-        ? '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>'
+        ? '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni â†’</a>'
         : '';
 
     echo magpress_weather_css();
-    echo '<div class="mp-wx-bar' . $light . ' container" role="complementary" aria-label="Vremea azi pe orașe">'
+    echo '<div class="mp-wx-bar' . $light . ' container" role="complementary" aria-label="Vremea azi pe oraÈ™e">'
         . '<div class="mp-wx-bar__inner">'
-        . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
+        . '<span class="mp-wx-bar__label">â›… Vremea azi</span>'
         . magpress_weather_ticker($items, $scroll)
         . $link
         . '</div></div>';
 }
 
-// Shortcode: [vreme_bar orase="București,Cluj-Napoca,..." link="1" scroll="0" tema="inchis"]
+// Shortcode: [vreme_bar orase="BucureÈ™ti,Cluj-Napoca,..." link="1" scroll="0" tema="inchis"]
 add_shortcode('vreme_bar', function ($atts) {
     $atts = shortcode_atts(['orase' => '', 'link' => '1', 'scroll' => '0', 'tema' => 'inchis'], $atts, 'vreme_bar');
     $cities = array_filter(array_map('trim', explode(',', $atts['orase'])));
@@ -7807,13 +7814,13 @@ add_shortcode('vreme_bar', function ($atts) {
     if ($atts['link'] !== '0') {
         $data = magpress_weather_data();
         if (!empty($data['link'])) {
-            $link = '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni →</a>';
+            $link = '<a class="mp-wx__link" href="' . esc_url($data['link']) . '">Prognoza pe regiuni â†’</a>';
         }
     }
     return magpress_weather_css()
-        . '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe orașe">'
+        . '<div class="mp-wx-bar' . $light . '" role="complementary" aria-label="Vremea azi pe oraÈ™e">'
         . '<div class="mp-wx-bar__inner">'
-        . '<span class="mp-wx-bar__label">⛅ Vremea azi</span>'
+        . '<span class="mp-wx-bar__label">â›… Vremea azi</span>'
         . magpress_weather_ticker($items, $atts['scroll'] === '1')
         . $link . '</div></div>';
 });
@@ -7822,7 +7829,7 @@ add_shortcode('vreme_bar', function ($atts) {
 class Magpress_Vreme_Widget extends WP_Widget {
     public function __construct() {
         parent::__construct('magpress_vreme', 'Magpress: Bara Vreme', [
-            'description' => 'Vremea pe orașe (ticker), date oficiale ANM (cache 3h).',
+            'description' => 'Vremea pe oraÈ™e (ticker), date oficiale ANM (cache 3h).',
         ]);
     }
     public function widget($args, $instance) {
@@ -7836,9 +7843,9 @@ class Magpress_Vreme_Widget extends WP_Widget {
     public function form($instance) {
         $orase = isset($instance['orase']) ? $instance['orase'] : '';
         ?>
-        <p><label for="<?php echo esc_attr($this->get_field_id('orase')); ?>">Orașe (separate prin virgulă, gol = toate):</label>
+        <p><label for="<?php echo esc_attr($this->get_field_id('orase')); ?>">OraÈ™e (separate prin virgulÄƒ, gol = toate):</label>
         <input class="widefat" id="<?php echo esc_attr($this->get_field_id('orase')); ?>" name="<?php echo esc_attr($this->get_field_name('orase')); ?>" type="text" value="<?php echo esc_attr($orase); ?>">
-        <small>București, Cluj-Napoca, Iași, Constanța, Craiova, Sibiu, Arad, Botoșani, Râmnicu Vâlcea, Sulina.</small></p>
+        <small>BucureÈ™ti, Cluj-Napoca, IaÈ™i, ConstanÈ›a, Craiova, Sibiu, Arad, BotoÈ™ani, RÃ¢mnicu VÃ¢lcea, Sulina.</small></p>
         <?php
     }
     public function update($new, $old) {
@@ -7851,7 +7858,7 @@ function magpress_curs_topbar_output() {
     $show_search = (bool) get_theme_mod('magpress_search_in_topbar', 0);
     if (!$show_curs && !$show_search) return;
 
-    // Cursurile (doar dacă e activat + feed disponibil).
+    // Cursurile (doar dacÄƒ e activat + feed disponibil).
     $items = '';
     if ($show_curs) {
         $list = get_theme_mod('magpress_topbar_curs_list', 'EUR,USD');
@@ -7866,8 +7873,8 @@ function magpress_curs_topbar_output() {
                 $dir = 'flat'; $sym = '';
                 if ($prev && isset($data['rates'][$prev][$cur])) {
                     $old = $data['rates'][$prev][$cur];
-                    if ($now['value'] > $old['value'])     { $dir = 'up';   $sym = '↑'; }
-                    elseif ($now['value'] < $old['value']) { $dir = 'down'; $sym = '↓'; }
+                    if ($now['value'] > $old['value'])     { $dir = 'up';   $sym = 'â†‘'; }
+                    elseif ($now['value'] < $old['value']) { $dir = 'down'; $sym = 'â†“'; }
                 }
                 $val = rtrim(rtrim(number_format($now['value'], 4, '.', ''), '0'), '.');
                 $mul = (int) $now['multiplier'] > 1 ? (int) $now['multiplier'] . ' ' : '';
@@ -7877,10 +7884,10 @@ function magpress_curs_topbar_output() {
             }
         }
     }
-    // Nimic de arătat (curs pornit dar feed gol, și fără search).
+    // Nimic de arÄƒtat (curs pornit dar feed gol, È™i fÄƒrÄƒ search).
     if ($items === '' && !$show_search) return;
 
-    // Data de azi (cu ziua săptămânii, în română).
+    // Data de azi (cu ziua sÄƒptÄƒmÃ¢nii, Ã®n romÃ¢nÄƒ).
     $today_str = date_i18n('l, j F Y', current_time('timestamp'));
     $today_str = function_exists('mb_substr')
         ? mb_strtoupper(mb_substr($today_str, 0, 1)) . mb_substr($today_str, 1)
@@ -7888,12 +7895,12 @@ function magpress_curs_topbar_output() {
 
     $align = esc_attr(get_theme_mod('magpress_topbar_curs_align', 'left'));
 
-    // Link de căutare (deschide același modal ca lupa din header — label pt #magpress-search-toggle).
+    // Link de cÄƒutare (deschide acelaÈ™i modal ca lupa din header â€” label pt #magpress-search-toggle).
     $search_html = '';
     if ($show_search) {
-        $search_html = '<label for="magpress-search-toggle" class="mp-curs-bar__search" role="button" tabindex="0" aria-label="Caută">'
+        $search_html = '<label for="magpress-search-toggle" class="mp-curs-bar__search" role="button" tabindex="0" aria-label="CautÄƒ">'
             . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
-            . '<span>Caută</span></label>';
+            . '<span>CautÄƒ</span></label>';
     }
 
     $group_html = $items !== ''
@@ -7920,7 +7927,7 @@ function magpress_curs_topbar_output() {
 <?php endif; ?>
 @media(max-width:768px){.mp-curs-bar{display:none!important}}
 </style>
-<div class="mp-curs-bar mp-curs-bar--<?php echo $align; ?>" role="complementary" aria-label="Bară informativă">
+<div class="mp-curs-bar mp-curs-bar--<?php echo $align; ?>" role="complementary" aria-label="BarÄƒ informativÄƒ">
   <div class="mp-curs-bar__inner container">
     <?php echo $group_html; // curs, construit doar din valori escapate ?>
     <span class="mp-curs-bar__end">
