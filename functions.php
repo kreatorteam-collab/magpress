@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Magpress v0.3 â€” tema clasica PHP.
  *
