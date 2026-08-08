@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.191');
+define('MAGPRESS_VERSION', '0.9.192');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5112,6 +5112,62 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
 }
 
 /**
+ * v0.9.192 — paginile legale nu au ce căuta în index.
+ * Termeni, cookies și confidențialitate sunt obligatorii legal, dar nu aduc trafic;
+ * indexate, doar diluează. Emitem `noindex, follow` — follow, ca linkurile din ele
+ * (spre home, contact) să rămână utile. NU punem `nofollow` la nivel de pagină: ar
+ * tăia degeaba fluxul intern, iar `rel="nofollow"` pe linkurile din footer e o
+ * practică abandonată din 2009.
+ * Identificare: marcajul propriu `_magpress_managed` SAU orice slug din lista
+ * canonică + alternativele cunoscute (site-urile vechi au slug-uri diferite).
+ */
+function magpress_legal_slug_aliases() {
+    return [
+        'termeni-si-conditii', 'termeni', 'terms', 'terms-and-conditions', 't-c',
+        'termeni-conditii', 'conditii-utilizare', 'termeni-si-conditii-de-utilizare',
+        'termeni-de-utilizare',
+        'politica-cookies', 'cookies', 'politica-de-cookies', 'cookie-policy', 'cookie',
+        'cookies-policy', 'politica-cookie', 'politica-de-cookie',
+        'politica-confidentialitate', 'confidentialitate', 'politica-de-confidentialitate',
+        'privacy', 'privacy-policy', 'gdpr', 'politica-de-confidentialitate-gdpr',
+        'politica-confidentialitate-gdpr', 'confidential',
+    ];
+}
+
+function magpress_is_legal_page($post_id) {
+    $post_id = (int) $post_id;
+    if (!$post_id) return false;
+    if (get_post_meta($post_id, '_magpress_managed', true)) return true;
+    $post = get_post($post_id);
+    if (!$post || $post->post_type !== 'page') return false;
+    return in_array($post->post_name, magpress_legal_slug_aliases(), true);
+}
+
+function magpress_legal_page_robots($robots) {
+    if (!is_page() || !get_theme_mod('magpress_legal_noindex', 1)) return $robots;
+    if (!magpress_is_legal_page(get_queried_object_id())) return $robots;
+
+    unset($robots['index'], $robots['nofollow']);
+    $robots['noindex'] = true;
+    $robots['follow']  = true;
+    return $robots;
+}
+add_filter('wp_robots', 'magpress_legal_page_robots');
+
+/**
+ * SEOPress își emite propriul meta robots și l-ar contrazice pe al nostru (două
+ * tag-uri pe aceeași pagină). Îi spunem și lui același lucru, prin filtrele lui;
+ * dacă pluginul lipsește sau filtrele nu există, nu se întâmplă nimic.
+ */
+function magpress_legal_page_seopress() {
+    if (!is_page() || !get_theme_mod('magpress_legal_noindex', 1)) return;
+    if (!magpress_is_legal_page(get_queried_object_id())) return;
+    add_filter('seopress_titles_noindex', '__return_true');
+    add_filter('seopress_robots_index', function () { return 'noindex'; });
+}
+add_action('template_redirect', 'magpress_legal_page_seopress');
+
+/**
  * Fuzzy find pentru pagini legale: caută prin slug exact, slug-uri alternative comune,
  * apoi prin title LIKE. Returnează prima pagină publish găsită sau null.
  */
@@ -5120,7 +5176,7 @@ function magpress_find_legal_page($target_slug) {
     $page = get_page_by_path($target_slug, OBJECT, 'page');
     if ($page && $page->post_status === 'publish') return $page;
 
-    // 2. Slug-uri alternative comune
+    // 2. Slug-uri alternative comune (vezi și magpress_legal_slug_aliases())
     $alternatives = [
         'termeni-si-conditii' => [
             'termeni', 'terms', 'terms-and-conditions', 't-c', 'termeni-conditii',
