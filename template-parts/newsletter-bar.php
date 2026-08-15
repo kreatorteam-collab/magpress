@@ -36,9 +36,38 @@ if ($btn === '') { $btn = 'Abonează-te'; }
 if ($field === '') { $field = 'EMAIL'; }
 $follow_url = 'https://www.google.com/preferences/source?q=' . rawurlencode(home_url('/'));
 ?>
+<?php
+/* CSS ESENTIAL INLINE (v0.9.195). LiteSpeed UCSS a sters COMPLET regulile .nlbar din
+   CSS-ul servit vizitatorilor (fisierul ucss avea 1,1 KB si zero selectori .nlbar), asa
+   ca bara aparea nestilizata, iar plicul — SVG fara dimensiuni in CSS — se intindea cat
+   pagina. Vizibil doar delogat: UCSS nu se aplica userilor logati, de-aia „logat se vede
+   bine". Reparat pe doua niveluri: dimensiuni pe atributele SVG (mai jos) + regulile de
+   layout aici, in HTML, unde UCSS nu ajunge. */
+?>
+<style id="magpress-nlbar-critical">
+.nlbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.25rem;margin:2rem 0;padding:1.15rem 1.5rem;border-radius:10px}
+.nlbar--dark{background:#232936;color:#fff}
+.nlbar--light{background:var(--c-surface,#f6f7f5);color:var(--c-text,#1a1a1a);border:1px solid var(--c-border,#e6e6e6)}
+.nlbar__icon{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:44px;height:44px}
+.nlbar__icon svg{width:38px;height:38px}
+.nlbar--dark .nlbar__icon{color:#fff}
+.nlbar--light .nlbar__icon{color:var(--c-accent,#e27c23)}
+.nlbar__text{margin:0;font-size:.95rem;font-weight:700;line-height:1.45}
+.nlbar__actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:flex-end}
+.nlbar__btn{padding:.68rem 1.6rem;border:0;border-radius:6px;background:var(--c-accent,#e27c23);color:#fff;font-weight:700;font-size:.9rem;font-family:inherit;cursor:pointer;white-space:nowrap}
+.nlbar__gbtn{display:inline-flex;align-items:center;gap:.55rem;padding:.6rem 1.15rem;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none;white-space:nowrap}
+.nlbar--dark .nlbar__gbtn{border:1px solid rgba(255,255,255,.45);color:#fff}
+.nlbar--light .nlbar__gbtn{border:1px solid var(--c-border,#e6e6e6);color:var(--c-text,#1a1a1a);background:#fff}
+.nlbar__gicon{display:inline-flex;width:18px;height:18px}
+.nlbar__gicon svg{width:18px;height:18px}
+.nlpop[hidden]{display:none}
+.nlpop__icon svg{width:30px;height:30px}
+@media (max-width:900px){.nlbar{grid-template-columns:auto 1fr;gap:.85rem 1rem;padding:1.1rem 1.15rem}.nlbar__actions{grid-column:1/-1;justify-content:flex-start}}
+@media (max-width:600px){.nlbar__text{font-size:.88rem}.nlbar__icon{width:34px;height:34px}.nlbar__icon svg{width:30px;height:30px}.nlbar__actions{flex-direction:column;align-items:stretch}.nlbar__gbtn{justify-content:center}}
+</style>
 <aside class="nlbar nlbar--<?php echo esc_attr($skin); ?>" aria-label="Abonare newsletter">
   <span class="nlbar__icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2.5" y="5" width="19" height="14" rx="2"/>
       <path d="m3 6.5 9 6.5 9-6.5"/>
     </svg>
@@ -59,7 +88,7 @@ $follow_url = 'https://www.google.com/preferences/source?q=' . rawurlencode(home
     <?php if ($show_gd): ?>
       <a class="nlbar__gbtn" href="<?php echo esc_url($follow_url); ?>" target="_blank" rel="noopener nofollow">
         <span class="nlbar__gicon" aria-hidden="true">
-          <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 48 48" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
             <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
             <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
             <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
@@ -78,7 +107,7 @@ $follow_url = 'https://www.google.com/preferences/source?q=' . rawurlencode(home
   <div class="nlpop__box" role="dialog" aria-modal="true" aria-labelledby="nlpop-title">
     <button type="button" class="nlpop__x" data-nlbar-close aria-label="Închide">&times;</button>
     <span class="nlpop__icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2.5" y="5" width="19" height="14" rx="2"/>
         <path d="m3 6.5 9 6.5 9-6.5"/>
       </svg>

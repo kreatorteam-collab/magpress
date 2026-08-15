@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.194');
+define('MAGPRESS_VERSION', '0.9.195');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3783,7 +3783,7 @@ function magpress_handle_unsubscribe() {
     <div class="container site-content">
       <div class="nlunsub">
         <span class="nlunsub__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2.5" y="5" width="19" height="14" rx="2"/>
             <path d="m3 6.5 9 6.5 9-6.5"/>
           </svg>
