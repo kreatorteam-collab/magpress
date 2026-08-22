@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.195');
+define('MAGPRESS_VERSION', '0.9.196');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1275,11 +1275,27 @@ function magpress_customize_register($wp_customize) {
         ]);
     }
 
-    // ---------- Sectiune: Reclame articol ----------
+    // ---------- Sectiune: Reclame ----------
     $wp_customize->add_section('magpress_article_ads', [
-        'title'       => 'Magpress: Reclame articol',
-        'description' => 'Coduri HTML/AdSense pentru pagini de articol (single). Lasă gol pentru a nu afișa.',
+        'title'       => 'Magpress: Reclame',
+        'description' => 'Coduri HTML/AdSense pentru paginile de categorie/tag și pentru articole. Lasă gol pentru a nu afișa.',
         'priority'    => 28,
+    ]);
+
+    // Reclama de sus de pe categorii/taguri: are COD PROPRIU. Lasata goala, cade
+    // inapoi pe codul din „Reclamă după paragraful 3" (asa mergea pana la 0.9.196,
+    // deci site-urile care aveau deja reclama pe categorii nu o pierd).
+    $wp_customize->add_setting('magpress_category_ad_top', [
+        'default'           => '',
+        'sanitize_callback' => function($v) { return is_string($v) ? $v : ''; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_category_ad_top', [
+        'label'       => 'Reclamă sus pe categorii',
+        'description' => 'Cod AdSense / HTML afișat pe paginile de categorie și de tag, sub titlu și descriere, imediat înaintea grilei de articole. Lasă gol ca să se folosească automat codul de la „Reclamă după paragraful 3" (comportamentul de până acum). Scrie <code>nu</code> ca să nu apară nicio reclamă pe categorii.',
+        'section'     => 'magpress_article_ads',
+        'type'        => 'textarea',
+        'priority'    => 5,
     ]);
 
     $wp_customize->add_setting('magpress_article_ad_mid', [
@@ -2566,11 +2582,15 @@ function magpress_get_end_article_ad() {
 
 /**
  * Reclamă în capul paginilor de categorie/tag (după descriere, înainte de articole).
- * Refolosește codul AdSense din slotul mid-article (zero config suplimentar per site).
+ * Cod propriu din Customizer; gol = refolosește codul mid-article (compatibilitate).
  */
 function magpress_get_category_top_ad() {
     if (!is_category() && !is_tag()) return '';
-    $ad = trim((string) get_theme_mod('magpress_article_ad_mid', ''));
+    $ad = trim((string) get_theme_mod('magpress_category_ad_top', ''));
+    // „nu" = oprit explicit pe categorii, fara sa umblam la reclama din articol.
+    if (strtolower($ad) === 'nu') return '';
+    // Gol = pastram comportamentul vechi: refolosim codul din mijlocul articolului.
+    if ($ad === '') { $ad = trim((string) get_theme_mod('magpress_article_ad_mid', '')); }
     if ($ad === '') return '';
     return magpress_render_ad_html($ad, 'category-top');
 }
