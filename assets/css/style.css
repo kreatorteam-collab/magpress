@@ -900,3 +900,42 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 .nlunsub__desc{font-size:1rem;line-height:1.6;color:var(--c-text-muted);margin:0 0 1.5rem}
 .nlunsub__btn{display:inline-block;padding:.75rem 1.6rem;border-radius:8px;background:var(--c-accent);color:#fff;font-weight:700;text-decoration:none}
 .nlunsub__btn:hover{color:#fff;opacity:.9}
+
+/* ============ RECOMANDATE ÎN CATEGORIE — podium (v0.9.199) ============ */
+.mp-featcat{margin:0 0 2.5rem}
+.mp-featcat__head{display:flex;align-items:baseline;justify-content:space-between;gap:.9rem;
+  margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid var(--c-accent)}
+.mp-featcat__label{font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--c-text)}
+.mp-featcat__hint{font-size:.76rem;color:var(--c-text-muted);white-space:nowrap}
+.mp-featcat__grid{display:grid;gap:var(--gap);grid-template-columns:repeat(3,1fr)}
+.mp-featcat__grid--n1{grid-template-columns:1fr}
+.mp-featcat__grid--n2{grid-template-columns:repeat(2,1fr)}
+.mp-featcat__grid--n4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:1100px){.mp-featcat__grid--n4{grid-template-columns:repeat(2,1fr)}}
+.mp-featcat__item{position:relative;display:flex;flex-direction:column;background:var(--c-bg);
+  border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;
+  transition:box-shadow .2s,transform .2s}
+.mp-featcat__item:hover{box-shadow:0 6px 20px rgba(0,0,0,.07);transform:translateY(-2px)}
+.mp-featcat__img{position:relative;display:block;aspect-ratio:3/2;overflow:hidden;background:var(--c-surface)}
+.mp-featcat__img img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
+.mp-featcat__item:hover .mp-featcat__img img{transform:scale(1.04)}
+.mp-featcat__tag{position:absolute;left:0;bottom:0;display:inline-flex;align-items:center;gap:.4rem;
+  padding:.45rem .8rem .4rem;background:var(--c-badge-bg);color:var(--c-badge-text);
+  font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;line-height:1;
+  border-radius:0 var(--radius) 0 0}
+.mp-featcat__star{width:11px;height:11px;flex:none}
+.mp-featcat__body{padding:.9rem 1rem 1.05rem;display:flex;flex-direction:column;gap:.5rem;align-items:flex-start;flex:1}
+.mp-featcat__title{margin:0;font-size:1rem;line-height:1.38;font-weight:700;letter-spacing:-.01em;color:var(--c-heading-h2)}
+.mp-featcat__title a{color:inherit}
+.mp-featcat__title a:hover{color:var(--c-accent)}
+.mp-featcat__meta{font-size:.78rem;color:var(--c-text-muted);margin-top:auto}
+
+/* Pe mobil: rânduri cu poză mică în stânga */
+@media (max-width:760px){
+  .mp-featcat__grid,.mp-featcat__grid--n1,.mp-featcat__grid--n2,.mp-featcat__grid--n4{grid-template-columns:1fr;gap:.85rem}
+  .mp-featcat__item{flex-direction:row;align-items:stretch}
+  .mp-featcat__img{flex:none;width:140px;aspect-ratio:auto;min-height:100px}
+  .mp-featcat__tag{font-size:.6rem;letter-spacing:.07em;padding:.35rem .6rem .3rem}
+  .mp-featcat__body{padding:.75rem .85rem}
+  .mp-featcat__title{font-size:.95rem}
+}

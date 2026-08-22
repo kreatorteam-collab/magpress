@@ -21,6 +21,8 @@ get_header();
 
   <?php echo magpress_get_category_top_ad(); // reclamă sus, după descriere, înainte de articole ?>
 
+  <?php if (is_category() && !is_paged()) { get_template_part('template-parts/featured-cat'); } ?>
+
   <?php if (have_posts()): ?>
     <div class="card-grid">
       <?php while (have_posts()): the_post();
@@ -38,7 +40,7 @@ get_header();
         'aria_label'         => 'Paginare',
     ]);
     ?>
-  <?php else: ?>
+  <?php elseif (empty($GLOBALS['magpress_catfeat_rendered'])): ?>
     <p class="no-results">Nu există articole în această categorie.</p>
   <?php endif; ?>
 

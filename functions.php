@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.198');
+define('MAGPRESS_VERSION', '0.9.199');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -916,6 +916,31 @@ function magpress_customize_register($wp_customize) {
         'description' => 'Bifează categoriile care NU trebuie să apară în zona featured de sus (sticky sau fallback).',
         'section'     => 'magpress_layout',
     ]));
+
+    // Recomandate in categorie (v0.9.199)
+    $wp_customize->add_setting('magpress_catfeat_enable', [
+        'default'           => 1,
+        'sanitize_callback' => function ($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_catfeat_enable', [
+        'label'       => 'Articole recomandate în categorie',
+        'description' => 'Afișează sus, în pagina categoriei, articolele bifate „Recomandat în categorie” din editor. Fără articole bifate nu se schimbă nimic.',
+        'section'     => 'magpress_layout',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_catfeat_limit', [
+        'default'           => 3,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_catfeat_limit', [
+        'label'       => 'Recomandate în categorie — câte articole',
+        'description' => 'Recomandat 3 (podium de 3 carduri egale). Maximum 4.',
+        'section'     => 'magpress_layout',
+        'type'        => 'number',
+        'input_attrs' => ['min' => 1, 'max' => 4, 'step' => 1],
+    ]);
 
     // Padding header (separate top + bottom)
     $wp_customize->add_setting('magpress_header_padding_top', [
@@ -8006,3 +8031,145 @@ function magpress_curs_topbar_output() {
 </div>
     <?php
 }
+
+
+/* =====================================================================
+ * ARTICOLE RECOMANDATE ÎN CATEGORIE (v0.9.199)
+ * Bifă per articol în editor → articolul rămâne SUS în arhiva categoriei
+ * lui, într-un bloc cu design propriu (lead mare + listă laterală).
+ * Articolele promovate sunt scoase din grila normală (fără dubluri) și
+ * din paginile 2+, ca paginarea să rămână corectă.
+ * Inert cât timp niciun articol nu e bifat. Cache-safe (transient + ver).
+ * ===================================================================== */
+
+define('MAGPRESS_CATFEAT_META', '_magpress_cat_featured');
+
+// --- Meta + checkbox în editor -------------------------------------------
+add_action('init', function () {
+    register_post_meta('post', MAGPRESS_CATFEAT_META, [
+        'type'          => 'boolean',
+        'single'        => true,
+        'show_in_rest'  => true,
+        'auth_callback' => function () { return current_user_can('edit_posts'); },
+    ]);
+});
+
+add_action('add_meta_boxes', function () {
+    add_meta_box('magpress_catfeat_box', 'Recomandat în categorie', 'magpress_catfeat_box_cb', 'post', 'side', 'high');
+});
+
+function magpress_catfeat_box_cb($post) {
+    wp_nonce_field('magpress_catfeat_save', 'magpress_catfeat_nonce');
+    $on = (bool) get_post_meta($post->ID, MAGPRESS_CATFEAT_META, true);
+    echo '<label style="display:flex;gap:.5rem;align-items:flex-start;line-height:1.4">';
+    echo '<input type="checkbox" name="magpress_catfeat" value="1" ' . checked($on, true, false) . '>';
+    echo '<span><strong>Ține articolul sus</strong> în pagina categoriei, într-un bloc „Recomandate" cu design special.</span>';
+    echo '</label>';
+    echo '<p style="margin:.6rem 0 0;color:#666;font-size:12px">Se afișează maximum ' . (int) magpress_catfeat_limit()
+       . ' articole recomandate per categorie (cele mai recente bifate). Setare în Personalizare → Magpress: Layout.</p>';
+}
+
+add_action('save_post_post', function ($post_id) {
+    if (!isset($_POST['magpress_catfeat_nonce']) || !wp_verify_nonce($_POST['magpress_catfeat_nonce'], 'magpress_catfeat_save')) return;
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (!current_user_can('edit_post', $post_id)) return;
+    update_post_meta($post_id, MAGPRESS_CATFEAT_META, empty($_POST['magpress_catfeat']) ? 0 : 1);
+    magpress_catfeat_flush();
+});
+
+// Orice schimbare de status/ștergere invalidează cache-ul.
+add_action('transition_post_status', function ($new, $old, $post) {
+    if ($post && $post->post_type === 'post' && $new !== $old) magpress_catfeat_flush();
+}, 10, 3);
+add_action('deleted_post', 'magpress_catfeat_flush');
+add_action('updated_post_meta', function ($mid, $post_id, $key) {
+    if ($key === MAGPRESS_CATFEAT_META) magpress_catfeat_flush();
+}, 10, 3);
+
+function magpress_catfeat_flush() {
+    update_option('magpress_catfeat_ver', (int) get_option('magpress_catfeat_ver', 1) + 1, false);
+}
+
+// --- Setări ---------------------------------------------------------------
+function magpress_catfeat_enabled() {
+    return (bool) get_theme_mod('magpress_catfeat_enable', 1);
+}
+function magpress_catfeat_limit() {
+    $n = (int) get_theme_mod('magpress_catfeat_limit', 3);
+    return max(1, min(4, $n));
+}
+
+// --- ID-urile recomandate dintr-o categorie -------------------------------
+function magpress_catfeat_ids($term_id) {
+    $term_id = (int) $term_id;
+    if (!$term_id || !magpress_catfeat_enabled()) return [];
+
+    $ver = (int) get_option('magpress_catfeat_ver', 1);
+    $key = 'mp_catfeat_' . $term_id . '_' . $ver . '_' . magpress_catfeat_limit();
+    $ids = get_transient($key);
+    if (is_array($ids)) return $ids;
+
+    $ids = get_posts([
+        'post_type'           => 'post',
+        'post_status'         => 'publish',
+        'numberposts'         => magpress_catfeat_limit(),
+        'fields'              => 'ids',
+        'cat'                 => $term_id,
+        'meta_key'            => MAGPRESS_CATFEAT_META,
+        'meta_value'          => '1',
+        'orderby'             => 'date',
+        'order'               => 'DESC',
+        'ignore_sticky_posts' => 1,
+        'no_found_rows'       => true,
+    ]);
+    $ids = array_map('intval', (array) $ids);
+    set_transient($key, $ids, 6 * HOUR_IN_SECONDS);
+    return $ids;
+}
+
+// --- Scoate recomandatele din bucla normală a categoriei ------------------
+add_action('pre_get_posts', function ($q) {
+    if (is_admin() || !$q->is_main_query() || $q->is_feed()) return;
+    if (!$q->is_category() || !magpress_catfeat_enabled()) return;
+
+    $term_id = 0;
+    $cat = $q->get('cat');
+    if ($cat) {
+        $term_id = (int) $cat;
+    } else {
+        $slug = $q->get('category_name');
+        if ($slug) {
+            $t = get_category_by_slug(basename(trim((string) $slug, '/')));
+            if ($t) $term_id = (int) $t->term_id;
+        }
+    }
+    if (!$term_id) return;
+
+    $ids = magpress_catfeat_ids($term_id);
+    if (!$ids) return;
+
+    $GLOBALS['magpress_catfeat_ids'] = $ids;
+    $ex = $q->get('post__not_in');
+    $q->set('post__not_in', array_merge(is_array($ex) ? $ex : [], $ids));
+});
+
+// ID-urile de afișat în blocul de sus (cu fallback dacă pre_get_posts n-a rulat).
+function magpress_catfeat_current_ids() {
+    if (!is_category() || !magpress_catfeat_enabled()) return [];
+    if (!empty($GLOBALS['magpress_catfeat_ids']) && is_array($GLOBALS['magpress_catfeat_ids'])) {
+        return $GLOBALS['magpress_catfeat_ids'];
+    }
+    return magpress_catfeat_ids(get_queried_object_id());
+}
+
+// --- Coloană „Recomandat" în lista de articole din admin ------------------
+add_filter('manage_post_posts_columns', function ($cols) {
+    $cols['magpress_catfeat'] = 'Recomandat';
+    return $cols;
+});
+add_action('manage_post_posts_custom_column', function ($col, $post_id) {
+    if ($col !== 'magpress_catfeat') return;
+    echo get_post_meta($post_id, MAGPRESS_CATFEAT_META, true)
+        ? '<span title="Recomandat în categorie" style="color:#d9a300;font-size:16px">&#9733;</span>'
+        : '<span style="color:#ccc">—</span>';
+}, 10, 2);
