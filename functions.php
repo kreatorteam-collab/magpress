@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.202');
+define('MAGPRESS_VERSION', '0.9.203');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -930,13 +930,13 @@ function magpress_customize_register($wp_customize) {
         'type'        => 'checkbox',
     ]);
     $wp_customize->add_setting('magpress_catfeat_limit', [
-        'default'           => 3,
+        'default'           => 12,
         'sanitize_callback' => 'absint',
         'transport'         => 'refresh',
     ]);
     $wp_customize->add_control('magpress_catfeat_limit', [
         'label'       => 'Recomandate în categorie — câte articole',
-        'description' => 'Cate articole bifate intra in podium, per categorie (cele mai recente). Implicit 3; peste 4 se aseaza pe mai multe randuri. Restul bifate raman in grila normala. Maximum 12.',
+        'description' => 'Cate articole bifate urca sus, per categorie. Implicit 12 = practic toate. Pune 3 daca vrei un podium fix de 3 carduri; ce depaseste numarul ramane in grila normala.',
         'section'     => 'magpress_layout',
         'type'        => 'number',
         'input_attrs' => ['min' => 1, 'max' => 12, 'step' => 1],
@@ -8120,7 +8120,7 @@ function magpress_catfeat_enabled() {
     return (bool) get_theme_mod('magpress_catfeat_enable', 1);
 }
 function magpress_catfeat_limit() {
-    $n = (int) get_theme_mod('magpress_catfeat_limit', 3);
+    $n = (int) get_theme_mod('magpress_catfeat_limit', 12);
     return max(1, min(12, $n));
 }
 
