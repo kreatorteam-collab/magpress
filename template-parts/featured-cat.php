@@ -24,18 +24,12 @@ if (!$q->have_posts()) { wp_reset_postdata(); return; }
 $GLOBALS['magpress_catfeat_rendered'] = true;
 $total = $q->post_count;
 
-// Data celui mai recent articol recomandat = când s-a schimbat ultima dată blocul.
-$stamps = [];
-foreach ($q->posts as $p) { $stamps[] = (int) get_post_time('U', false, $p); }
-$newest = $stamps ? date_i18n(get_option('date_format'), max($stamps)) : '';
-
 $star = '<svg class="mp-featcat__star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.57l-5.9 3.1 1.13-6.57L2.45 9.44l6.6-.96L12 2.5z"/></svg>';
 $i = 0;
 ?>
 <section class="mp-featcat" aria-label="Articole recomandate">
   <div class="mp-featcat__head">
     <span class="mp-featcat__label">Recomandate de redacție</span>
-    <?php if ($newest): ?><span class="mp-featcat__hint">actualizat <?php echo esc_html($newest); ?></span><?php endif; ?>
   </div>
 
   <div class="mp-featcat__grid mp-featcat__grid--n<?php echo (int) $total; ?>">
@@ -65,7 +59,6 @@ $i = 0;
       </a>
       <div class="mp-featcat__body">
         <h2 class="mp-featcat__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-        <span class="mp-featcat__meta"><?php echo esc_html(get_the_date()); ?></span>
       </div>
     </article>
     <?php endwhile; ?>

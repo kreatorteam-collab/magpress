@@ -903,10 +903,9 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 
 /* ============ RECOMANDATE ÎN CATEGORIE — podium (v0.9.199) ============ */
 .mp-featcat{margin:0 0 2.5rem}
-.mp-featcat__head{display:flex;align-items:baseline;justify-content:space-between;gap:.9rem;
+.mp-featcat__head{display:flex;align-items:baseline;gap:.9rem;
   margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid var(--c-accent)}
 .mp-featcat__label{font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--c-text)}
-.mp-featcat__hint{font-size:.76rem;color:var(--c-text-muted);white-space:nowrap}
 .mp-featcat__grid{display:grid;gap:var(--gap);grid-template-columns:repeat(3,1fr)}
 .mp-featcat__grid--n1{grid-template-columns:1fr}
 .mp-featcat__grid--n2{grid-template-columns:repeat(2,1fr)}
@@ -928,7 +927,6 @@ body:has(.search-modal-checkbox:checked){overflow:hidden}
 .mp-featcat__title{margin:0;font-size:1rem;line-height:1.38;font-weight:700;letter-spacing:-.01em;color:var(--c-heading-h2)}
 .mp-featcat__title a{color:inherit}
 .mp-featcat__title a:hover{color:var(--c-accent)}
-.mp-featcat__meta{font-size:.78rem;color:var(--c-text-muted);margin-top:auto}
 
 /* Pe mobil: rânduri cu poză mică în stânga */
 @media (max-width:760px){
