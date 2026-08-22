@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.196');
+define('MAGPRESS_VERSION', '0.9.197');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2819,8 +2819,25 @@ add_action('init', 'magpress_litespeed_disable_localize', 1);
 add_filter('litespeed_media_lazy_img_excludes', function($excludes) {
     if (!is_array($excludes)) $excludes = [];
     $excludes[] = 'site-logo';
+    // „site-icon" = iconita site-ului din bara de administrare (doar utilizatori logati).
+    // Trecuta prin lazy load isi pierde dimensiunile de 16x16 si se afiseaza la marimea
+    // reala (150-300 px), impingand numele site-ului sub ea.
+    $excludes[] = 'site-icon';
     return $excludes;
 });
+
+/**
+ * Plasa de siguranta pentru iconita site-ului din bara de administrare: o tinem la 16x16
+ * indiferent ce ii fac plugin-urile de optimizare atributelor width/height. Se incarca doar
+ * cand bara e vizibila (deci doar pentru utilizatorii logati) si nu afecteaza vizitatorii.
+ */
+function magpress_adminbar_site_icon_css() {
+    if (!is_admin_bar_showing()) { return; }
+    echo '<style id="magpress-adminbar-icon">#wpadminbar .ab-item img.site-icon,#wpadminbar #wp-admin-bar-site-name img{width:16px!important;height:16px!important;max-width:16px!important;vertical-align:middle;display:inline-block}</style>' . "
+";
+}
+add_action('wp_head', 'magpress_adminbar_site_icon_css', 99);
+add_action('admin_head', 'magpress_adminbar_site_icon_css', 99);
 
 function magpress_adsense_lazy_script() {
     if (!magpress_is_adsense_lazy_enabled()) return;
