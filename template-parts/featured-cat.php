@@ -32,7 +32,7 @@ $i = 0;
     <span class="mp-featcat__label">Recomandate de redacție</span>
   </div>
 
-  <div class="mp-featcat__grid mp-featcat__grid--n<?php echo (int) $total; ?>">
+  <div class="mp-featcat__grid mp-featcat__grid--n<?php echo $total > 4 ? 'many' : (int) $total; ?>">
     <?php while ($q->have_posts()): $q->the_post(); $i++;
       // Prima imagine e candidatul LCP al paginii de categorie → eager, restul lazy.
       $img_args = [
