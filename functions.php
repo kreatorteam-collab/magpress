@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.200');
+define('MAGPRESS_VERSION', '0.9.201');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3573,6 +3573,31 @@ function magpress_setup_permalinks_on_activation() {
     flush_rewrite_rules(true);
 }
 add_action('after_switch_theme', 'magpress_setup_permalinks_on_activation');
+
+/**
+ * AUTO-FLUSH REWRITE RULES la schimbarea structurii de permalink-uri.
+ * Caz real din flotă: scoți „category/" din URL-urile de categorie (bază „."
+ * sau opțiunea din SEOPress) → WP generează linkurile fără bază, dar regulile
+ * de rewrite rămân cele vechi → TOATE paginile de categorie dau 404 până când
+ * cineva intră în Setări → Permalink-uri și dă Salvează.
+ * Ținem o semnătură a structurii; când se schimbă, facem UN singur soft flush
+ * (rescrie doar opțiunea rewrite_rules, nu atinge .htaccess).
+ */
+function magpress_autoflush_permalinks() {
+    if (!get_option('permalink_structure')) return; // Plain: nu există reguli de regenerat
+
+    $sig = md5(implode('|', [
+        (string) get_option('permalink_structure'),
+        (string) get_option('category_base'),
+        (string) get_option('tag_base'),
+    ]));
+    if (get_option('magpress_perma_sig') === $sig) return;
+
+    // Marcăm ÎNAINTE de flush: dacă flush-ul pică, nu intrăm în buclă la fiecare request.
+    update_option('magpress_perma_sig', $sig, false);
+    flush_rewrite_rules(false);
+}
+add_action('init', 'magpress_autoflush_permalinks', 99);
 
 /**
  * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
