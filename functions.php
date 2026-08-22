@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.197');
+define('MAGPRESS_VERSION', '0.9.198');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2334,6 +2334,9 @@ function magpress_inline_critical_css() {
          . '.site-logo img{display:block;max-height:100%;width:auto;height:auto}'
          // Ad slot înălțime rezervată (anti-CLS la încărcare AdSense)
          . '.ad-slot{display:block;min-height:280px;margin:2rem auto;text-align:center}'
+         // Slot fara reclama: il retragem complet, ca sa nu ramana o gaura alba de 280px.
+         . 'ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}'
+         . '.ad-slot--empty{min-height:0!important;height:0!important;margin:0!important;overflow:hidden}'
          . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
@@ -2927,11 +2930,38 @@ function magpress_adsense_lazy_script() {
     }
   }
 
+  // Un slot pe care Google nu-l umple ramane o cutie goala de 280px in mijlocul
+  // paginii. Dupa push verificam rezultatul si, daca n-a venit nicio reclama,
+  // retragem spatiul. Google permite explicit colapsarea sloturilor neumplute.
+  function collapseIfEmpty(slot, ins){
+    if (!slot || slot.classList.contains('ad-slot--empty')) return;
+    var unfilled = ins && ins.getAttribute('data-ad-status') === 'unfilled';
+    var gol = !ins || (!ins.querySelector('iframe') && ins.getBoundingClientRect().height < 40);
+    if (unfilled || gol) slot.classList.add('ad-slot--empty');
+  }
+
+  function watchFill(slot, ins){
+    if (!ins) { slot.classList.add('ad-slot--empty'); return; }
+    // Reactie imediata cand Google scrie data-ad-status pe <ins>.
+    if (window.MutationObserver){
+      var mo = new MutationObserver(function(){
+        var st = ins.getAttribute('data-ad-status');
+        if (st === 'unfilled') { slot.classList.add('ad-slot--empty'); mo.disconnect(); }
+        else if (st === 'filled') { slot.classList.remove('ad-slot--empty'); mo.disconnect(); }
+      });
+      mo.observe(ins, {attributes:true, attributeFilter:['data-ad-status']});
+      setTimeout(function(){ mo.disconnect(); }, 12000);
+    }
+    // Plasa de siguranta: unele raspunsuri goale nu seteaza deloc data-ad-status.
+    setTimeout(function(){ collapseIfEmpty(slot, ins); }, 4000);
+  }
+
   function activatePushSlot(slot){
     var ins = slot.querySelector('ins.adsbygoogle');
     if (ins) pushAdsense(ins);
     slot.classList.remove('ad-slot--lazy-push');
     slot.classList.add('ad-slot--loaded');
+    watchFill(slot, ins);
   }
 
   // Reclamele cu dimensiune fixă (ex: profitshare 1200x628, 970x250) pot fi mai
