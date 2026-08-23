@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.203');
+define('MAGPRESS_VERSION', '0.9.204');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -929,6 +929,28 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
+    $wp_customize->add_setting('magpress_catfeat_layout', [
+        'default'           => 'big',
+        'sanitize_callback' => function ($v) {
+            return in_array($v, ['auto', 'grid', 'mosaic', 'big', 'strip', 'compact'], true) ? $v : 'auto';
+        },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_catfeat_layout', [
+        'label'       => 'Recomandate în categorie — așezare',
+        'description' => 'Implicit Mare + lista: primul articol mare, restul intr-o lista compacta alaturi. Auto alege singur dupa cate articole sunt bifate (1-4 grila, 5-6 mozaic, 7-8 mare + lista, 9+ compact).',
+        'section'     => 'magpress_layout',
+        'type'        => 'select',
+        'choices'     => [
+            'auto'    => 'Auto (dupa cate articole sunt)',
+            'grid'    => 'Grilă egală',
+            'mosaic'  => 'Mozaic (1 mare + restul mici)',
+            'big'     => 'Mare + listă',
+            'strip'   => 'Bandă derulabilă',
+            'compact' => 'Compact, două coloane',
+        ],
+    ]);
+
     $wp_customize->add_setting('magpress_catfeat_limit', [
         'default'           => 12,
         'sanitize_callback' => 'absint',
@@ -8106,10 +8128,21 @@ add_action('save_post_post', function ($post_id) {
 add_action('transition_post_status', function ($new, $old, $post) {
     if ($post && $post->post_type === 'post' && $new !== $old) magpress_catfeat_flush();
 }, 10, 3);
-add_action('deleted_post', 'magpress_catfeat_flush');
-add_action('updated_post_meta', function ($mid, $post_id, $key) {
+add_action('deleted_post', function ($post_id) {
+    if (get_post_type($post_id) === 'post') magpress_catfeat_flush();
+});
+// Bifa poate fi scrisa si din REST / WP-CLI / programatic: pe o cheie inexistenta
+// WordPress declanseaza added_post_meta, NU updated_post_meta.
+$magpress_catfeat_meta_cb = function ($mid, $post_id, $key) {
     if ($key === MAGPRESS_CATFEAT_META) magpress_catfeat_flush();
-}, 10, 3);
+};
+add_action('added_post_meta',   $magpress_catfeat_meta_cb, 10, 3);
+add_action('updated_post_meta', $magpress_catfeat_meta_cb, 10, 3);
+add_action('deleted_post_meta', $magpress_catfeat_meta_cb, 10, 3);
+// Mutarea articolului in alta categorie (Quick Edit, bulk, REST) nu trece prin save_post.
+add_action('set_object_terms', function ($object_id, $terms, $tt_ids, $taxonomy) {
+    if ($taxonomy === 'category' && get_post_type($object_id) === 'post') magpress_catfeat_flush();
+}, 10, 4);
 
 function magpress_catfeat_flush() {
     update_option('magpress_catfeat_ver', (int) get_option('magpress_catfeat_ver', 1) + 1, false);
@@ -8119,6 +8152,123 @@ function magpress_catfeat_flush() {
 function magpress_catfeat_enabled() {
     return (bool) get_theme_mod('magpress_catfeat_enable', 1);
 }
+/**
+ * Ce model de asezare foloseste blocul de recomandate.
+ * Implicit "big" (mare + lista). "auto" alege dupa cate articole sunt bifate:
+ *   1-4 grila egala | 5-6 mozaic | 7-8 mare + lista | 9+ compact.
+ */
+function magpress_catfeat_layout($total) {
+    $mode = (string) get_theme_mod('magpress_catfeat_layout', 'big');
+    if (in_array($mode, ['grid', 'mosaic', 'big', 'strip', 'compact'], true)) {
+        return $mode;
+    }
+    $total = (int) $total;
+    if ($total <= 4) return 'grid';
+    if ($total <= 6) return 'mosaic';
+    if ($total <= 8) return 'big';
+    return 'compact';
+}
+
+/** Steluta din eticheta "Recomandat". */
+function magpress_catfeat_star($class = '') {
+    return '<svg class="mp-featcat__star' . ($class ? ' ' . esc_attr($class) : '') . '" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.57l-5.9 3.1 1.13-6.57L2.45 9.44l6.6-.96L12 2.5z"/></svg>';
+}
+
+/**
+ * Atributele imaginii. Prioritatea LCP se da PRIMEI imagini mari randate efectiv
+ * (nu primului articol): daca articolul 1 n-are poza, o primeste urmatorul.
+ * Miniaturile (rand de lista, compact) nu cer niciodata prioritate.
+ */
+function magpress_catfeat_img_args($sizes, $allow_priority = true) {
+    static $used = false;
+    $args = ['decoding' => 'async', 'sizes' => $sizes];
+    if ($allow_priority && !$used) {
+        $used = true;
+        $args['loading']       = 'eager';
+        $args['fetchpriority'] = 'high';
+        $args['class']         = 'litespeed-no-lazy skip-lazy';
+        $args['data-no-lazy']  = '1';
+    } else {
+        $args['loading'] = 'lazy';
+    }
+    return $args;
+}
+
+/**
+ * Card cu poza mare (grila, mozaic, banda, capul de la "mare + lista").
+ * Marimea sursei se alege dupa cat spatiu ocupa cardul in layout-ul curent.
+ */
+function magpress_catfeat_card($layout, $total, $is_first = false) {
+    $big = ($is_first && in_array($layout, ['big', 'mosaic'], true)) || ($layout === 'grid' && $total === 1);
+
+    if ($layout === 'grid' && $total === 1) {
+        $size = 'magpress-feature'; $sizes = '100vw';
+    } elseif ($big && $layout === 'big') {
+        $size = 'magpress-feature'; $sizes = '(max-width: 900px) 100vw, 55vw';
+    } elseif ($big) {
+        $size = 'magpress-feature'; $sizes = '(max-width: 900px) 100vw, 50vw';
+    } elseif ($layout === 'strip') {
+        $size = 'magpress-card'; $sizes = '260px';
+    } else {
+        $size = 'magpress-card'; $sizes = '(max-width: 560px) 150px, (max-width: 1100px) 50vw, 25vw';
+    }
+    ?>
+    <article class="mp-featcat__item<?php echo $big ? ' mp-featcat__item--big' : ''; ?>">
+      <a class="mp-featcat__img" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
+        <?php if (has_post_thumbnail()):
+          the_post_thumbnail($size, magpress_catfeat_img_args($sizes));
+        else: ?>
+          <span class="card-image-placeholder" aria-hidden="true"></span>
+        <?php endif; ?>
+        <span class="mp-featcat__tag"><?php echo magpress_catfeat_star(); ?> Recomandat</span>
+      </a>
+      <div class="mp-featcat__body">
+        <h3 class="mp-featcat__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+        <?php if ($big):
+          $ex = wp_trim_words(get_the_excerpt(), 26, '...');
+          if ($ex): ?>
+            <p class="mp-featcat__exc"><?php echo esc_html($ex); ?></p>
+          <?php endif;
+        endif; ?>
+      </div>
+    </article>
+    <?php
+}
+
+/** Rand din lista de la "mare + lista". */
+function magpress_catfeat_row() {
+    ?>
+    <article class="mp-featcat__row">
+      <a class="mp-featcat__rowimg" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
+        <?php if (has_post_thumbnail()):
+          the_post_thumbnail('magpress-card', magpress_catfeat_img_args('110px', false));
+        else: ?>
+          <span class="card-image-placeholder" aria-hidden="true"></span>
+        <?php endif; ?>
+        <span class="mp-featcat__tag mp-featcat__tag--mini" aria-hidden="true"><?php echo magpress_catfeat_star(); ?></span>
+      </a>
+      <h3 class="mp-featcat__rowtitle"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+    </article>
+    <?php
+}
+
+/** Rand dens, pentru modelul compact. */
+function magpress_catfeat_crow() {
+    ?>
+    <article class="mp-featcat__crow">
+      <a class="mp-featcat__crowimg" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
+        <?php if (has_post_thumbnail()):
+          the_post_thumbnail('magpress-card', magpress_catfeat_img_args('80px', false));
+        else: ?>
+          <span class="card-image-placeholder" aria-hidden="true"></span>
+        <?php endif; ?>
+      </a>
+      <?php echo magpress_catfeat_star('mp-featcat__star--inline'); ?>
+      <h3 class="mp-featcat__crowtitle"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+    </article>
+    <?php
+}
+
 function magpress_catfeat_limit() {
     $n = (int) get_theme_mod('magpress_catfeat_limit', 12);
     return max(1, min(12, $n));
