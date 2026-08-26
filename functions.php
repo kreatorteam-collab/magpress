@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.204');
+define('MAGPRESS_VERSION', '0.9.205');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -322,11 +322,15 @@ function magpress_preload_lcp_image() {
 
     if (!$img_id) return;
 
-    $src = wp_get_attachment_image_url($img_id, 'magpress-feature');
+    // Marimea trebuie sa fie EXACT cea randata, altfel browserul descarca poza de doua ori:
+    // single.php foloseste magpress-hero, homepage-ul magpress-feature.
+    $preload_size = (is_singular('post') || is_page()) ? 'magpress-hero' : 'magpress-feature';
+
+    $src = wp_get_attachment_image_url($img_id, $preload_size);
     if (!$src) return;
 
-    $srcset = wp_get_attachment_image_srcset($img_id, 'magpress-feature');
-    $sizes  = wp_get_attachment_image_sizes($img_id, 'magpress-feature');
+    $srcset = wp_get_attachment_image_srcset($img_id, $preload_size);
+    $sizes  = wp_get_attachment_image_sizes($img_id, $preload_size);
 
     echo '<link rel="preload" as="image" href="' . esc_url($src) . '"';
     if ($srcset) echo ' imagesrcset="' . esc_attr($srcset) . '"';
@@ -929,6 +933,19 @@ function magpress_customize_register($wp_customize) {
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
+    // Imagine implicita globala pentru articole fara poza (v0.9.205)
+    $wp_customize->add_setting('magpress_default_thumb', [
+        'default'           => 0,
+        'sanitize_callback' => 'absint',
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control(new WP_Customize_Media_Control($wp_customize, 'magpress_default_thumb', [
+        'label'       => 'Imagine implicita pentru articole fara poza',
+        'description' => 'Rezerva globala. Daca o categorie are propria imagine implicita (Articole - Categorii), aceea are prioritate.',
+        'section'     => 'magpress_layout',
+        'mime_type'   => 'image',
+    ]));
+
     $wp_customize->add_setting('magpress_catfeat_layout', [
         'default'           => 'big',
         'sanitize_callback' => function ($v) {
@@ -2002,7 +2019,7 @@ add_action('customize_register', 'magpress_customize_register');
  * inline în HTML-ul paginii, deci rămâne „copt" în pagina din cache. Hook-urile de purge nu
  * regenerează mereu UCSS/CSS-combinat → ștergem și fizic directoarele generate (ca la deploy).
  */
-add_action('customize_save_after', function () {
+function magpress_purge_litespeed() {
     if (defined('LSCWP_V') || has_action('litespeed_purge_all')) {
         do_action('litespeed_purge_all');
         do_action('litespeed_purge_all_cssjs');
@@ -2015,7 +2032,8 @@ add_action('customize_save_after', function () {
             _magpress_rrmdir($ls_dir);
         }
     }
-});
+}
+add_action('customize_save_after', 'magpress_purge_litespeed');
 
 /**
  * Sanitizare pentru codurile personalizate (analytics/scripts) din Customizer.
@@ -8347,4 +8365,224 @@ add_action('manage_post_posts_custom_column', function ($col, $post_id) {
     echo get_post_meta($post_id, MAGPRESS_CATFEAT_META, true)
         ? '<span title="Recomandat în categorie" style="color:#d9a300;font-size:16px">&#9733;</span>'
         : '<span style="color:#ccc">—</span>';
+}, 10, 2);
+
+/* =====================================================================
+ * IMAGINE IMPLICITA PENTRU ARTICOLE FARA POZA (v0.9.205)
+ * Se alege una per CATEGORIE (ecranul de editare a categoriei) si,
+ * optional, una globala de rezerva (Personalizare -> Magpress: Layout).
+ * Articolele care n-au imagine reprezentativa proprie o folosesc automat
+ * peste tot unde tema cere thumbnail-ul: carduri, arhive, articol, schema,
+ * og:image. Nimic nu se schimba pana nu setezi prima imagine.
+ * ===================================================================== */
+
+define('MAGPRESS_CAT_THUMB_META', '_magpress_default_thumb');
+
+add_action('init', function () {
+    // Fara show_in_rest: selectorul e un formular clasic de admin, iar cheia fiind
+    // protejata (prefix _) n-are ce cauta in raspunsul public /wp-json/wp/v2/categories.
+    register_term_meta('category', MAGPRESS_CAT_THUMB_META, [
+        'type'              => 'integer',
+        'single'            => true,
+        'show_in_rest'      => false,
+        'sanitize_callback' => function ($v) {
+            $v = absint($v);
+            return ($v && wp_attachment_is_image($v)) ? $v : 0;
+        },
+        'auth_callback'     => function () { return current_user_can('manage_categories'); },
+    ]);
+});
+
+/* ---------- Selectorul de imagine din ecranul categoriei ---------- */
+
+function magpress_cat_thumb_picker($id_suffix, $attachment_id) {
+    $img_url = $attachment_id ? wp_get_attachment_image_url($attachment_id, 'thumbnail') : '';
+    wp_enqueue_media();
+    ?>
+    <div class="magpress-catthumb" data-mode="<?php echo esc_attr($id_suffix); ?>">
+      <div class="magpress-catthumb__preview" style="margin-bottom:8px">
+        <?php if ($img_url): ?>
+          <img src="<?php echo esc_url($img_url); ?>" alt="" style="max-width:160px;height:auto;display:block;border-radius:4px" />
+        <?php endif; ?>
+      </div>
+      <input type="hidden" name="magpress_cat_thumb_id" class="magpress-catthumb__input" value="<?php echo esc_attr($attachment_id); ?>" />
+      <button type="button" class="button magpress-catthumb__pick">Alege imagine</button>
+      <button type="button" class="button-link magpress-catthumb__clear" style="margin-left:8px;color:#b32d2e<?php echo $attachment_id ? '' : ';display:none'; ?>">Sterge</button>
+      <p class="description">Se foloseste la articolele din aceasta categorie care n-au imagine reprezentativa proprie.</p>
+      <script>
+      (function () {
+        var box = document.currentScript.closest('.magpress-catthumb');
+        if (!box || box.dataset.bound) return;
+        box.dataset.bound = '1';
+        var input   = box.querySelector('.magpress-catthumb__input');
+        var preview = box.querySelector('.magpress-catthumb__preview');
+        var clear   = box.querySelector('.magpress-catthumb__clear');
+        var frame;
+        function reset() {
+          input.value = '';
+          preview.innerHTML = '';
+          clear.style.display = 'none';
+          if (frame) { frame.state().get('selection').reset(); }
+        }
+        box.querySelector('.magpress-catthumb__pick').addEventListener('click', function (e) {
+          e.preventDefault();
+          if (frame) { frame.open(); return; }
+          frame = wp.media({
+            title: 'Imagine implicita pentru categorie',
+            button: { text: 'Foloseste imaginea' },
+            library: { type: 'image' },
+            multiple: false
+          });
+          frame.on('select', function () {
+            var a = frame.state().get('selection').first().toJSON();
+            var url = (a.sizes && (a.sizes.thumbnail || a.sizes.full)) ? (a.sizes.thumbnail || a.sizes.full).url : a.url;
+            input.value = a.id;
+            preview.innerHTML = '<img src="' + url + '" alt="" style="max-width:160px;height:auto;display:block;border-radius:4px" />';
+            clear.style.display = '';
+          });
+          frame.open();
+        });
+        clear.addEventListener('click', function (e) { e.preventDefault(); reset(); });
+
+        // Formularul de ADAUGARE se trimite prin AJAX si core-ul goleste doar campurile
+        // vizibile — campul nostru e hidden, deci categoria urmatoare ar mosteni imaginea.
+        if (box.dataset.mode === 'add' && window.jQuery) {
+          jQuery(document).on('ajaxComplete', function (e, xhr, opts) {
+            if (opts && opts.data && String(opts.data).indexOf('action=add-tag') !== -1) reset();
+          });
+        }
+      })();
+      </script>
+    </div>
+    <?php
+}
+
+add_action('category_add_form_fields', function () {
+    ?>
+    <div class="form-field">
+      <label>Imagine implicita</label>
+      <?php magpress_cat_thumb_picker('add', 0); ?>
+    </div>
+    <?php
+});
+
+add_action('category_edit_form_fields', function ($term) {
+    $attachment_id = (int) get_term_meta($term->term_id, MAGPRESS_CAT_THUMB_META, true);
+    ?>
+    <tr class="form-field">
+      <th scope="row"><label>Imagine implicita</label></th>
+      <td><?php magpress_cat_thumb_picker('edit', $attachment_id); ?></td>
+    </tr>
+    <?php
+});
+
+function magpress_cat_thumb_save($term_id) {
+    if (!isset($_POST['magpress_cat_thumb_id'])) return;
+    if (!current_user_can('manage_categories') || !current_user_can('edit_term', $term_id)) return;
+    // Pe ecranul de editare salvam doar termenul din formular.
+    if (isset($_POST['tag_ID']) && (int) $_POST['tag_ID'] !== (int) $term_id) return;
+
+    $id = absint($_POST['magpress_cat_thumb_id']);
+    if ($id && !wp_attachment_is_image($id)) $id = 0;
+
+    $before = (int) get_term_meta($term_id, MAGPRESS_CAT_THUMB_META, true);
+    if ($id) {
+        update_term_meta($term_id, MAGPRESS_CAT_THUMB_META, $id);
+    } else {
+        delete_term_meta($term_id, MAGPRESS_CAT_THUMB_META);
+    }
+
+    // Imaginea intra in HTML-ul articolelor (card, arhiva, single, og:image, JSON-LD),
+    // deci paginile deja coapte in LiteSpeed ar arata in continuare vechiul continut.
+    if ($before !== $id) magpress_purge_litespeed();
+}
+add_action('created_category', 'magpress_cat_thumb_save');
+add_action('edited_category',  'magpress_cat_thumb_save');
+add_action('delete_term', function ($term_id, $tt_id, $taxonomy) {
+    if ($taxonomy === 'category') magpress_purge_litespeed();
+}, 10, 3);
+
+/* ---------- Coloana din lista de categorii ---------- */
+
+add_filter('manage_edit-category_columns', function ($cols) {
+    $cols['magpress_thumb'] = 'Imagine implicita';
+    return $cols;
+});
+add_filter('manage_category_custom_column', function ($out, $col, $term_id) {
+    if ($col !== 'magpress_thumb') return $out;
+    $id = (int) get_term_meta($term_id, MAGPRESS_CAT_THUMB_META, true);
+    if (!$id) return '<span style="color:#ccc">&mdash;</span>';
+    $url = wp_get_attachment_image_url($id, 'thumbnail');
+    return $url ? '<img src="' . esc_url($url) . '" alt="" style="width:56px;height:38px;object-fit:cover;border-radius:3px" />' : '';
+}, 10, 3);
+
+/* ---------- Rezolvarea imaginii de rezerva ---------- */
+
+/**
+ * Ce imagine primeste un articol fara poza proprie:
+ * categoria lui principala -> parintii ei -> celelalte categorii -> globala.
+ * Rezultatul e memorat pe durata request-ului.
+ */
+function magpress_fallback_thumb_id($post = null) {
+    $post_id = (int) (is_object($post) ? $post->ID : ($post ?: get_the_ID()));
+    if (!$post_id || get_post_type($post_id) !== 'post') return 0;
+
+    static $cache = [];
+    if (isset($cache[$post_id])) return $cache[$post_id];
+
+    $cache[$post_id] = 0; // marcam intai, ca un apel reintrant sa nu intre in bucla
+    $cats = get_the_category($post_id);
+    if (!is_array($cats)) $cats = [];
+
+    // Categoria principala din SEOPress, daca site-ul o foloseste.
+    $primary = (int) get_post_meta($post_id, '_seopress_robots_primary_cat', true);
+    if ($primary) {
+        $ordered = [];
+        foreach ($cats as $c) { if ((int) $c->term_id === $primary) $ordered[] = $c; }
+        foreach ($cats as $c) { if ((int) $c->term_id !== $primary) $ordered[] = $c; }
+        $cats = $ordered;
+    }
+
+    $id = 0;
+    foreach ($cats as $c) {
+        $term_id = (int) $c->term_id;
+        $guard   = 0;
+        while ($term_id && $guard++ < 10) {
+            $found = (int) get_term_meta($term_id, MAGPRESS_CAT_THUMB_META, true);
+            // Un ID mort (imagine stearsa din biblioteca) NU trebuie sa opreasca lantul:
+            // trecem mai departe la parinte / urmatoarea categorie / rezerva globala.
+            if ($found && wp_attachment_is_image($found)) { $id = $found; break 2; }
+            $parent  = get_term($term_id, 'category');
+            $term_id = ($parent && !is_wp_error($parent)) ? (int) $parent->parent : 0;
+        }
+    }
+
+    if (!$id) $id = (int) get_theme_mod('magpress_default_thumb', 0);
+    if ($id && !wp_attachment_is_image($id)) $id = 0;
+
+    $cache[$post_id] = $id;
+    return $id;
+}
+
+/**
+ * Aplicam rezerva DOAR pe front-end: in wp-admin si in REST (editorul Gutenberg,
+ * aplicatii externe) articolul trebuie sa arate exact ce are setat, ca sa nu para
+ * ca are imagine cand n-are.
+ */
+function magpress_fallback_thumb_active() {
+    if (is_admin()) return false;
+    if (defined('REST_REQUEST') && REST_REQUEST) return false;
+    if (defined('DOING_CRON') && DOING_CRON) return false;
+    return true;
+}
+
+add_filter('has_post_thumbnail', function ($has, $post, $thumbnail_id) {
+    if ($has || !magpress_fallback_thumb_active()) return $has;
+    return (bool) magpress_fallback_thumb_id($post);
+}, 10, 3);
+
+add_filter('post_thumbnail_id', function ($thumbnail_id, $post) {
+    if ($thumbnail_id || !magpress_fallback_thumb_active()) return $thumbnail_id;
+    $id = magpress_fallback_thumb_id($post);
+    return $id ?: $thumbnail_id;
 }, 10, 2);
