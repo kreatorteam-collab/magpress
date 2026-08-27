@@ -24,7 +24,7 @@ get_header();
   <?php if (is_category() && !is_paged()) { get_template_part('template-parts/featured-cat'); } ?>
 
   <?php if (have_posts()): ?>
-    <div class="card-grid">
+    <div class="card-grid card-grid--3">
       <?php while (have_posts()): the_post();
         get_template_part('template-parts/card');
       endwhile; ?>

@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.205');
+define('MAGPRESS_VERSION', '0.9.206');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -8344,6 +8344,18 @@ add_action('pre_get_posts', function ($q) {
     $GLOBALS['magpress_catfeat_ids'] = $ids;
     $ex = $q->get('post__not_in');
     $q->set('post__not_in', array_merge(is_array($ex) ? $ex : [], $ids));
+});
+
+/**
+ * Arhivele (categorie, eticheta, autor, data) afiseaza 9 articole pe pagina,
+ * ca grila de 3 coloane sa iasa in 3 randuri pline. Numarul e filtrabil, iar
+ * cautarea si homepage-ul raman pe setarea din WordPress.
+ */
+add_action('pre_get_posts', function ($q) {
+    if (is_admin() || !$q->is_main_query() || $q->is_feed()) return;
+    if (!($q->is_category() || $q->is_tag() || $q->is_author() || $q->is_date())) return;
+    $per_page = (int) apply_filters('magpress_archive_posts_per_page', 9);
+    if ($per_page > 0) $q->set('posts_per_page', $per_page);
 });
 
 // ID-urile de afișat în blocul de sus (cu fallback dacă pre_get_posts n-a rulat).
