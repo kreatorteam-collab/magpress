@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.207');
+define('MAGPRESS_VERSION', '0.9.208');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -144,6 +144,28 @@ function magpress_dequeue_block_styles() {
     wp_dequeue_style('wc-blocks-style');
 }
 add_action('wp_enqueue_scripts', 'magpress_dequeue_block_styles', 200);
+
+/**
+ * v0.9.208 — `global-styles-inline-css` (9,3 KB de CSS theme.json) ajungea TOTUSI in
+ * <head> pe fiecare pagina, desi il scoteam din coada mai sus: WordPress il re-inregistreaza
+ * din propriile hook-uri, dupa ce ruleaza dequeue-ul nostru. Le scoatem la sursa.
+ * Tema e clasica (fara theme.json propriu, fara blocuri in template-uri), deci CSS-ul acela
+ * nu stilizeaza nimic din ce afisam. Reactivare per site: filtrul de mai jos pe `false`.
+ */
+add_action('init', function () {
+    if (is_admin()) return;
+    if (!apply_filters('magpress_strip_global_styles', true)) return;
+    remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
+    remove_action('wp_footer', 'wp_enqueue_global_styles', 1);
+    remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles_custom_css');
+    remove_action('wp_head', 'wp_enqueue_global_styles', 8);
+}, 20);
+
+/**
+ * v0.9.208 — `Link: <...>; rel=shortlink` mai iesea in headerele HTTP
+ * (in <head> era deja scos in magpress_remove_bloat).
+ */
+remove_action('template_redirect', 'wp_shortlink_header', 11);
 
 /**
  * Enqueue CSS tema.
@@ -2460,15 +2482,45 @@ add_action('wp_head', 'magpress_inline_critical_css', 1);
  */
 function magpress_reading_time($post_id = null) {
     $content = get_post_field('post_content', $post_id);
-    $words = str_word_count(strip_tags($content));
+    $words = magpress_count_words($content);
     $minutes = max(1, (int) ceil($words / 200));
     return $minutes;
+}
+
+/**
+ * Numara cuvintele corect pe text romanesc. `str_word_count()` nu stie UTF-8 si rupe
+ * cuvintele cu diacritice („ingrijire" ajungea numarat de mai multe ori), asa ca
+ * subestima si `wordCount` din schema, si timpul de citire.
+ */
+function magpress_count_words($text) {
+    $text = strip_shortcodes(wp_strip_all_tags((string) $text));
+    return (int) preg_match_all('/[\p{L}\p{N}]+/u', $text);
 }
 
 /**
  * Breadcrumbs simplu: Acasa / Categorie / Titlu (sau Acasa / Categorie).
  * SEOPress are propriul breadcrumbs schema — daca-l afiseaza el, comenteaza apelul.
  */
+/**
+ * Titlul arhivei. `single_term_title()` intoarce gol pe arhivele de autor si de data,
+ * deci acele pagini ramaneau cu <h1> COMPLET GOL (indexate, dar fara titlu vizibil).
+ */
+function magpress_archive_title() {
+    if (is_category() || is_tag() || is_tax()) {
+        return single_term_title('', false);
+    }
+    if (is_author()) {
+        // get_query_var('author') e gol cand arhiva vine pe slug (/author/nume/) -> obiectul interogat.
+        $au = get_queried_object();
+        return ($au instanceof WP_User) ? (string) $au->display_name : (string) get_the_author();
+    }
+    if (is_year())  { return 'Articole din ' . get_the_date('Y'); }
+    if (is_month()) { return 'Articole din ' . get_the_date('F Y'); }
+    if (is_day())   { return 'Articole din ' . get_the_date('j F Y'); }
+    if (is_post_type_archive()) { return post_type_archive_title('', false); }
+    return wp_strip_all_tags(get_the_archive_title());
+}
+
 function magpress_breadcrumbs() {
     echo '<nav class="breadcrumbs" aria-label="Breadcrumb">';
     echo '<a href="' . esc_url(home_url('/')) . '">Acasă</a>';
@@ -2500,6 +2552,10 @@ function magpress_breadcrumbs() {
         $ancestors(get_queried_object());
         echo '<span class="sep">/</span>';
         echo '<span class="current">' . esc_html(single_term_title('', false)) . '</span>';
+    } elseif (is_author() || is_date()) {
+        // v0.9.208: arhivele de autor si de data ramaneau doar cu „Acasa".
+        echo '<span class="sep">/</span>';
+        echo '<span class="current">' . esc_html(magpress_archive_title()) . '</span>';
     } elseif (is_page()) {
         foreach (array_reverse(get_post_ancestors(get_the_ID())) as $pid) {
             echo '<span class="sep">/</span>';
@@ -2653,7 +2709,10 @@ add_filter('the_content', 'magpress_inject_mid_article_ad', 20);
 function magpress_strip_source_attribution($content) {
     if (!is_string($content) || $content === '') return $content;
     // Linia "Articolul %POSTLINK% apare prima dată în %BLOGLINK%." (sau cu link-uri reale)
-    $content = preg_replace('/Articolul.*?apare prima dat[ăa] în.*?\./isu', '', $content);
+    // v0.9.208: marginim potrivirea. Varianta veche („.*?" cu /s peste tot articolul)
+    // putea sterge un bloc intreg de continut daca „Articolul" aparea devreme in text,
+    // si obliga motorul de regex la backtracking pe articolele lungi.
+    $content = preg_replace('/Articolul(?:(?!<\/?p\b)[\s\S]){0,300}?apare prima dat[ăa] în(?:(?!<\/?p\b)[\s\S]){0,300}?\./isu', '', $content);
     // Curăță și paragrafele goale rămase
     $content = preg_replace('/<p[^>]*>\s*<\/p>/i', '', $content);
     return $content;
@@ -6946,7 +7005,7 @@ function magpress_build_article_schema() {
     }
 
     // wordCount — recomandat pentru NewsArticle
-    $word_count = str_word_count(strip_shortcodes(strip_tags($post->post_content)));
+    $word_count = magpress_count_words($post->post_content);
     if ($word_count > 0) {
         $schema['wordCount'] = $word_count;
     }

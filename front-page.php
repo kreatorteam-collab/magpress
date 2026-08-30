@@ -31,6 +31,7 @@ get_header();
       'post__in'            => get_option('sticky_posts'),
       'ignore_sticky_posts' => 1,
       'post_status'         => 'publish',
+      'no_found_rows'       => true, // v0.9.208: fara paginare aici -> fara SQL_CALC_FOUND_ROWS
     ];
     if (!empty($excluded_cat_ids)) {
         $featured_args['category__not_in'] = $excluded_cat_ids;
@@ -38,7 +39,7 @@ get_header();
     $featured = new WP_Query($featured_args);
     if (!$featured->have_posts()) {
         wp_reset_postdata();
-        $fallback_args = ['posts_per_page' => $count, 'post_status' => 'publish'];
+        $fallback_args = ['posts_per_page' => $count, 'post_status' => 'publish', 'no_found_rows' => true];
         if (!empty($excluded_cat_ids)) {
             $fallback_args['category__not_in'] = $excluded_cat_ids;
         }
@@ -150,6 +151,7 @@ get_header();
           'posts_per_page'      => $count,
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
+          'no_found_rows'       => true, // sloturile nu se pagineaza
       ];
       if ($offset > 0) $q_args['offset'] = $offset;
       // „Fara dubluri": sare peste articolele deja afisate mai sus (featured + sloturile anterioare)

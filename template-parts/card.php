@@ -9,12 +9,17 @@ if (!defined('ABSPATH')) { exit; }
 <article class="card">
   <a class="card-image" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr(get_the_title()); ?>">
     <?php if (has_post_thumbnail()):
-      the_post_thumbnail('magpress-card', [
+      $mp_img_args = [
         'loading'  => 'lazy',
         'decoding' => 'async',
         // Mobil: 100vw, tabletă: 50vw, desktop: 25vw (4 carduri per rând)
         'sizes'    => '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 25vw',
-      ]);
+      ];
+      // v0.9.208: dacă atașamentul nu are alt text propriu, folosim titlul articolului —
+      // altfel ies imagini fără alt (accesibilitate + Google Images).
+      $mp_alt = trim((string) get_post_meta(get_post_thumbnail_id(), '_wp_attachment_image_alt', true));
+      if ($mp_alt === '') { $mp_img_args['alt'] = get_the_title(); }
+      the_post_thumbnail('magpress-card', $mp_img_args);
     else: ?>
       <span class="card-image-placeholder" aria-hidden="true"></span>
     <?php endif; ?>

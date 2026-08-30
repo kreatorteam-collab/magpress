@@ -11,7 +11,7 @@ get_header();
   <header class="archive-header">
     <?php magpress_breadcrumbs(); ?>
 
-    <h1 class="archive-title"><?php single_term_title(); ?></h1>
+    <h1 class="archive-title"><?php echo esc_html(magpress_archive_title()); ?></h1>
 
     <?php $desc = term_description();
     if (!empty($desc)): ?>

@@ -54,9 +54,6 @@ $cats = get_the_category();
       <div class="author-box__body">
         <span class="author-box__label">DESPRE AUTOR</span>
         <h3 class="author-box__name"><a href="<?php echo esc_url(get_author_posts_url($author_id)); ?>"><?php echo esc_html(get_the_author_meta('display_name', $author_id)); ?></a></h3>
-        <?php $role = get_the_author_meta('user_url', $author_id);
-        $role_text = get_the_author_meta('nickname', $author_id) !== get_the_author_meta('display_name', $author_id) ? '' : '';
-        ?>
         <p class="author-box__bio"><?php echo esc_html($author_bio); ?></p>
       </div>
     </aside>
@@ -68,14 +65,21 @@ $cats = get_the_category();
   // Related — 4 articole din aceeasi categorie, excluzand pe asta.
   if ($cats):
     $cat_ids = wp_list_pluck($cats, 'term_id');
+    // v0.9.208: ORDER BY RAND() pe zeci de mii de articole era cel mai scump query
+    // al temei si rula la fiecare afisare de articol. Luam ultimele 12 din categorie
+    // (query ieftin, indexat, cache-abil) si amestecam in PHP -> aceeasi varietate.
     $related = new WP_Query([
-        'posts_per_page'      => 4,
+        'posts_per_page'      => 12,
         'category__in'        => $cat_ids,
         'post__not_in'        => [get_the_ID()],
         'ignore_sticky_posts' => 1,
-        'orderby'             => 'rand',
+        'no_found_rows'       => true,
     ]);
-    if ($related->have_posts()): ?>
+    if ($related->have_posts()):
+      shuffle($related->posts);
+      $related->posts      = array_slice($related->posts, 0, 4);
+      $related->post_count = count($related->posts);
+      ?>
       <section class="related-row">
         <?php
           set_query_var('section_title', 'Articole similare');
