@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.210');
+define('MAGPRESS_VERSION', '0.9.211');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1320,7 +1320,7 @@ function magpress_customize_register($wp_customize) {
         ]);
         $wp_customize->add_control("magpress_slot_{$i}_ext_layout", [
             'label'           => "Slot {$i} — Extensie (al doilea bloc)",
-            'description'     => 'Inca un bloc de articole din aceleasi categorii, sub acelasi titlu — fara sa se repete antetul sectiunii. Alegi doar designul.',
+            'description'     => 'Inca un bloc de articole din aceleasi categorii, sub acelasi titlu — fara sa se repete antetul sectiunii. Numarul de articole vine din design: Grid 4, Asimetric 5, Hero 4, Lista 5.',
             'section'         => 'magpress_homepage',
             'type'            => 'select',
             'choices'         => [
@@ -2647,16 +2647,11 @@ function magpress_homepage_slots() {
             $ext = null;
             $ext_layout = get_theme_mod("magpress_slot_{$i}_ext_layout", 'none');
             if (in_array($ext_layout, ['grid', 'asymmetric', 'hero', 'list'], true)) {
-                // Layout-urile fixe isi impun numarul de articole (Asimetric 5 / Hero 4 / Lista 5).
-                // Gridul trebuie sa iasa in randuri PLINE de 4, altfel ramane un card orfan pe
-                // randul doi (ex: slot Asimetric = 5 -> extensia grid randa 4 + 1). Cand slotul
-                // de sus are un layout fix, numarul lui n-are nicio legatura cu gridul -> 8.
-                if (isset($forced[$ext_layout])) {
-                    $ext_count = $forced[$ext_layout];
-                } else {
-                    $base      = isset($forced[$layout]) ? 8 : $count;
-                    $ext_count = max(4, (int) floor($base / 4) * 4);
-                }
+                // Numarul de articole al extensiei vine EXCLUSIV din design, nu din setarea
+                // „Articole" a slotului: Grid 4 (un rand plin), Asimetric 5, Hero 4, Lista 5.
+                // Altfel un slot Asimetric (5) dadea o extensie grid cu 4 carduri + 1 orfan.
+                $ext_counts = $forced + ['grid' => 4];
+                $ext_count  = $ext_counts[$ext_layout];
                 $ext = [
                     'layout' => $ext_layout,
                     'count'  => $ext_count,
