@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.208');
+define('MAGPRESS_VERSION', '0.9.209');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1309,38 +1309,48 @@ function magpress_customize_register($wp_customize) {
             },
         ]);
 
-        // 3c. Offset — de la al catelea articol incepe slotul (ca sa continue dupa alt slot)
-        $wp_customize->add_setting("magpress_slot_{$i}_offset", [
-            'default'           => 0,
-            'sanitize_callback' => 'absint',
+        // 3c. EXTENSIE slot — inca un bloc de articole din ACELEASI categorii, sub acelasi
+        //     titlu de sectiune (fara antet repetat). Se alege doar designul si offsetul.
+        $wp_customize->add_setting("magpress_slot_{$i}_ext_layout", [
+            'default'           => 'none',
+            'sanitize_callback' => function($v) {
+                return in_array($v, ['none', 'grid', 'asymmetric', 'hero', 'list'], true) ? $v : 'none';
+            },
             'transport'         => 'refresh',
         ]);
-        $wp_customize->add_control("magpress_slot_{$i}_offset", [
-            'label'           => "Slot {$i} — Sari peste primele N articole",
-            'description'     => '0 = de la cele mai noi. Ex: 5 = incepe de la al 6-lea articol (util cand ai deja un slot cu aceeasi categorie mai sus).',
+        $wp_customize->add_control("magpress_slot_{$i}_ext_layout", [
+            'label'           => "Slot {$i} — Extensie (al doilea bloc)",
+            'description'     => 'Inca un bloc de articole din aceleasi categorii, sub acelasi titlu — fara sa se repete antetul sectiunii. Alegi doar designul.',
             'section'         => 'magpress_homepage',
-            'type'            => 'number',
-            'input_attrs'     => ['min' => 0, 'max' => 200, 'step' => 1],
+            'type'            => 'select',
+            'choices'         => [
+                'none'       => '— Fara extensie —',
+                'grid'       => 'Grid 4 coloane (carduri egale)',
+                'asymmetric' => 'Asimetric (1 mare + 4 mici)',
+                'hero'       => 'Hero (4 carduri portret cu overlay)',
+                'list'       => 'Lista (imagine stanga + text dreapta)',
+            ],
             'active_callback' => function() use ($i) {
                 $default_type = $i <= 4 ? 'category' : 'none';
                 return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
             },
         ]);
 
-        // 3d. Fara dubluri — sare automat peste articolele deja afisate mai sus pe homepage
-        $wp_customize->add_setting("magpress_slot_{$i}_nodup", [
+        $wp_customize->add_setting("magpress_slot_{$i}_ext_offset", [
             'default'           => 0,
-            'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+            'sanitize_callback' => 'absint',
             'transport'         => 'refresh',
         ]);
-        $wp_customize->add_control("magpress_slot_{$i}_nodup", [
-            'label'           => "Slot {$i} — Fara dubluri",
-            'description'     => 'Exclude articolele deja afisate mai sus pe homepage (featured + sloturile anterioare). Se combina cu offsetul.',
+        $wp_customize->add_control("magpress_slot_{$i}_ext_offset", [
+            'label'           => "Slot {$i} — Extensie: sari peste primele N articole",
+            'description'     => '0 = continua exact de unde s-a oprit blocul de sus (recomandat). Ex: 12 = extensia incepe de la al 13-lea articol al categoriei.',
             'section'         => 'magpress_homepage',
-            'type'            => 'checkbox',
+            'type'            => 'number',
+            'input_attrs'     => ['min' => 0, 'max' => 200, 'step' => 1],
             'active_callback' => function() use ($i) {
                 $default_type = $i <= 4 ? 'category' : 'none';
-                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
+                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category'
+                    && get_theme_mod("magpress_slot_{$i}_ext_layout", 'none') !== 'none';
             },
         ]);
 
@@ -2574,6 +2584,26 @@ function magpress_breadcrumbs() {
 }
 
 /**
+ * Randeaza articolele unui slot de homepage in layout-ul cerut.
+ * Extras din front-page.php (v0.9.209) ca sa fie refolosit si de extensia de slot.
+ */
+function magpress_render_slot_articles($q, $layout) {
+    if (!$q || !$q->have_posts()) return;
+    set_query_var('magpress_section_query', $q);
+    if ($layout === 'asymmetric') {
+        get_template_part('template-parts/layout-asymmetric');
+    } elseif ($layout === 'hero') {
+        get_template_part('template-parts/layout-hero');
+    } elseif ($layout === 'list') {
+        get_template_part('template-parts/layout-list');
+    } else {
+        echo '<div class="card-grid">';
+        while ($q->have_posts()) { $q->the_post(); get_template_part('template-parts/card'); }
+        echo '</div>';
+    }
+}
+
+/**
  * Sloturi homepage configurate in Customizer (30 sloturi).
  * Fiecare slot poate fi: 'category' (rand articole) sau 'ad' (HTML/AdSense).
  * Returns: array de ['type' => 'category'|'ad', ...payload...]
@@ -2612,9 +2642,20 @@ function magpress_homepage_slots() {
             // Layout-urile fixe forteaza un numar de articole specific
             $forced = ['asymmetric' => 5, 'hero' => 4, 'list' => 5];
             if (isset($forced[$layout])) $count = $forced[$layout];
-            $offset = (int) get_theme_mod("magpress_slot_{$i}_offset", 0);
-            $nodup  = (int) get_theme_mod("magpress_slot_{$i}_nodup", 0);
-            $slots[] = ['type' => 'category', 'cat' => $primary_cat, 'cat_ids' => $cat_ids, 'count' => max(2, min(20, $count)), 'layout' => $layout, 'offset' => max(0, min(200, $offset)), 'nodup' => $nodup ? 1 : 0];
+            $count = max(2, min(20, $count));
+            // Extensie: acelasi slot, al doilea bloc de articole, alt design + offset propriu.
+            $ext = null;
+            $ext_layout = get_theme_mod("magpress_slot_{$i}_ext_layout", 'none');
+            if (in_array($ext_layout, ['grid', 'asymmetric', 'hero', 'list'], true)) {
+                // Layout-urile fixe isi impun numarul de articole; grid preia numarul slotului.
+                $ext_count = isset($forced[$ext_layout]) ? $forced[$ext_layout] : $count;
+                $ext = [
+                    'layout' => $ext_layout,
+                    'count'  => $ext_count,
+                    'offset' => max(0, min(200, (int) get_theme_mod("magpress_slot_{$i}_ext_offset", 0))),
+                ];
+            }
+            $slots[] = ['type' => 'category', 'cat' => $primary_cat, 'cat_ids' => $cat_ids, 'count' => $count, 'layout' => $layout, 'ext' => $ext];
         } elseif ($type === 'ad') {
             $html = trim((string) get_theme_mod("magpress_slot_{$i}_ad", ''));
             if ($html === '') continue;

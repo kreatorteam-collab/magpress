@@ -317,6 +317,8 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 
 .category-row,
 .related-row{margin:2.5rem 0}
+/* Extensia unui slot: al doilea bloc de articole, sub acelasi antet de sectiune. */
+.category-row__ext{margin-top:1rem}
 
 /* ===================== LAYOUT: ASIMETRIC (1 mare + 4 mici) ===================== */
 .layout-asymmetric{display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:1rem;height:560px}

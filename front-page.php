@@ -12,9 +12,6 @@ get_header();
 <div class="container site-content">
 
   <?php
-  // Articolele deja afisate pe homepage (featured + sloturi) — pentru optiunea „Fara dubluri" per slot
-  $mp_shown_ids = [];
-
   // Featured posts — layout din Customizer
   $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
   if ($featured_layout !== 'hidden'):
@@ -44,9 +41,6 @@ get_header();
             $fallback_args['category__not_in'] = $excluded_cat_ids;
         }
         $featured = new WP_Query($fallback_args);
-    }
-    if ($featured->have_posts()) {
-        foreach ($featured->posts as $mp_fp) { $mp_shown_ids[] = (int) $mp_fp->ID; }
     }
     if ($featured->have_posts()): ?>
       <section class="featured-grid featured-grid--<?php echo esc_attr($featured_layout); ?>">
@@ -146,18 +140,12 @@ get_header();
       $cat_ids = $slot['cat_ids'] ?? [$cat->term_id];
       $count   = $slot['count'];
       $layout  = $slot['layout'] ?? 'grid';
-      $offset  = (int) ($slot['offset'] ?? 0);
       $q_args = [
           'posts_per_page'      => $count,
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
           'no_found_rows'       => true, // sloturile nu se pagineaza
       ];
-      if ($offset > 0) $q_args['offset'] = $offset;
-      // „Fara dubluri": sare peste articolele deja afisate mai sus (featured + sloturile anterioare)
-      if (!empty($slot['nodup']) && !empty($mp_shown_ids)) {
-          $q_args['post__not_in'] = array_values(array_unique($mp_shown_ids));
-      }
       if (count($cat_ids) === 1) {
           // O singură categorie: folosim `cat` (include automat sub-categorii)
           $q_args['cat'] = (int) $cat_ids[0];
@@ -166,7 +154,6 @@ get_header();
           $q_args['category__in'] = array_map('intval', $cat_ids);
       }
       $q = new WP_Query($q_args);
-      foreach ($q->posts as $mp_sp) { $mp_shown_ids[] = (int) $mp_sp->ID; }
 
       // Titlu secțiune: dacă e o singură categorie → numele ei + link.
       // Multi: agregăm numele („Sport, Fitness, Atletism") cu link la prima.
@@ -187,19 +174,25 @@ get_header();
     <section class="category-row category-row--<?php echo esc_attr($layout); ?>">
       <?php get_template_part('template-parts/section-header'); ?>
       <?php if ($q->have_posts()):
-        if ($layout === 'asymmetric'):
-          get_template_part('template-parts/layout-asymmetric');
-        elseif ($layout === 'hero'):
-          get_template_part('template-parts/layout-hero');
-        elseif ($layout === 'list'):
-          get_template_part('template-parts/layout-list');
-        else: ?>
-          <div class="card-grid">
-            <?php while ($q->have_posts()): $q->the_post();
-              get_template_part('template-parts/card');
-            endwhile; ?>
-          </div>
-        <?php endif;
+        magpress_render_slot_articles($q, $layout);
+
+        /* Extensie de slot (v0.9.209): al doilea bloc de articole din ACELEASI categorii,
+           sub acelasi titlu de sectiune (fara antet repetat), cu alt design si un offset
+           propriu. Offset 0 = continua exact de unde s-a oprit blocul principal. */
+        $ext = $slot['ext'] ?? null;
+        if ($ext):
+            $ext_args = $q_args;
+            $ext_args['posts_per_page'] = $ext['count'];
+            $ext_args['offset']         = $ext['offset'] > 0 ? $ext['offset'] : $count;
+            $qe = new WP_Query($ext_args);
+            if ($qe->have_posts()):
+                echo '<div class="category-row__ext">';
+                magpress_render_slot_articles($qe, $ext['layout']);
+                echo '</div>';
+            endif;
+            wp_reset_postdata();
+            set_query_var('magpress_section_query', $q); // lasam query-ul principal in urma noastra
+        endif;
       else: ?>
         <p class="no-results-slot" style="padding:1rem;color:var(--c-text-muted);font-style:italic;">Categoria „<?php echo esc_html($cat->name); ?>" nu are articole publicate încă.</p>
       <?php endif; ?>
