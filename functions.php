@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.209');
+define('MAGPRESS_VERSION', '0.9.210');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2647,8 +2647,16 @@ function magpress_homepage_slots() {
             $ext = null;
             $ext_layout = get_theme_mod("magpress_slot_{$i}_ext_layout", 'none');
             if (in_array($ext_layout, ['grid', 'asymmetric', 'hero', 'list'], true)) {
-                // Layout-urile fixe isi impun numarul de articole; grid preia numarul slotului.
-                $ext_count = isset($forced[$ext_layout]) ? $forced[$ext_layout] : $count;
+                // Layout-urile fixe isi impun numarul de articole (Asimetric 5 / Hero 4 / Lista 5).
+                // Gridul trebuie sa iasa in randuri PLINE de 4, altfel ramane un card orfan pe
+                // randul doi (ex: slot Asimetric = 5 -> extensia grid randa 4 + 1). Cand slotul
+                // de sus are un layout fix, numarul lui n-are nicio legatura cu gridul -> 8.
+                if (isset($forced[$ext_layout])) {
+                    $ext_count = $forced[$ext_layout];
+                } else {
+                    $base      = isset($forced[$layout]) ? 8 : $count;
+                    $ext_count = max(4, (int) floor($base / 4) * 4);
+                }
                 $ext = [
                     'layout' => $ext_layout,
                     'count'  => $ext_count,
