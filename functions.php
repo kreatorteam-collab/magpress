@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.206');
+define('MAGPRESS_VERSION', '0.9.207');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1287,6 +1287,41 @@ function magpress_customize_register($wp_customize) {
             },
         ]);
 
+        // 3c. Offset — de la al catelea articol incepe slotul (ca sa continue dupa alt slot)
+        $wp_customize->add_setting("magpress_slot_{$i}_offset", [
+            'default'           => 0,
+            'sanitize_callback' => 'absint',
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_offset", [
+            'label'           => "Slot {$i} — Sari peste primele N articole",
+            'description'     => '0 = de la cele mai noi. Ex: 5 = incepe de la al 6-lea articol (util cand ai deja un slot cu aceeasi categorie mai sus).',
+            'section'         => 'magpress_homepage',
+            'type'            => 'number',
+            'input_attrs'     => ['min' => 0, 'max' => 200, 'step' => 1],
+            'active_callback' => function() use ($i) {
+                $default_type = $i <= 4 ? 'category' : 'none';
+                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
+            },
+        ]);
+
+        // 3d. Fara dubluri — sare automat peste articolele deja afisate mai sus pe homepage
+        $wp_customize->add_setting("magpress_slot_{$i}_nodup", [
+            'default'           => 0,
+            'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control("magpress_slot_{$i}_nodup", [
+            'label'           => "Slot {$i} — Fara dubluri",
+            'description'     => 'Exclude articolele deja afisate mai sus pe homepage (featured + sloturile anterioare). Se combina cu offsetul.',
+            'section'         => 'magpress_homepage',
+            'type'            => 'checkbox',
+            'active_callback' => function() use ($i) {
+                $default_type = $i <= 4 ? 'category' : 'none';
+                return get_theme_mod("magpress_slot_{$i}_type", $default_type) === 'category';
+            },
+        ]);
+
         // 4. Cod reclama (vizibila daca tip = ad)
         $wp_customize->add_setting("magpress_slot_{$i}_ad", [
             'default'           => '',
@@ -2521,7 +2556,9 @@ function magpress_homepage_slots() {
             // Layout-urile fixe forteaza un numar de articole specific
             $forced = ['asymmetric' => 5, 'hero' => 4, 'list' => 5];
             if (isset($forced[$layout])) $count = $forced[$layout];
-            $slots[] = ['type' => 'category', 'cat' => $primary_cat, 'cat_ids' => $cat_ids, 'count' => max(2, min(20, $count)), 'layout' => $layout];
+            $offset = (int) get_theme_mod("magpress_slot_{$i}_offset", 0);
+            $nodup  = (int) get_theme_mod("magpress_slot_{$i}_nodup", 0);
+            $slots[] = ['type' => 'category', 'cat' => $primary_cat, 'cat_ids' => $cat_ids, 'count' => max(2, min(20, $count)), 'layout' => $layout, 'offset' => max(0, min(200, $offset)), 'nodup' => $nodup ? 1 : 0];
         } elseif ($type === 'ad') {
             $html = trim((string) get_theme_mod("magpress_slot_{$i}_ad", ''));
             if ($html === '') continue;

@@ -12,6 +12,9 @@ get_header();
 <div class="container site-content">
 
   <?php
+  // Articolele deja afisate pe homepage (featured + sloturi) — pentru optiunea „Fara dubluri" per slot
+  $mp_shown_ids = [];
+
   // Featured posts — layout din Customizer
   $featured_layout = get_theme_mod('magpress_featured_layout', 'two');
   if ($featured_layout !== 'hidden'):
@@ -40,6 +43,9 @@ get_header();
             $fallback_args['category__not_in'] = $excluded_cat_ids;
         }
         $featured = new WP_Query($fallback_args);
+    }
+    if ($featured->have_posts()) {
+        foreach ($featured->posts as $mp_fp) { $mp_shown_ids[] = (int) $mp_fp->ID; }
     }
     if ($featured->have_posts()): ?>
       <section class="featured-grid featured-grid--<?php echo esc_attr($featured_layout); ?>">
@@ -139,11 +145,17 @@ get_header();
       $cat_ids = $slot['cat_ids'] ?? [$cat->term_id];
       $count   = $slot['count'];
       $layout  = $slot['layout'] ?? 'grid';
+      $offset  = (int) ($slot['offset'] ?? 0);
       $q_args = [
           'posts_per_page'      => $count,
           'post_status'         => 'publish',
           'ignore_sticky_posts' => 1,
       ];
+      if ($offset > 0) $q_args['offset'] = $offset;
+      // „Fara dubluri": sare peste articolele deja afisate mai sus (featured + sloturile anterioare)
+      if (!empty($slot['nodup']) && !empty($mp_shown_ids)) {
+          $q_args['post__not_in'] = array_values(array_unique($mp_shown_ids));
+      }
       if (count($cat_ids) === 1) {
           // O singură categorie: folosim `cat` (include automat sub-categorii)
           $q_args['cat'] = (int) $cat_ids[0];
@@ -152,6 +164,7 @@ get_header();
           $q_args['category__in'] = array_map('intval', $cat_ids);
       }
       $q = new WP_Query($q_args);
+      foreach ($q->posts as $mp_sp) { $mp_shown_ids[] = (int) $mp_sp->ID; }
 
       // Titlu secțiune: dacă e o singură categorie → numele ei + link.
       // Multi: agregăm numele („Sport, Fitness, Atletism") cu link la prima.
