@@ -27,3 +27,4 @@ Thumbs.db
 # Backups
 *.bak
 *.orig
+assets/css/style-*.css

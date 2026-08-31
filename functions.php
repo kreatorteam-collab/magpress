@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.219');
+define('MAGPRESS_VERSION', '0.9.220');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -200,9 +200,11 @@ function magpress_enqueue_assets() {
         wp_enqueue_style('magpress-google-font', $font_url, [], null);
     }
 
-    $css_path = MAGPRESS_DIR . '/assets/css/style.css';
-    $ver = file_exists($css_path) ? filemtime($css_path) : MAGPRESS_VERSION;
-    wp_enqueue_style('magpress-main', MAGPRESS_URI . '/assets/css/style.css', [], $ver);
+    // v0.9.220: URL cu versiunea in NUMELE fisierului, nu in `?ver` — LiteSpeed are
+    // optiunea „Remove Query Strings" si taia query-ul, deci URL-ul ramanea identic
+    // dupa fiecare deploy si Cloudflare servea la nesfarsit continutul vechi.
+    list($css_url, $ver) = magpress_main_css_src();
+    wp_enqueue_style('magpress-main', $css_url, [], $ver);
 
     // Branding CSS — atasat dupa style.css (cascade-ul il face sa castige peste defaults)
     $branding = magpress_get_branding_css();
@@ -241,6 +243,37 @@ function magpress_enqueue_assets() {
  * se schimba la FIECARE deploy -> niciun cache nu mai poate servi ceva vechi.
  * Cost: o cerere HTTP in plus (fisier cache-abil un an, pe HTTP/2).
  */
+/**
+ * URL-ul CSS-ului principal, cu versiunea in numele fisierului
+ * (assets/css/style-0.9.220.css), copiat o singura data din style.css.
+ *
+ * Motivul: `?ver=` nu supravietuieste — LiteSpeed poate scoate query string-urile,
+ * iar fisierul combinat isi pastra numele cand se schimba doar continutul. Ambele
+ * duceau la acelasi lucru: URL neschimbat, deci Cloudflare (max-age un an) si
+ * browserele serveau CSS vechi si modificarile nu se vedeau pe o parte din flota.
+ * Cu versiunea in nume, fiecare release are alt URL, pe care niciun cache nu-l are.
+ *
+ * Daca directorul temei nu e scriabil, cadem inapoi pe style.css + ?ver=filemtime.
+ */
+function magpress_main_css_src() {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+
+    $dir  = MAGPRESS_DIR . '/assets/css';
+    $src  = $dir . '/style.css';
+    $ver  = file_exists($src) ? (string) filemtime($src) : MAGPRESS_VERSION;
+    $name = 'style-' . MAGPRESS_VERSION . '.css';
+    $dst  = $dir . '/' . $name;
+
+    if (!file_exists($dst) || @filemtime($dst) < @filemtime($src)) {
+        foreach (glob($dir . '/style-*.css') ?: [] as $old) { @unlink($old); } // variantele vechi
+        if (!@copy($src, $dst)) {
+            return ($cached = [MAGPRESS_URI . '/assets/css/style.css', $ver]);
+        }
+    }
+    return ($cached = [MAGPRESS_URI . '/assets/css/' . $name, null]);
+}
+
 function magpress_style_no_optimize($html, $handle) {
     if ($handle !== 'magpress-main') return $html;
     if (strpos($html, 'data-no-optimize') !== false) return $html;
