@@ -504,7 +504,11 @@ body.magpress-boxed{background:#e8e8ec}
 .magpress-boxed .site-header,
 .magpress-boxed .site-nav-bar,
 .magpress-boxed .site-main,
-.magpress-boxed .site-footer{max-width:min(90%,1560px);margin-left:auto;margin-right:auto}
+.magpress-boxed .site-footer{width:100%;max-width:min(90%,1560px);margin-left:auto;margin-right:auto}
+/* `width:100%` NU e redundant: body e container flex pe coloana, iar marginile
+   `auto` pe un element flex ii anuleaza intinderea pe latime — fara latime
+   explicita, headerul si bara de meniu se strangeau la latimea continutului
+   (logo-ul iesea o casuta de 277px in mijlocul foii). */
 /* Containerul interior e plafonat la --container (1320px); in boxed il lasam sa
    umple foaia, altfel ar ramane alb gol in interiorul foii cand ea e mai lata. */
 .magpress-boxed .container{max-width:100%}
