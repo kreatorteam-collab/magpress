@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.213');
+define('MAGPRESS_VERSION', '0.9.214');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5750,6 +5750,16 @@ function magpress_perform_deploy() {
     if (function_exists('opcache_reset')) {
         @opcache_reset();
         $log_msg('opcache reset');
+    }
+
+    // 4c. Golire LiteSpeed (v0.9.214). LIPSEA: deploy-ul inlocuia fisierele, dar LiteSpeed
+    //     continua sa serveasca pagini cache-uite care trimit la CSS-ul COMBINAT vechi, plus
+    //     UCSS/Critical CSS generat din style.css-ul vechi. Efectul: modificarile de CSS se
+    //     vedeau pe unele site-uri si pe altele nu, in functie de ce variante de cache erau
+    //     inca valide (webp/non-webp, mobil/desktop) — parea „cache de browser", nu era.
+    if (function_exists('magpress_purge_litespeed')) {
+        magpress_purge_litespeed();
+        $log_msg('LiteSpeed purge (pagini + css/ucss/ccss)');
     }
 
     // 5. Păstrăm ultimele 3 backup-uri
