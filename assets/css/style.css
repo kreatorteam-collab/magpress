@@ -583,7 +583,8 @@ body.page .article-body .entry-content{max-width:none}
 .article-body .entry-content ul{list-style:disc}
 .article-body .entry-content ol{list-style:decimal}
 .article-body .entry-content li{margin-bottom:.35em}
-.article-body .entry-content li::marker{color:var(--c-accent)}
+/* v0.9.216: cifrele si bulinele listelor raman in culoarea textului, nu in accentul temei. */
+.article-body .entry-content li::marker{color:inherit}
 
 /* ===================== TABELE (responsive) ===================== */
 .article-body .entry-content table,
