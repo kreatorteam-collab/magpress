@@ -464,6 +464,9 @@ body.magpress-lightbox-open{overflow:hidden}
 
 /* Egalizam inaltimea cardurilor in grid (toate la fel) */
 .card-grid{align-items:stretch}
+/* v0.9.224: reclama din arhivă, așezată după primul rând de articole, ocupă toată
+   lățimea grilei (pe orice număr de coloane). */
+.card-grid__ad{grid-column:1/-1}
 .card{height:100%}
 
 /* ===================== BREADCRUMBS ===================== */

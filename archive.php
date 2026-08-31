@@ -19,14 +19,21 @@ get_header();
     <?php endif; ?>
   </header>
 
-  <?php echo magpress_get_category_top_ad(); // reclamă sus, după descriere, înainte de articole ?>
-
   <?php if (is_category() && !is_paged()) { get_template_part('template-parts/featured-cat'); } ?>
 
   <?php if (have_posts()): ?>
     <div class="card-grid card-grid--3">
-      <?php while (have_posts()): the_post();
+      <?php
+      /* v0.9.224: reclama nu mai stă deasupra articolelor, ci după PRIMUL RÂND
+         (3 carduri pe desktop). Intră ca element de grilă pe toată lățimea, ca să nu
+         rupă grila în două containere. */
+      $mp_ad_row = magpress_get_category_top_ad();
+      $mp_i = 0;
+      while (have_posts()): the_post(); $mp_i++;
         get_template_part('template-parts/card');
+        if ($mp_i === 3 && $mp_ad_row !== '' && $wp_query->post_count > 3):
+          echo '<div class="card-grid__ad">' . $mp_ad_row . '</div>';
+        endif;
       endwhile; ?>
     </div>
 

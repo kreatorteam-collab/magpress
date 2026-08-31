@@ -32,8 +32,6 @@ $cats = get_the_category();
     <?php echo magpress_render_article_meta(); // plain default; rich news byline dacă toggle ON ?>
   </header>
 
-  <?php get_template_part('template-parts/google-discover'); ?>
-
   <article class="article-body">
     <div class="entry-content">
       <?php the_content(); ?>
@@ -42,6 +40,10 @@ $cats = get_the_category();
   </article>
 
   <?php echo magpress_get_end_article_ad(); ?>
+
+  <?php /* v0.9.224: caseta Google Discover a coborât de sub antet aici, deasupra
+           casetei de autor — după ce omul a citit articolul, nu înainte să înceapă. */
+  get_template_part('template-parts/google-discover'); ?>
 
   <?php /* Author box — vizibil daca autorul are bio in profil */
   $author_id = get_the_author_meta('ID');

@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.223');
+define('MAGPRESS_VERSION', '0.9.224');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2856,7 +2856,8 @@ function magpress_get_end_article_ad() {
 }
 
 /**
- * Reclamă în capul paginilor de categorie/tag (după descriere, înainte de articole).
+ * Reclama din paginile de categorie/tag. Din v0.9.224 se afișează DUPĂ primul rând
+ * de articole (vezi archive.php), nu deasupra lor.
  * Cod propriu din Customizer; gol = refolosește codul mid-article (compatibilitate).
  */
 function magpress_get_category_top_ad() {
