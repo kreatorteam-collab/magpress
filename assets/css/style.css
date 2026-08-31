@@ -503,8 +503,10 @@ body.magpress-boxed{background:#e8e8ec}
 .magpress-boxed .site-main{background:var(--c-bg,#fff)}
 .magpress-boxed .site-main{box-shadow:0 0 26px rgba(20,20,40,.10)}
 .magpress-boxed .site-footer{box-shadow:0 0 26px rgba(20,20,40,.10)}
-/* Sub 1280px foaia ar fi oricum cat ecranul: revenim la latime completa. */
-@media (max-width:1279px){
+/* Sub 1400px banda gri ar fi prea subtire ca sa arate intentionat (20px la 1280,
+   63px la 1366 — rezolutia celor mai multe laptopuri), deci revenim la latime
+   completa. Boxed-ul se vede doar cand raman minimum ~80px de fiecare parte. */
+@media (max-width:1399px){
   body.magpress-boxed{background:var(--c-bg,#fff)}
   .magpress-boxed .mp-curs-bar,
   .magpress-boxed .mp-wx-bar,

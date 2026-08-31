@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.222');
+define('MAGPRESS_VERSION', '0.9.223');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -923,7 +923,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_boxed_layout', [
         'label'       => 'Latime site: boxed',
-        'description' => 'Site-ul devine o foaie alba de 1240px, centrata pe fundal gri, in loc sa se intinda pe tot ecranul. Sub 1280px se dezactiveaza singur (pe mobil nu se schimba nimic).',
+        'description' => 'Site-ul devine o foaie alba de 1240px, centrata pe fundal gri, in loc sa se intinda pe tot ecranul. Sub 1400px se dezactiveaza singur, deci pe laptopurile mici, tablete si mobil arata exact ca acum.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
@@ -7392,7 +7392,7 @@ function magpress_build_organization_schema() {
  *
  * Implicit e PORNIT doar pe femeiaconteaza.ro (acolo l-a cerut userul) si OPRIT
  * pe restul flotei; se poate schimba per site din Customizer -> Magpress: Layout.
- * Sub 1280px se dezactiveaza singur, deci pe mobil nu se schimba nimic.
+ * Sub 1400px se dezactiveaza singur (laptop mic, tableta, mobil).
  */
 function magpress_boxed_default() {
     $host = strtolower((string) parse_url(home_url('/'), PHP_URL_HOST));
