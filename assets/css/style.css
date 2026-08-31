@@ -497,8 +497,9 @@ body.magpress-boxed{background:#e8e8ec}
 .magpress-boxed .site-nav-bar,
 .magpress-boxed .site-main,
 .magpress-boxed .site-footer{max-width:1240px;margin-left:auto;margin-right:auto}
+/* NU punem fundal pe .site-nav-bar: bara de meniu are culoarea ei (var(--c-menu-bg),
+   roz pe femeiaconteaza) si un fundal alb pus aici ar sterge-o. */
 .magpress-boxed .site-header,
-.magpress-boxed .site-nav-bar,
 .magpress-boxed .site-main{background:var(--c-bg,#fff)}
 .magpress-boxed .site-main{box-shadow:0 0 26px rgba(20,20,40,.10)}
 .magpress-boxed .site-footer{box-shadow:0 0 26px rgba(20,20,40,.10)}
