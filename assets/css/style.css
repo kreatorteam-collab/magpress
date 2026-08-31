@@ -512,9 +512,10 @@ body.magpress-boxed{background:#e8e8ec}
 /* Containerul interior e plafonat la --container (1320px); in boxed il lasam sa
    umple foaia, altfel ar ramane alb gol in interiorul foii cand ea e mai lata. */
 .magpress-boxed .container{max-width:100%}
-/* NU punem fundal pe .site-nav-bar: bara de meniu are culoarea ei (var(--c-menu-bg),
-   roz pe femeiaconteaza) si un fundal alb pus aici ar sterge-o. */
-.magpress-boxed .site-header,
+/* Fundal punem DOAR pe .site-main. Headerul, bara de meniu si subsolul au deja
+   culorile lor per site (--c-header-bg, --c-menu-bg, --c-footer-bg): un fundal alb
+   pus aici le-ar sterge — s-a intamplat cu bara roz de pe femeiaconteaza si cu
+   headerul negru de pe idei-casa. */
 .magpress-boxed .site-main{background:var(--c-bg,#fff)}
 .magpress-boxed .site-main{box-shadow:0 0 26px rgba(20,20,40,.10)}
 .magpress-boxed .site-footer{box-shadow:0 0 26px rgba(20,20,40,.10)}
