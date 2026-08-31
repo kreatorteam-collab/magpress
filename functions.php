@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.224');
+define('MAGPRESS_VERSION', '0.9.225');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -923,7 +923,7 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_boxed_layout', [
         'label'       => 'Latime site: boxed',
-        'description' => 'Site-ul devine o foaie alba de 1240px, centrata pe fundal gri, in loc sa se intinda pe tot ecranul. Sub 1400px se dezactiveaza singur, deci pe laptopurile mici, tablete si mobil arata exact ca acum.',
+        'description' => 'Site-ul devine o foaie alba centrata pe fundal gri (90% din ecran, maxim 1560px), in loc sa se intinda pe tot ecranul. Sub 1400px se dezactiveaza singur, deci pe laptopurile mici, tablete si mobil arata exact ca acum.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);

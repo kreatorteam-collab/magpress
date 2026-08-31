@@ -494,12 +494,20 @@ body.magpress-lightbox-open{overflow:hidden}
    Bara de curs/vreme, headerul, bara de meniu, continutul si subsolul intra
    toate in aceeasi foaie, ca sa arate ca un singur bloc. */
 body.magpress-boxed{background:#e8e8ec}
+/* v0.9.225: foaia e PROPORTIONALA cu ecranul, nu fixa la 1240px. Pe monitoarele
+   mari, latimea fixa lasa benzi gri enorme si continutul parea inghesuit la mijloc.
+   90% pana la plafonul de 1560px: la 1440 raman ~72px de fiecare parte, la 1920
+   raman ~180px, iar peste 1920 foaia nu mai creste (peste 1560px randurile devin
+   prea lungi de citit). */
 .magpress-boxed .mp-curs-bar,
 .magpress-boxed .mp-wx-bar,
 .magpress-boxed .site-header,
 .magpress-boxed .site-nav-bar,
 .magpress-boxed .site-main,
-.magpress-boxed .site-footer{max-width:1240px;margin-left:auto;margin-right:auto}
+.magpress-boxed .site-footer{max-width:min(90%,1560px);margin-left:auto;margin-right:auto}
+/* Containerul interior e plafonat la --container (1320px); in boxed il lasam sa
+   umple foaia, altfel ar ramane alb gol in interiorul foii cand ea e mai lata. */
+.magpress-boxed .container{max-width:100%}
 /* NU punem fundal pe .site-nav-bar: bara de meniu are culoarea ei (var(--c-menu-bg),
    roz pe femeiaconteaza) si un fundal alb pus aici ar sterge-o. */
 .magpress-boxed .site-header,
