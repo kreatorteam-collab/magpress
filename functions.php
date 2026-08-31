@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.214');
+define('MAGPRESS_VERSION', '0.9.215');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5752,16 +5752,6 @@ function magpress_perform_deploy() {
         $log_msg('opcache reset');
     }
 
-    // 4c. Golire LiteSpeed (v0.9.214). LIPSEA: deploy-ul inlocuia fisierele, dar LiteSpeed
-    //     continua sa serveasca pagini cache-uite care trimit la CSS-ul COMBINAT vechi, plus
-    //     UCSS/Critical CSS generat din style.css-ul vechi. Efectul: modificarile de CSS se
-    //     vedeau pe unele site-uri si pe altele nu, in functie de ce variante de cache erau
-    //     inca valide (webp/non-webp, mobil/desktop) — parea „cache de browser", nu era.
-    if (function_exists('magpress_purge_litespeed')) {
-        magpress_purge_litespeed();
-        $log_msg('LiteSpeed purge (pagini + css/ucss/ccss)');
-    }
-
     // 5. Păstrăm ultimele 3 backup-uri
     $old = glob($backups_dir . '/' . $current_slug . '-bak-*', GLOB_ONLYDIR);
     if ($old && count($old) > 3) {
@@ -5795,6 +5785,21 @@ function magpress_perform_deploy() {
         if (is_dir($ls_dir)) {
             _magpress_rrmdir($ls_dir);
             $log_msg('LiteSpeed dir purged: ' . $ls_sub);
+        }
+    }
+
+    // 6c. PIESA CARE LIPSEA (v0.9.215). LiteSpeed tine in baza o mapare URL -> fisier CSS
+    //     generat ({prefix}litespeed_url_file). Stergeam fisierele de pe disc, dar maparea
+    //     ramanea → paginile regenerate continuau sa trimita la un hash care nu mai exista.
+    //     Fisierul mai traia doar in cache-ul Cloudflare/browser, asa ca modificarile de CSS
+    //     apareau pe unele site-uri si pe altele nu, la nesfarsit. Golim maparea ca LiteSpeed
+    //     sa reconstruiasca fisierele si sa emita hash-uri noi.
+    global $wpdb;
+    foreach (['litespeed_url_file', 'litespeed_url'] as $ls_tbl) {
+        $t = $wpdb->prefix . $ls_tbl;
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t)) === $t) {
+            $wpdb->query("TRUNCATE TABLE `{$t}`");
+            $log_msg('LiteSpeed map golita: ' . $ls_tbl);
         }
     }
 
