@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.217');
+define('MAGPRESS_VERSION', '0.9.218');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5793,12 +5793,17 @@ function magpress_perform_deploy() {
     //     browser primesc CSS vechi de la edge. Daca integrarea Cloudflare din LiteSpeed e
     //     configurata (cheie API in setarile pluginului), ii cerem ei purge-ul: noi nu tinem
     //     niciun token in tema. No-op daca nu e configurata.
-    $cf_state = 'neconfigurat';
-    if (class_exists('\LiteSpeed\CDN\Cloudflare')) {
+    // Purge-ul chiar se intampla DOAR daca integrarea e pornita si are chei in LiteSpeed;
+    // altfel purge_all() intoarce tacut si logul ar minti ca s-a golit ceva.
+    $cf_on = false;
+    if (class_exists('\LiteSpeed\Conf')) {
+        try { $cf_on = (bool) \LiteSpeed\Conf::val('cdn-cloudflare'); } catch (\Throwable $e) { $cf_on = false; }
+    }
+    if (!$cf_on) {
+        $cf_state = 'integrare neactivata in LiteSpeed (fara chei) — cache-ul de la edge NU se goleste de aici';
+    } elseif (class_exists('\LiteSpeed\CDN\Cloudflare')) {
         try {
-            $cf = method_exists('\LiteSpeed\CDN\Cloudflare', 'cls')
-                ? \LiteSpeed\CDN\Cloudflare::cls()
-                : null;
+            $cf = method_exists('\LiteSpeed\CDN\Cloudflare', 'cls') ? \LiteSpeed\CDN\Cloudflare::cls() : null;
             if ($cf && method_exists($cf, 'purge_all')) {
                 $cf->purge_all();
                 $cf_state = 'purge cerut';
@@ -5808,9 +5813,6 @@ function magpress_perform_deploy() {
         } catch (\Throwable $e) {
             $cf_state = 'eroare: ' . substr($e->getMessage(), 0, 80);
         }
-    } elseif (has_action('litespeed_purge_cdn')) {
-        do_action('litespeed_purge_cdn');
-        $cf_state = 'hook litespeed_purge_cdn';
     }
     $log_msg('Cloudflare: ' . $cf_state);
 
