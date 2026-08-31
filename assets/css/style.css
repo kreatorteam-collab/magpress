@@ -485,6 +485,34 @@ body.magpress-lightbox-open{overflow:hidden}
 /* Ascunde label-ul "Paginație articole" generat de WP */
 .magpress-pagination .screen-reader-text{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important}
 
+/* ===================== LAYOUT BOXED (v0.9.221) =====================
+   Foaie alba centrata pe fundal gri. Se aplica doar cand body are clasa
+   .magpress-boxed (Customizer -> Magpress: Layout -> „Latime site: boxed").
+   Bara de curs/vreme, headerul, bara de meniu, continutul si subsolul intra
+   toate in aceeasi foaie, ca sa arate ca un singur bloc. */
+body.magpress-boxed{background:#e8e8ec}
+.magpress-boxed .mp-curs-bar,
+.magpress-boxed .mp-wx-bar,
+.magpress-boxed .site-header,
+.magpress-boxed .site-nav-bar,
+.magpress-boxed .site-main,
+.magpress-boxed .site-footer{max-width:1240px;margin-left:auto;margin-right:auto}
+.magpress-boxed .site-header,
+.magpress-boxed .site-nav-bar,
+.magpress-boxed .site-main{background:var(--c-bg,#fff)}
+.magpress-boxed .site-main{box-shadow:0 0 26px rgba(20,20,40,.10)}
+.magpress-boxed .site-footer{box-shadow:0 0 26px rgba(20,20,40,.10)}
+/* Sub 1280px foaia ar fi oricum cat ecranul: revenim la latime completa. */
+@media (max-width:1279px){
+  body.magpress-boxed{background:var(--c-bg,#fff)}
+  .magpress-boxed .mp-curs-bar,
+  .magpress-boxed .mp-wx-bar,
+  .magpress-boxed .site-header,
+  .magpress-boxed .site-nav-bar,
+  .magpress-boxed .site-main,
+  .magpress-boxed .site-footer{max-width:none;box-shadow:none}
+}
+
 /* ===================== ARTICLE HERO (single) ===================== */
 .article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}

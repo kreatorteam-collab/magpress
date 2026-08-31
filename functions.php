@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.220');
+define('MAGPRESS_VERSION', '0.9.221');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -914,6 +914,18 @@ function magpress_customize_register($wp_customize) {
     $wp_customize->add_section('magpress_layout', [
         'title'    => 'Magpress: Layout',
         'priority' => 25,
+    ]);
+
+    $wp_customize->add_setting('magpress_boxed_layout', [
+        'default'           => magpress_boxed_default(),
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_boxed_layout', [
+        'label'       => 'Latime site: boxed',
+        'description' => 'Site-ul devine o foaie alba de 1240px, centrata pe fundal gri, in loc sa se intinda pe tot ecranul. Sub 1280px se dezactiveaza singur (pe mobil nu se schimba nimic).',
+        'section'     => 'magpress_layout',
+        'type'        => 'checkbox',
     ]);
 
     $wp_customize->add_setting('magpress_header_layout', [
@@ -7374,8 +7386,27 @@ function magpress_build_organization_schema() {
     return $org;
 }
 
+/**
+ * Layout „boxed" (v0.9.221): site-ul devine o foaie alba centrata pe fundal gri,
+ * in loc sa se intinda pe toata latimea ecranului. Doar CSS, pe clasa de body.
+ *
+ * Implicit e PORNIT doar pe femeiaconteaza.ro (acolo l-a cerut userul) si OPRIT
+ * pe restul flotei; se poate schimba per site din Customizer -> Magpress: Layout.
+ * Sub 1280px se dezactiveaza singur, deci pe mobil nu se schimba nimic.
+ */
+function magpress_boxed_default() {
+    $host = strtolower((string) parse_url(home_url('/'), PHP_URL_HOST));
+    $host = preg_replace('/^www\./', '', $host);
+    return $host === 'femeiaconteaza.ro' ? 1 : 0;
+}
+
+function magpress_is_boxed() {
+    return (bool) get_theme_mod('magpress_boxed_layout', magpress_boxed_default());
+}
+
 function magpress_body_classes($classes) {
     $clean = ['magpress'];
+    if (magpress_is_boxed()) $clean[] = 'magpress-boxed';
     if (is_front_page()) $clean[] = 'home';
     if (is_single())     $clean[] = 'single';
     if (is_archive())    $clean[] = 'archive';
