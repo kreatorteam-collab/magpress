@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.216');
+define('MAGPRESS_VERSION', '0.9.217');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5787,6 +5787,32 @@ function magpress_perform_deploy() {
             $log_msg('LiteSpeed dir purged: ' . $ls_sub);
         }
     }
+
+    // 6d. Cloudflare (v0.9.217). LiteSpeed regenereaza CSS-ul, dar Cloudflare tine copia
+    //     VECHE a URL-urilor vechi cu max-age de un an, deci vizitatorii cu HTML vechi in
+    //     browser primesc CSS vechi de la edge. Daca integrarea Cloudflare din LiteSpeed e
+    //     configurata (cheie API in setarile pluginului), ii cerem ei purge-ul: noi nu tinem
+    //     niciun token in tema. No-op daca nu e configurata.
+    $cf_state = 'neconfigurat';
+    if (class_exists('\LiteSpeed\CDN\Cloudflare')) {
+        try {
+            $cf = method_exists('\LiteSpeed\CDN\Cloudflare', 'cls')
+                ? \LiteSpeed\CDN\Cloudflare::cls()
+                : null;
+            if ($cf && method_exists($cf, 'purge_all')) {
+                $cf->purge_all();
+                $cf_state = 'purge cerut';
+            } else {
+                $cf_state = 'clasa exista, fara purge_all';
+            }
+        } catch (\Throwable $e) {
+            $cf_state = 'eroare: ' . substr($e->getMessage(), 0, 80);
+        }
+    } elseif (has_action('litespeed_purge_cdn')) {
+        do_action('litespeed_purge_cdn');
+        $cf_state = 'hook litespeed_purge_cdn';
+    }
+    $log_msg('Cloudflare: ' . $cf_state);
 
     // 6c. PIESA CARE LIPSEA (v0.9.215). LiteSpeed tine in baza o mapare URL -> fisier CSS
     //     generat ({prefix}litespeed_url_file). Stergeam fisierele de pe disc, dar maparea
