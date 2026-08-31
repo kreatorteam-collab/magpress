@@ -489,6 +489,11 @@ body.magpress-lightbox-open{overflow:hidden}
 .article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}
 /* v0.9.212 — ordinea: firimituri → poză → titlu → meta (cu categoria în rândul de meta). */
+/* v0.9.213 — firimiturile, titlul si meta au ACEEASI latime ca poza si ca textul
+   articolului (1000px). NU atingem .article-hero simplu: il foloseste si page.php,
+   unde paginile sunt pe latime completa. */
+.article-hero--top,
+.article-hero--after-image{max-width:1000px;margin-left:auto;margin-right:auto}
 .article-hero--after-image{margin-top:0}
 .article-image--top{margin-bottom:1.25rem}
 .article-meta__cat{margin-bottom:0!important;flex-shrink:0}

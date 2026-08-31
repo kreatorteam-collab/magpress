@@ -12,7 +12,7 @@ $cats = get_the_category();
 
   <?php /* v0.9.212 — ordinea cerută: firimituri → poză → titlu → profil redactor
            (cu categoria în același rând, nu deasupra titlului). */ ?>
-  <header class="article-hero">
+  <header class="article-hero article-hero--top">
     <?php magpress_breadcrumbs(); ?>
   </header>
 
