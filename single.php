@@ -10,13 +10,19 @@ $cats = get_the_category();
 
 <div class="container site-content">
 
+  <?php /* v0.9.212 — ordinea cerută: firimituri → poză → titlu → profil redactor
+           (cu categoria în același rând, nu deasupra titlului). */ ?>
   <header class="article-hero">
     <?php magpress_breadcrumbs(); ?>
+  </header>
 
-    <?php if ($cats): ?>
-      <a class="badge badge--pill <?php echo esc_attr(magpress_category_color_class($cats[0])); ?>" href="<?php echo esc_url(get_category_link($cats[0])); ?>"><?php echo esc_html($cats[0]->name); ?></a>
-    <?php endif; ?>
+  <?php if (has_post_thumbnail()): ?>
+    <figure class="article-image article-image--top">
+      <?php the_post_thumbnail('magpress-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
+    </figure>
+  <?php endif; ?>
 
+  <header class="article-hero article-hero--after-image">
     <h1 class="article-title"><?php the_title(); ?></h1>
 
     <?php if (has_excerpt()): ?>
@@ -25,12 +31,6 @@ $cats = get_the_category();
 
     <?php echo magpress_render_article_meta(); // plain default; rich news byline dacă toggle ON ?>
   </header>
-
-  <?php if (has_post_thumbnail()): ?>
-    <figure class="article-image">
-      <?php the_post_thumbnail('magpress-hero', ['loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async']); ?>
-    </figure>
-  <?php endif; ?>
 
   <?php get_template_part('template-parts/google-discover'); ?>
 

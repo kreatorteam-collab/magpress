@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.211');
+define('MAGPRESS_VERSION', '0.9.212');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -6338,6 +6338,7 @@ function magpress_render_article_meta() {
         ob_start();
         ?>
         <div class="article-meta">
+            <?php echo magpress_article_meta_cat(); // categoria stă în rândul de meta, nu deasupra titlului ?>
             <span>De <strong><?php the_author(); ?></strong></span>
             <span class="sep">|</span>
             <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(get_the_date('j F Y')); ?></time>
@@ -6381,9 +6382,22 @@ function magpress_render_article_meta() {
                 </div>
             </div>
         </div>
+        <?php echo magpress_article_meta_cat(); // categoria stă în rândul de meta, nu deasupra titlului ?>
     </div>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Insigna de categorie afișată în rândul de meta al articolului (v0.9.212).
+ * Înainte stătea deasupra titlului; acum ordinea e firimituri → poză → titlu → meta.
+ */
+function magpress_article_meta_cat() {
+    $cats = get_the_category();
+    if (!$cats || is_wp_error($cats)) return '';
+    $cat = $cats[0];
+    return '<a class="badge badge--pill article-meta__cat ' . esc_attr(magpress_category_color_class($cat)) . '"'
+         . ' href="' . esc_url(get_category_link($cat)) . '">' . esc_html($cat->name) . '</a>';
 }
 
 

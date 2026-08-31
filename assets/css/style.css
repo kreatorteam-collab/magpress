@@ -488,6 +488,12 @@ body.magpress-lightbox-open{overflow:hidden}
 /* ===================== ARTICLE HERO (single) ===================== */
 .article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}
+/* v0.9.212 — ordinea: firimituri → poză → titlu → meta (cu categoria în rândul de meta). */
+.article-hero--after-image{margin-top:0}
+.article-image--top{margin-bottom:1.25rem}
+.article-meta__cat{margin-bottom:0!important;flex-shrink:0}
+.article-meta--rich{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+.article-meta--rich .article-meta__author{flex:1 1 auto;min-width:0}
 .article-title{font-size:clamp(1.75rem,3.5vw,2.5rem);line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:0 0 1rem;color:var(--c-heading-h1)}
 .article-excerpt{font-size:1.1rem;line-height:1.55;color:var(--c-text-muted);margin:0 0 1.25rem}
 .article-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;font-size:.88rem;color:var(--c-text-muted);padding-top:1rem;border-top:1px solid var(--c-border)}
