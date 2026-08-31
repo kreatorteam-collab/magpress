@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.218');
+define('MAGPRESS_VERSION', '0.9.219');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -225,6 +225,28 @@ function magpress_enqueue_assets() {
         wp_add_inline_style('magpress-main', '.primary-nav .menu a,.mobile-menu .menu a{font-family:' . $menu_font['family'] . '!important;font-size:1rem!important;font-weight:600!important;letter-spacing:.08em!important}');
     }
 }
+
+/**
+ * v0.9.219 — CSS-ul temei NU mai intra in combinarea LiteSpeed.
+ *
+ * De ce: LiteSpeed regenereaza fisierul combinat cu ACELASI nume si acelasi `?ver`
+ * atunci cand se schimba doar CONTINUTUL surselor (hash-ul e peste lista de fisiere,
+ * nu peste continut). Cloudflare tine acel URL cu max-age de un an, deci vizitatorii
+ * primeau CSS vechi la nesfarsit, iar pe unele site-uri modificarile nu se vedeau
+ * niciodata. Dovedit: acelasi URL, luat cu cheie unica, avea regulile noi; servit
+ * din cache, nu le avea.
+ *
+ * `data-no-optimize="1"` e marcajul pe care LiteSpeed il respecta indiferent de
+ * versiune. Asa, style.css se serveste de la URL-ul lui, cu `?ver=filemtime`, care
+ * se schimba la FIECARE deploy -> niciun cache nu mai poate servi ceva vechi.
+ * Cost: o cerere HTTP in plus (fisier cache-abil un an, pe HTTP/2).
+ */
+function magpress_style_no_optimize($html, $handle) {
+    if ($handle !== 'magpress-main') return $html;
+    if (strpos($html, 'data-no-optimize') !== false) return $html;
+    return str_replace('<link ', '<link data-no-optimize="1" ', $html);
+}
+add_filter('style_loader_tag', 'magpress_style_no_optimize', 10, 2);
 
 /**
  * Returnează config-ul pentru news font preset (sau null dacă e default).
