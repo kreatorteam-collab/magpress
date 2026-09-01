@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.230');
+define('MAGPRESS_VERSION', '0.9.231');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3831,6 +3831,258 @@ function magpress_autoflush_permalinks() {
     flush_rewrite_rules(false);
 }
 add_action('init', 'magpress_autoflush_permalinks', 99);
+
+/* ==========================================================================
+ * URL-URI FĂRĂ CATEGORIE + 301 DE PE CELE VECHI
+ *
+ * Site-urile mutate de la /%category%/%postname%/ la standardul flotei
+ * /%postname%/ rămân cu mii de URL-uri vechi indexate. Aici ținem, permanent:
+ *   1. 301 de pe /orice/slug/ către permalinkul real — O SINGURĂ regulă,
+ *      fără mii de înregistrări de redirect;
+ *   2. arhivele de categorie funcționale când baza „category/" e scoasă;
+ *   3. 301 pentru arhivele categoriilor șterse (altfel SEOPress le aruncă pe
+ *      homepage = soft-404 în ochii Google).
+ *
+ * Punctele 2 și 3 sunt INERTE unde nu e cazul: 2 pornește doar când baza
+ * „category/" e scoasă ȘI structura nu mai conține %category%, iar 3 doar
+ * dacă site-ul are opțiunea `magpress_deleted_cats` completată.
+ * ========================================================================== */
+
+/** Harta „categorie ștearsă → categorie țintă" pentru 301. Per site, goală implicit. */
+function magpress_deleted_categories() {
+    $map = get_option('magpress_deleted_cats', []);
+    return is_array($map) ? $map : [];
+}
+
+/** Baza „category/" e scoasă (arhivele stau pe /slug/)? */
+function magpress_category_base_removed() {
+    global $wp_rewrite;
+    if (!$wp_rewrite) return false;
+    $ps = (string) $wp_rewrite->get_category_permastruct();
+    return $ps !== '' && strpos($ps, '%category%') === 0;
+}
+
+/**
+ * Conflictul pe care îl rezolvăm: cu /%postname%/ ȘI baza scoasă, arhivele
+ * (/lifestyle/) și articolele (/slug/) sunt amândouă pe UN segment, iar regula
+ * generică de articol câștigă → TOATE categoriile dau 404.
+ */
+function magpress_needs_category_rules() {
+    $struct = (string) get_option('permalink_structure');
+    if ($struct === '' || strpos($struct, '%category%') !== false) return false;
+    return magpress_category_base_removed();
+}
+
+/** Există un articol/pagină publicat cu exact acest slug? (nu furăm ruta unui conținut real) */
+function magpress_slug_taken($slug) {
+    global $wpdb;
+    return (bool) $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts}
+          WHERE post_name = %s AND post_status = 'publish' AND post_type IN ('post','page') LIMIT 1",
+        $slug
+    ));
+}
+
+/**
+ * Reguli explicite de arhivă, puse ÎNAINTEA celor generate de WP.
+ * Citim termenii direct din DB: pe unele site-uri get_categories() e filtrat
+ * de pluginuri și întoarce doar o parte din categorii.
+ */
+function magpress_category_archive_rules() {
+    global $wpdb;
+    $rules = [];
+    if (!magpress_needs_category_rules()) return $rules;
+
+    $rows = $wpdb->get_results(
+        "SELECT t.term_id, t.slug, tt.parent
+           FROM {$wpdb->terms} t
+           INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id
+          WHERE tt.taxonomy = 'category'"
+    );
+    if (!$rows) return $rules;
+
+    $map = [];
+    foreach ($rows as $r) $map[(int) $r->term_id] = $r;
+
+    foreach ($rows as $r) {
+        // calea completă de slug-uri (părinte/copil)
+        $parts = [];
+        $id    = (int) $r->term_id;
+        $guard = 0;
+        while (isset($map[$id]) && $guard++ < 10) {
+            array_unshift($parts, $map[$id]->slug);
+            $id = (int) $map[$id]->parent;
+            if (!$id) break;
+        }
+        $path = implode('/', $parts);
+        if ($path === '' || magpress_slug_taken($r->slug)) continue;
+
+        $q = 'index.php?category_name=' . $path;
+        $rules[$path . '/feed/(feed|rdf|rss|rss2|atom)/?$'] = $q . '&feed=$matches[1]';
+        $rules[$path . '/(feed|rdf|rss|rss2|atom)/?$']      = $q . '&feed=$matches[1]';
+        $rules[$path . '/page/?([0-9]{1,})/?$']             = $q . '&paged=$matches[1]';
+        $rules[$path . '/?$']                               = $q;
+        // NU adăugăm reguli pentru /category/{slug}/ — ar servi același arhiv la două
+        // URL-uri (conținut duplicat). Le tratăm cu 301 mai jos.
+    }
+    return $rules;
+}
+add_filter('rewrite_rules_array', function ($rules) {
+    return array_merge(magpress_category_archive_rules(), (array) $rules);
+});
+
+/** Plasă a doua: slug prins de regula generică de articol, care e de fapt categorie. */
+add_filter('request', function ($qv) {
+    if (!magpress_needs_category_rules()) return $qv;
+    if (empty($qv['name']) || !empty($qv['category_name']) || !empty($qv['pagename'])) return $qv;
+
+    $slug = (string) $qv['name'];
+    if (magpress_slug_taken($slug)) return $qv;
+    $term = get_term_by('slug', $slug, 'category');
+    if (!$term || is_wp_error($term)) return $qv;
+
+    unset($qv['name']);
+    $qv['category_name'] = $slug;
+    if (!empty($qv['page'])) {
+        $qv['paged'] = (int) ltrim((string) $qv['page'], '/');
+        unset($qv['page']);
+    }
+    return $qv;
+});
+
+/** Găsește un articol după slug; încearcă și _wp_old_slug (articol redenumit cândva). */
+function magpress_find_post_by_slug($slug) {
+    $slug = sanitize_title((string) $slug);
+    if ($slug === '') return null;
+
+    $base = [
+        'post_status' => 'publish', 'posts_per_page' => 1, 'no_found_rows' => true,
+        'ignore_sticky_posts' => true, 'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    ];
+    foreach (['post', 'page'] as $t) {
+        $q = new WP_Query($base + ['name' => $slug, 'post_type' => $t]);
+        if (!empty($q->posts)) return $q->posts[0];
+    }
+    $q = new WP_Query($base + [
+        'post_type'  => 'any',
+        'meta_query' => [['key' => '_wp_old_slug', 'value' => $slug]],
+    ]);
+    return !empty($q->posts) ? $q->posts[0] : null;
+}
+
+/**
+ * Rulează la prioritate 0 și NU așteaptă un 404, fiindcă /category/{slug}/
+ * răspunde 200 (același arhiv la două URL-uri) când baza e scoasă.
+ */
+function magpress_redirect_category_base() {
+    if (is_admin()) return;
+    $req = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+    if ($req === '') return;
+
+    $path  = (string) wp_parse_url($req, PHP_URL_PATH);
+    $parts = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
+    if (count($parts) < 2) return;
+
+    // 1. baza /category/ (WP o păstrează intern chiar dacă linkurile n-o mai folosesc)
+    if (magpress_category_base_removed() && strtolower($parts[0]) === 'category') {
+        $slug = strtolower($parts[1]);
+        $del  = magpress_deleted_categories();
+        if (isset($del[$slug])) $slug = $del[$slug];
+
+        $t = get_term_by('slug', $slug, 'category');
+        if (!$t || is_wp_error($t)) return;
+        $link = get_category_link($t->term_id);
+        if (!$link) return;
+        if (isset($parts[2], $parts[3]) && $parts[2] === 'page' && ctype_digit((string) $parts[3])) {
+            $link = trailingslashit($link) . 'page/' . (int) $parts[3] . '/';
+        }
+        wp_safe_redirect($link, 301, 'magpress');
+        exit;
+    }
+
+    // 2. feed vechi de articol: /categorie/slug/feed/ (3 segmente, răspundea 200)
+    $n = count($parts);
+    if ($n >= 3 && in_array(strtolower($parts[$n - 1]), ['feed', 'rdf', 'rss', 'rss2', 'atom'], true)) {
+        $struct = (string) get_option('permalink_structure');
+        if ($struct !== '' && strpos($struct, '%category%') === false) {
+            $post = magpress_find_post_by_slug($parts[$n - 2]);
+            if ($post) {
+                $target = trailingslashit(get_permalink($post)) . 'feed/';
+                if (untrailingslashit((string) wp_parse_url($target, PHP_URL_PATH)) !== untrailingslashit($path)) {
+                    wp_safe_redirect($target, 301, 'magpress');
+                    exit;
+                }
+            }
+        }
+    }
+}
+add_action('template_redirect', 'magpress_redirect_category_base', 0);
+
+/**
+ * 301 de pe vechile /categorie/slug/ către /slug/.
+ * Prioritate 1: ÎNAINTEA lui redirect_canonical din core (10), care ghicește cu
+ * `post_name LIKE 'slug%'` și nimerește ATAȘAMENTUL (slug-2), producând URL-uri
+ * de tip /slug/slug-2/. Acoperă și feed/amp/embed, paginarea și query string-ul.
+ */
+function magpress_redirect_legacy_urls() {
+    if (is_admin() || !is_404()) return;
+    if (defined('DOING_AJAX') && DOING_AJAX) return;
+
+    $req = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+    if ($req === '') return;
+    $path = (string) wp_parse_url($req, PHP_URL_PATH);
+    $qs   = (string) wp_parse_url($req, PHP_URL_QUERY);
+
+    $parts = array_values(array_filter(explode('/', trim($path, '/')), 'strlen'));
+    if (!$parts) return;
+
+    // arhiva unei categorii șterse → 301 pe categoria în care au fost topite articolele
+    $del  = magpress_deleted_categories();
+    $prim = strtolower($parts[0]);
+    if ($prim === 'category' && isset($parts[1])) $prim = strtolower($parts[1]);
+    $rest = ($parts[0] === 'category') ? array_slice($parts, 2) : array_slice($parts, 1);
+
+    if (isset($del[$prim]) && (!$rest || $rest[0] === 'page' || preg_match('~^[0-9]+$~', (string) $rest[0]))) {
+        $t = get_term_by('slug', $del[$prim], 'category');
+        if ($t && !is_wp_error($t)) {
+            $link = get_category_link($t->term_id);
+            if ($rest && $rest[0] === 'page' && isset($rest[1]) && ctype_digit((string) $rest[1])) {
+                $link = trailingslashit($link) . 'page/' . (int) $rest[1] . '/';
+            }
+            if ($link) { wp_safe_redirect($link, 301, 'magpress'); exit; }
+        }
+    }
+
+    if (count($parts) < 2) return;
+
+    // taie sufixele WP din coadă înainte de a căuta slug-ul
+    $suffix = '';
+    while ($parts) {
+        $last = strtolower((string) end($parts));
+        if (in_array($last, ['feed', 'amp', 'embed', 'trackback'], true)) {
+            $suffix = $last . '/'; array_pop($parts); continue;
+        }
+        if (preg_match('~^[0-9]+$~', $last) || $last === 'page' || preg_match('~^comment-page-[0-9]+$~', $last)) {
+            array_pop($parts); continue;
+        }
+        break;
+    }
+    if (count($parts) < 2) return;
+
+    $post = magpress_find_post_by_slug(end($parts));
+    if (!$post) return;
+
+    $target = get_permalink($post);
+    if (!$target) return;
+    if ($suffix !== '') $target = trailingslashit($target) . $suffix;
+    if (untrailingslashit((string) wp_parse_url($target, PHP_URL_PATH)) === untrailingslashit($path)) return;
+    if ($qs !== '') $target .= (strpos($target, '?') === false ? '?' : '&') . $qs;
+
+    wp_safe_redirect($target, 301, 'magpress');
+    exit;
+}
+add_action('template_redirect', 'magpress_redirect_legacy_urls', 1);
 
 /**
  * Fix nume folder la dezarhivare. GitHub ZIP-ul vine cu folderul "magpress-main"
