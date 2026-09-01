@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.231');
+define('MAGPRESS_VERSION', '0.9.232');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3843,9 +3843,10 @@ add_action('init', 'magpress_autoflush_permalinks', 99);
  *   3. 301 pentru arhivele categoriilor șterse (altfel SEOPress le aruncă pe
  *      homepage = soft-404 în ochii Google).
  *
- * Punctele 2 și 3 sunt INERTE unde nu e cazul: 2 pornește doar când baza
- * „category/" e scoasă ȘI structura nu mai conține %category%, iar 3 doar
- * dacă site-ul are opțiunea `magpress_deleted_cats` completată.
+ * INERT implicit pe flotă: 2 cere opțiunea per-site `magpress_flat_urls` (plus
+ * baza „category/" scoasă și structură fără %category%), iar 3 cere
+ * `magpress_deleted_cats` completată. Fără ele rămâne activ doar 301-ul de la
+ * punctul 1, care se declanșează exclusiv pe 404-uri.
  * ========================================================================== */
 
 /** Harta „categorie ștearsă → categorie țintă" pentru 301. Per site, goală implicit. */
@@ -3868,6 +3869,12 @@ function magpress_category_base_removed() {
  * generică de articol câștigă → TOATE categoriile dau 404.
  */
 function magpress_needs_category_rules() {
+    // OPT-IN per site (`magpress_flat_urls`). Pe 71 din 77 de site-uri baza e deja
+    // scoasă și arhivele merg prin regulile SEOPress — nu ne băgăm peste ele. Pornim
+    // doar pe site-urile MUTATE de pe /%category%/%postname%/, unde regulile alea nu
+    // mai sunt regenerate la flush și toate categoriile ajung 404.
+    if (!get_option('magpress_flat_urls')) return false;
+
     $struct = (string) get_option('permalink_structure');
     if ($struct === '' || strpos($struct, '%category%') !== false) return false;
     return magpress_category_base_removed();
@@ -3976,7 +3983,7 @@ function magpress_find_post_by_slug($slug) {
  * răspunde 200 (același arhiv la două URL-uri) când baza e scoasă.
  */
 function magpress_redirect_category_base() {
-    if (is_admin()) return;
+    if (is_admin() || !get_option('magpress_flat_urls')) return;
     $req = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
     if ($req === '') return;
 
