@@ -110,8 +110,6 @@ get_header();
   <h1 class="home-h1" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0"><?php echo esc_html($mp_h1); ?></h1>
   <?php endif; ?>
 
-  <?php if ((int) get_theme_mod('magpress_discover_position', 0) === 0) get_template_part('template-parts/google-discover'); ?>
-
   <?php echo magpress_render_most_read(5); // News feature toggle ?>
 
   <?php magpress_homepage_after_slot(0); // insertii pozitionate PE 0 = deasupra sloturilor ?>

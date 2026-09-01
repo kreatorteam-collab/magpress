@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.229');
+define('MAGPRESS_VERSION', '0.9.230');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -952,23 +952,10 @@ function magpress_customize_register($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_show_google_discover', [
         'label'       => 'Box „Google Discover" (sursă preferată)',
-        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare pe homepage (poziția de mai jos) și pe articol (înainte de comentarii).',
+        'description' => 'Afișează CTA pentru a marca site-ul ca sursă preferată în Google Discover. Apare DOAR pe articol, la final, deasupra casetei de autor — niciodată pe homepage.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
-    $wp_customize->add_setting('magpress_discover_position', [
-        'default'           => 0,
-        'sanitize_callback' => 'absint',
-        'transport'         => 'refresh',
-    ]);
-    $wp_customize->add_control('magpress_discover_position', [
-        'label'       => 'Box Google Discover — după ce slot apare (homepage)',
-        'description' => '0 = poziția standard (sub titlul H1, deasupra sloturilor). 1 = după Slot 1, 2 = după Slot 2 etc. (sloturile de reclamă se numără și ele). Număr mai mare decât sloturile active = jos de tot.',
-        'section'     => 'magpress_layout',
-        'type'        => 'number',
-        'input_attrs' => ['min' => 0, 'max' => 30, 'step' => 1],
-    ]);
-
     // Featured posts — layout selector
     $wp_customize->add_setting('magpress_featured_layout', [
         'default'           => 'two',
@@ -2407,19 +2394,17 @@ function magpress_render_popular_categories() {
  * (poziții mai mari decât sloturile active).
  */
 function magpress_homepage_after_slot($i, $total = null) {
+    // v0.9.230: caseta Google Discover NU mai apare pe homepage, doar pe articol.
     $pop = (int) get_theme_mod('magpress_popcats_position', 0);
-    $dis = (int) get_theme_mod('magpress_discover_position', 0);
     $nlb = (int) get_theme_mod('magpress_nlbar_position', 0);
     $has_nl = (int) get_theme_mod('magpress_nlbar_enabled', 0);
     if ($total !== null) {
         // finalul listei: randează tot ce țintea un slot inexistent
         if ($pop > $total) magpress_render_popular_categories();
-        if ($dis > $total) get_template_part('template-parts/google-discover');
         if ($has_nl && $nlb > $total) get_template_part('template-parts/newsletter-bar');
         return;
     }
     if ($pop === $i) magpress_render_popular_categories();
-    if ($dis === $i && $i > 0) get_template_part('template-parts/google-discover');
     if ($has_nl && $nlb === $i) get_template_part('template-parts/newsletter-bar');
 }
 
