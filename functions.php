@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.227');
+define('MAGPRESS_VERSION', '0.9.228');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -7386,6 +7386,19 @@ function magpress_build_organization_schema() {
     }
     return $org;
 }
+
+/**
+ * v0.9.228 — bara Google Discover trebuie sa apara pe TOATE site-urile.
+ * Comutatorul are implicit „pornit", dar pe o parte din flota fusese salvat pe 0
+ * din Customizer, iar un default nu bate o valoare salvata. Stergem O SINGURA DATA
+ * valoarea salvata, ca sa revina la implicit; dupa aceea, daca o opresti de pe un
+ * site, ramane oprita (migrarea nu se mai repeta).
+ */
+add_action('init', function () {
+    if (get_option('magpress_discover_reset_done') === '1') return;
+    remove_theme_mod('magpress_show_google_discover');
+    update_option('magpress_discover_reset_done', '1', false);
+}, 25);
 
 /**
  * Layout „boxed" (v0.9.221): site-ul devine o foaie alba centrata pe fundal gri,
