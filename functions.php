@@ -275,7 +275,12 @@ function magpress_main_css_src() {
 }
 
 function magpress_style_no_optimize($html, $handle) {
-    if ($handle !== 'magpress-main') return $html;
+    // v0.9.231: si fontul de la Google. Fara marcaj, LiteSpeed inghitea link-ul pe
+    // paginile optimizate (adica pentru VIZITATORI, nu si pentru adminul logat, care
+    // primeste pagini neoptimizate): regulile ramaneau in CSS, dar `@font-face`-urile
+    // nu se mai incarcau deloc, asa ca meniul si titlurile cadeau pe fonturile de
+    // rezerva. De aici „delogat e alt font la meniu".
+    if (!in_array($handle, ['magpress-main', 'magpress-google-font', 'magpress-menu-font'], true)) return $html;
     if (strpos($html, 'data-no-optimize') !== false) return $html;
     return str_replace('<link ', '<link data-no-optimize="1" ', $html);
 }
