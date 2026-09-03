@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.232');
+define('MAGPRESS_VERSION', '0.9.233');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -196,8 +196,15 @@ function magpress_enqueue_assets() {
             ? str_replace('&display=swap', '&family=' . $menu_font['google'] . '&display=swap', $font_url)
             : 'https://fonts.googleapis.com/css2?family=' . $menu_font['google'] . '&display=swap';
     }
-    if ($font_url !== '') {
-        wp_enqueue_style('magpress-google-font', $font_url, [], null);
+    // v0.9.233: NU mai depindem de un <link> catre fonts.googleapis.com. Pe paginile
+    // optimizate (adica pentru vizitatori, nu pentru adminul logat) LiteSpeed il scotea
+    // complet — UCSS arunca `@font-face`-urile — si fonturile cadeau pe cele de rezerva:
+    // meniul de pe Roboto Condensed pe Impact, titlurile de pe Merriweather pe Georgia.
+    // Luam CSS-ul de la Google pe server, il cache-uim si il tiparim INLINE, ca pe
+    // celelalte stiluri ale temei, care supravietuiesc optimizarii.
+    $font_css = $font_url !== '' ? magpress_google_font_css($font_url) : '';
+    if ($font_url !== '' && $font_css === '') {
+        wp_enqueue_style('magpress-google-font', $font_url, [], null); // rezerva
     }
 
     // v0.9.220: URL cu versiunea in NUMELE fisierului, nu in `?ver` — LiteSpeed are
@@ -205,6 +212,10 @@ function magpress_enqueue_assets() {
     // dupa fiecare deploy si Cloudflare servea la nesfarsit continutul vechi.
     list($css_url, $ver) = magpress_main_css_src();
     wp_enqueue_style('magpress-main', $css_url, [], $ver);
+
+    if ($font_css !== '') {
+        wp_add_inline_style('magpress-main', $font_css);
+    }
 
     // Branding CSS — atasat dupa style.css (cascade-ul il face sa castige peste defaults)
     $branding = magpress_get_branding_css();
@@ -285,6 +296,36 @@ function magpress_style_no_optimize($html, $handle) {
     return str_replace('<link ', '<link data-no-optimize="1" ', $html);
 }
 add_filter('style_loader_tag', 'magpress_style_no_optimize', 10, 2);
+
+/**
+ * CSS-ul unui font Google, luat de pe server si cache-uit, ca sa-l putem tipari inline.
+ *
+ * Cerem cu un User-Agent de Chrome, altfel Google trimite varianta cu `ttf` in loc de
+ * `woff2`. Cache 30 de zile in transient; daca cererea pica, tinem minte esecul o ora
+ * ca sa nu incercam la fiecare afisare, iar apelantul cade inapoi pe <link>.
+ */
+function magpress_google_font_css($url) {
+    $key = 'magpress_font_css_' . md5($url);
+    $hit = get_transient($key);
+    if ($hit !== false) {
+        return $hit === 'fail' ? '' : (string) $hit;
+    }
+
+    $resp = wp_remote_get($url, [
+        'timeout'    => 5,
+        'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    ]);
+    $body = (!is_wp_error($resp) && 200 === wp_remote_retrieve_response_code($resp))
+        ? trim((string) wp_remote_retrieve_body($resp))
+        : '';
+
+    if ($body === '' || stripos($body, '@font-face') === false) {
+        set_transient($key, 'fail', HOUR_IN_SECONDS);
+        return '';
+    }
+    set_transient($key, $body, 30 * DAY_IN_SECONDS);
+    return $body;
+}
 
 /**
  * Returnează config-ul pentru news font preset (sau null dacă e default).
