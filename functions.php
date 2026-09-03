@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.233');
+define('MAGPRESS_VERSION', '0.9.234');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -323,8 +323,32 @@ function magpress_google_font_css($url) {
         set_transient($key, 'fail', HOUR_IN_SECONDS);
         return '';
     }
+    $body = magpress_font_css_keep_subsets($body);
     set_transient($key, $body, 30 * DAY_IN_SECONDS);
     return $body;
+}
+
+/**
+ * Pastreaza doar blocurile @font-face de care avem nevoie. Google trimite si
+ * chirilic, grec si vietnamez — 45 de blocuri, 18 KB inline pe fiecare pagina.
+ * Fisierele in plus nu se descarca (browserul alege dupa unicode-range), dar
+ * CSS-ul inline se plateste la fiecare afisare. Pentru romana ajung latin +
+ * latin-ext (a-caciula, a-circumflex, i-circumflex, s-virgula, t-virgula).
+ * Ajustabil per site cu filtrul `magpress_font_subsets`.
+ */
+function magpress_font_css_keep_subsets($css) {
+    $keep = (array) apply_filters('magpress_font_subsets', ['latin', 'latin-ext']);
+    // Blocurile vin ca: /* latin */ @font-face { ... }
+    if (!preg_match_all('#/\*\s*([a-z-]+)\s*\*/\s*(@font-face\s*\{[^}]*\})#i', $css, $m, PREG_SET_ORDER)) {
+        return $css; // format neasteptat — nu ne atingem de el
+    }
+    $out = '';
+    foreach ($m as $blk) {
+        if (in_array(strtolower($blk[1]), $keep, true)) {
+            $out .= $blk[2];
+        }
+    }
+    return $out !== '' ? $out : $css;
 }
 
 /**
