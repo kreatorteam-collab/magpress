@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.234');
+define('MAGPRESS_VERSION', '0.9.235');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -305,14 +305,33 @@ add_filter('style_loader_tag', 'magpress_style_no_optimize', 10, 2);
  * ca sa nu incercam la fiecare afisare, iar apelantul cade inapoi pe <link>.
  */
 function magpress_google_font_css($url) {
-    $key = 'magpress_font_css_' . md5($url);
-    $hit = get_transient($key);
-    if ($hit !== false) {
-        return $hit === 'fail' ? '' : (string) $hit;
+    $css = get_transient('magpress_font_css_' . md5($url));
+    if (is_string($css) && $css !== '') {
+        return $css;
     }
 
+    // v0.9.235: cand cache-ul e rece NU blocam afisarea ca sa cerem de la Google.
+    // Prima versiune cerea in timpul randarii, cu 5 secunde timeout; pe majoritatea
+    // hosturilor cererea a expirat, am tinut minte esecul si fonturile n-au mai
+    // aparut deloc. Acum aducem CSS-ul in FUNDAL (cron), iar afisarea curenta cade
+    // pe <link>-ul obisnuit. Adminul logat il aduce sincron, ca sa se incalzeasca
+    // imediat cand deschizi site-ul.
+    if (is_user_logged_in() || (defined('DOING_CRON') && DOING_CRON) || is_admin()) {
+        return magpress_fetch_font_css($url);
+    }
+    if (!get_transient('magpress_font_fetch_queued_' . md5($url))) {
+        set_transient('magpress_font_fetch_queued_' . md5($url), 1, 10 * MINUTE_IN_SECONDS);
+        wp_schedule_single_event(time() + 5, 'magpress_fetch_font_css', [$url]);
+    }
+    return '';
+}
+
+/** Aduce efectiv CSS-ul de la Google si il pune in cache 30 de zile. */
+function magpress_fetch_font_css($url) {
+    $key = 'magpress_font_css_' . md5($url);
+
     $resp = wp_remote_get($url, [
-        'timeout'    => 5,
+        'timeout'    => 15,
         'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
     ]);
     $body = (!is_wp_error($resp) && 200 === wp_remote_retrieve_response_code($resp))
@@ -320,13 +339,13 @@ function magpress_google_font_css($url) {
         : '';
 
     if ($body === '' || stripos($body, '@font-face') === false) {
-        set_transient($key, 'fail', HOUR_IN_SECONDS);
-        return '';
+        return ''; // reincercam la urmatoarea rulare de cron; NU tinem minte esecul
     }
     $body = magpress_font_css_keep_subsets($body);
     set_transient($key, $body, 30 * DAY_IN_SECONDS);
     return $body;
 }
+add_action('magpress_fetch_font_css', 'magpress_fetch_font_css', 10, 1);
 
 /**
  * Pastreaza doar blocurile @font-face de care avem nevoie. Google trimite si
