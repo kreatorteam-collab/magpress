@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.238');
+define('MAGPRESS_VERSION', '0.9.239');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5634,9 +5634,34 @@ function magpress_rest_diag($req) {
     $font_diag['cron_next'] = wp_next_scheduled('magpress_auto_deploy_check');
     $font_diag['now']       = time();
 
+    // v0.9.239: cum e configurat cronul pe acest site. ALTERNATE_WP_CRON face ca
+    // WordPress sa REDIRECTIONEZE browserul vizitatorului catre ?doing_wp_cron=...
+    // (de aceea apare in bara de adrese); varianta sanatoasa e DISABLE_WP_CRON=true
+    // plus un cron de server. Raportam si daca wp-config.php e scriabil, ca sa stim
+    // daca se poate schimba din afara.
+    $wp_config = ABSPATH . 'wp-config.php';
+    if (!@file_exists($wp_config)) {
+        $wp_config = dirname(ABSPATH) . '/wp-config.php'; // instalari cu WP in subfolder
+    }
+    $cron_diag = [
+        'disable_wp_cron'   => defined('DISABLE_WP_CRON') ? (DISABLE_WP_CRON ? 'true' : 'false') : 'undefined',
+        'alternate_wp_cron' => defined('ALTERNATE_WP_CRON') ? (ALTERNATE_WP_CRON ? 'true' : 'false') : 'undefined',
+        'wp_config_found'   => (bool) @file_exists($wp_config),
+        'wp_config_writable'=> @is_writable($wp_config),
+        'events_due'        => 0,
+    ];
+    $crons = _get_cron_array();
+    if (is_array($crons)) {
+        $now = time();
+        foreach ($crons as $ts => $hooks) {
+            if ($ts <= $now) $cron_diag['events_due'] += is_array($hooks) ? count($hooks) : 0;
+        }
+    }
+
     return [
         'theme_version'   => wp_get_theme()->get('Version'),
         'font'            => $font_diag,
+        'cron'            => $cron_diag,
         'active_editor'   => $chosen ?: 'none',
         'imagick_loaded'  => extension_loaded('imagick'),
         'imagick_wp_test' => class_exists('WP_Image_Editor_Imagick') ? WP_Image_Editor_Imagick::test($args) : false,
