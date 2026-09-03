@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.239');
+define('MAGPRESS_VERSION', '0.9.240');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5656,6 +5656,27 @@ function magpress_rest_diag($req) {
         foreach ($crons as $ts => $hooks) {
             if ($ts <= $now) $cron_diag['events_due'] += is_array($hooks) ? count($hooks) : 0;
         }
+    }
+
+    // v0.9.240: test de loopback — exact cererea pe care o face WordPress ca sa porneasca
+    // cronul in fundal. ALTERNATE_WP_CRON se pune tocmai cand asta e blocat; daca merge,
+    // constanta poate fi scoasa si URL-urile ?doing_wp_cron= dispar din bara de adrese.
+    $lb_url = site_url('wp-cron.php?doing_wp_cron=' . sprintf('%.22F', microtime(true)) . '&magpress_test=1');
+    $t1 = microtime(true);
+    $lb = wp_remote_post($lb_url, [
+        'timeout'   => 8,
+        'blocking'  => true,
+        'sslverify' => false,
+        'headers'   => ['Host' => (string) parse_url(home_url(), PHP_URL_HOST)],
+    ]);
+    $cron_diag['loopback_ms'] = (int) round((microtime(true) - $t1) * 1000);
+    if (is_wp_error($lb)) {
+        $cron_diag['loopback_ok']    = false;
+        $cron_diag['loopback_error'] = substr($lb->get_error_message(), 0, 160);
+    } else {
+        $code = (int) wp_remote_retrieve_response_code($lb);
+        $cron_diag['loopback_code'] = $code;
+        $cron_diag['loopback_ok']   = ($code >= 200 && $code < 400);
     }
 
     return [
