@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.237');
+define('MAGPRESS_VERSION', '0.9.238');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -181,14 +181,7 @@ function magpress_enqueue_assets() {
         $font_url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
     } else {
         $google_font = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
-        if ($google_font !== '') {
-            $font_url = 'https://fonts.googleapis.com/css2?' . http_build_query([
-                'family'  => $google_font,
-                'display' => 'swap',
-            ], '', '&', PHP_QUERY_RFC3986);
-            // http_build_query inlocuieste ":" cu "%3A" — corectam pentru sintaxa css2
-            $font_url = str_replace('%3A', ':', $font_url);
-        }
+        $font_url = magpress_font_url_from_spec($google_font);
     }
     // Fontul de meniu intră în ACELAȘI request (nu mai e un al doilea hit la fonts.googleapis.com).
     if ($menu_font) {
@@ -327,6 +320,51 @@ function magpress_google_font_css($url) {
 }
 
 /**
+ * Traduce setarea de font in sintaxa API-ului `css2`.
+ *
+ * Setarea din Customizer e in sintaxa VECHE, de la API-ul v1: „Open Sans:400,700".
+ * Pusa asa pe `css2`, Google raspunde cu 400 si o pagina de eroare — adica fontul
+ * nu s-a incarcat NICIODATA pe site-urile care folosesc setarea implicita, iar
+ * textul cadea pe fonturile de sistem din stiva de rezerva. (v0.9.238)
+ * „Open Sans:400,700" -> „Open+Sans:wght@400;700"; fara greutati, doar numele.
+ * Daca setarea e deja in sintaxa css2 (contine `wght@`), o lasam neatinsa.
+ */
+function magpress_font_families_css2($spec) {
+    $out = [];
+    foreach (preg_split('/\|/', (string) $spec, -1, PREG_SPLIT_NO_EMPTY) as $one) {
+        $one = trim($one);
+        if ($one === '') continue;
+        if (stripos($one, 'wght@') !== false || stripos($one, 'ital,') !== false) {
+            $out[] = str_replace(' ', '+', $one); // deja css2
+            continue;
+        }
+        $parts = explode(':', $one, 2);
+        $family = trim($parts[0]);
+        if ($family === '') continue;
+
+        $weights = [];
+        if (isset($parts[1])) {
+            foreach (preg_split('/[,\s]+/', $parts[1], -1, PREG_SPLIT_NO_EMPTY) as $w) {
+                if (preg_match('/(\d{3})/', $w, $m)) $weights[] = (int) $m[1];
+            }
+        }
+        $weights = array_values(array_unique($weights));
+        sort($weights); // css2 cere greutatile crescator
+
+        $family = str_replace(' ', '+', $family);
+        $out[] = $weights ? $family . ':wght@' . implode(';', $weights) : $family;
+    }
+    return $out;
+}
+
+/** URL-ul complet catre css2 pentru o setare de font (sau '' daca nu e nimic de cerut). */
+function magpress_font_url_from_spec($spec) {
+    $fams = magpress_font_families_css2($spec);
+    if (!$fams) return '';
+    return 'https://fonts.googleapis.com/css2?family=' . implode('&family=', $fams) . '&display=swap';
+}
+
+/**
  * URL-urile de font pe care le foloseste site-ul, calculate la fel ca in enqueue.
  * Folosit de pre-warm-ul de pe cron, care ruleaza fara sa treaca prin wp_enqueue_scripts.
  */
@@ -338,10 +376,8 @@ function magpress_google_font_urls_for_warm() {
     if ($preset) {
         $url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
     } else {
-        $g = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
-        if ($g === '') return [];
-        $url = 'https://fonts.googleapis.com/css2?' . http_build_query(['family' => $g, 'display' => 'swap'], '', '&', PHP_QUERY_RFC3986);
-        $url = str_replace('%3A', ':', $url);
+        $url = magpress_font_url_from_spec(trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700')));
+        if ($url === '') return [];
     }
     if ($menu_font) {
         $url = str_replace('&display=swap', '&family=' . $menu_font['google'] . '&display=swap', $url);
