@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.235');
+define('MAGPRESS_VERSION', '0.9.236');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -324,6 +324,30 @@ function magpress_google_font_css($url) {
         wp_schedule_single_event(time() + 5, 'magpress_fetch_font_css', [$url]);
     }
     return '';
+}
+
+/**
+ * URL-urile de font pe care le foloseste site-ul, calculate la fel ca in enqueue.
+ * Folosit de pre-warm-ul de pe cron, care ruleaza fara sa treaca prin wp_enqueue_scripts.
+ */
+function magpress_google_font_urls_for_warm() {
+    $urls = [];
+    $preset    = magpress_news_font_preset_config();
+    $menu_font = magpress_menu_font_config();
+
+    if ($preset) {
+        $url = 'https://fonts.googleapis.com/css2?family=' . $preset['google'] . '&display=swap';
+    } else {
+        $g = trim((string) get_theme_mod('magpress_google_font', 'Open Sans:400,700'));
+        if ($g === '') return [];
+        $url = 'https://fonts.googleapis.com/css2?' . http_build_query(['family' => $g, 'display' => 'swap'], '', '&', PHP_QUERY_RFC3986);
+        $url = str_replace('%3A', ':', $url);
+    }
+    if ($menu_font) {
+        $url = str_replace('&display=swap', '&family=' . $menu_font['google'] . '&display=swap', $url);
+    }
+    $urls[] = $url;
+    return $urls;
 }
 
 /** Aduce efectiv CSS-ul de la Google si il pune in cache 30 de zile. */
@@ -2546,6 +2570,19 @@ function magpress_render_partners() {
 add_action('magpress_auto_deploy_check', function () {
     foreach (magpress_partner_sources() as $src) { magpress_partner_fetch($src, 4); }
 }, 20);
+
+// Pre-warm CSS font Google (v0.9.235): cronul de 5 minute ruleaza si acolo unde
+// WP-Cron e dezactivat si pornit de pe serverul de cron, deci e singurul loc din
+// care aducerea fontului se intampla sigur. Fara el, pe site-urile fara WP-Cron
+// event-ul single programat la afisare nu rula niciodata.
+add_action('magpress_auto_deploy_check', function () {
+    if (!function_exists('magpress_google_font_urls_for_warm')) return;
+    foreach (magpress_google_font_urls_for_warm() as $u) {
+        if (get_transient('magpress_font_css_' . md5($u)) === false) {
+            magpress_fetch_font_css($u);
+        }
+    }
+}, 40);
 
 // Pre-warm bare Curs BNR + Vreme: refetch în FUNDAL (cron) ÎNAINTE de expirarea cache-ului,
 // ca vizitatorii să nu prindă niciodată cache rece. Doar pe site-urile unde bara e activată.
