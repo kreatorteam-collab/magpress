@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.236');
+define('MAGPRESS_VERSION', '0.9.237');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -5574,8 +5574,33 @@ function magpress_rest_diag($req) {
     // NU mai returnăm căi absolute / conținut de fișiere (evităm fingerprinting server dacă gate-ul e slab).
     $adv = WP_CONTENT_DIR . '/advanced-cache.php';
 
+    // v0.9.237: test de font — de ce nu ajung @font-face-urile in pagina pe unele site-uri.
+    $font_urls = function_exists('magpress_google_font_urls_for_warm') ? magpress_google_font_urls_for_warm() : [];
+    $font_diag = ['url' => $font_urls[0] ?? null];
+    if (!empty($font_urls[0])) {
+        $cached = get_transient('magpress_font_css_' . md5($font_urls[0]));
+        $font_diag['cache_bytes'] = is_string($cached) ? strlen($cached) : 0;
+        $t0 = microtime(true);
+        $r = wp_remote_get($font_urls[0], [
+            'timeout'    => 15,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        ]);
+        $font_diag['ms'] = (int) round((microtime(true) - $t0) * 1000);
+        if (is_wp_error($r)) {
+            $font_diag['error'] = substr($r->get_error_message(), 0, 160);
+        } else {
+            $b = (string) wp_remote_retrieve_body($r);
+            $font_diag['http']       = (int) wp_remote_retrieve_response_code($r);
+            $font_diag['body_bytes'] = strlen($b);
+            $font_diag['has_face']   = (stripos($b, '@font-face') !== false);
+        }
+    }
+    $font_diag['cron_next'] = wp_next_scheduled('magpress_auto_deploy_check');
+    $font_diag['now']       = time();
+
     return [
         'theme_version'   => wp_get_theme()->get('Version'),
+        'font'            => $font_diag,
         'active_editor'   => $chosen ?: 'none',
         'imagick_loaded'  => extension_loaded('imagick'),
         'imagick_wp_test' => class_exists('WP_Image_Editor_Imagick') ? WP_Image_Editor_Imagick::test($args) : false,
