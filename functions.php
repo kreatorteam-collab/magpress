@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.241');
+define('MAGPRESS_VERSION', '0.9.242');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3188,7 +3188,23 @@ function magpress_render_ad_html($html, $context = 'homepage') {
  * Detectat automat la primul render de ad (cached în wp_options), sau setat manual din Customizer.
  * Evită race condition: push() din IO callback poate executa imediat fără să aștepte loading-ul scriptului.
  */
+/**
+ * v0.9.242: Site Kit pune deja propriul adsbygoogle.js (cel cu `host=ca-host-pub-...`)
+ * cand modulul lui AdSense are snippetul activ. Tema il punea si ea, deci pe 67 din 77
+ * de site-uri scriptul se incarca DE DOUA ORI: Google cere unul singur pe pagina, iar
+ * dublura initializa reclamele de doua ori si dubla cererile (inclusiv cele catre
+ * ep1.adtrafficquality.google, pe care browserul le arata „Se asteapta date de la...").
+ */
+function magpress_sitekit_outputs_adsense() {
+    if (!defined('GOOGLESITEKIT_VERSION')) return false;
+    $o = get_option('googlesitekit_adsense_settings');
+    if (!is_array($o) || empty($o['useSnippet'])) return false;
+    return !empty($o['clientID']) || !empty($o['accountID']);
+}
+
 function magpress_enqueue_adsense_loader() {
+    if (magpress_sitekit_outputs_adsense()) return; // Site Kit il pune deja
+
     // Customizer override are prioritate
     $custom = trim((string) get_theme_mod('magpress_adsense_publisher_id', ''));
     $pub = $custom !== '' ? $custom : (string) get_option('magpress_adsense_publisher_id', '');
