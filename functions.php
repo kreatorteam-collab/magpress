@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.240');
+define('MAGPRESS_VERSION', '0.9.241');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2690,6 +2690,8 @@ function magpress_inline_critical_css() {
          // Checkbox căutare fix în viewport → deschiderea modalului NU derulează pagina la footer.
          // !important + în critical ca să bată CSS-ul combinat/UCSS stale de la LiteSpeed (admin logat).
          . '.search-modal-checkbox{position:fixed!important;top:0!important;left:0!important}'
+         // v0.9.241: anulam regula straina din CCSS (body flex + height:100vh) care strica meniul fix
+         . 'html body.magpress{display:block;height:auto;min-height:0}'
          // Sticky header — inline ca să reziste la UCSS/Critical CSS removal de la LiteSpeed
          . '@media(min-width:768px){'
          . '.has-sticky-header .site-header--inline{position:sticky;top:0;z-index:100;background:var(--c-header-bg,#fff);border-bottom:1px solid var(--c-header-border,#e6e6e6);box-shadow:0 2px 8px rgba(0,0,0,.04)}'
