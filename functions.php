@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.242');
+define('MAGPRESS_VERSION', '0.9.243');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -7448,7 +7448,7 @@ function magpress_resolve_publisher_type() {
 
 /**
  * Default valori pentru câmpurile publisher schema.
- * Datele firmei (telefon, adresă, foundingDate) sunt hardcodate pentru SEO Digital S.R.L.
+ * Din v0.9.243 nu mai există date de firmă implicite (telefon, adresă, foundingDate).
  * Restul (name, url, email, description) sunt derivate automat din WP/domain.
  * Extensibil via filter `magpress_publisher_defaults` (orice site care folosește tema poate modifica).
  */
@@ -7460,13 +7460,14 @@ function magpress_publisher_default($key) {
         'alternate_name'      => '',
         'description'         => get_bloginfo('description'),
         'email'               => $host ? 'contact@' . $host : '',
-        // Date firmă publisher (SEO Digital S.R.L. — Eduard) — comune pe toate site-urile
-        'phone'               => '0747394863',
-        'address_street'      => 'Strada Planetei',
-        'address_locality'    => 'Giroc',
-        'address_postal_code' => '307220',
-        'address_country'     => 'RO',
-        'founding_year'       => '2007',
+        // v0.9.243: FĂRĂ datele firmei (telefon, adresă, an înființare) — site-urile
+        // nu mai afișează nicăieri firma, doar numele site-ului + contact@domeniu.
+        'phone'               => '',
+        'address_street'      => '',
+        'address_locality'    => '',
+        'address_postal_code' => '',
+        'address_country'     => '',
+        'founding_year'       => '',
     ];
     $defaults = apply_filters('magpress_publisher_defaults', $defaults);
     return $defaults[$key] ?? '';
@@ -7474,10 +7475,14 @@ function magpress_publisher_default($key) {
 
 /**
  * Citește un câmp publisher: dacă admin l-a setat, returnează acea valoare; altfel default.
+ * Valorile vechi ale firmei salvate în admin (telefon, adresa din Giroc) sunt ignorate.
  */
 function magpress_get_publisher_field($key) {
     $val = get_option('magpress_publisher_' . $key, '');
     if ($val === '' || $val === false) return magpress_publisher_default($key);
+    if (preg_match('/747\s*394\s*863|Planetei|Giroc|307220|seodigital|SEO\s*Digital/i', (string) $val)) {
+        return magpress_publisher_default($key);
+    }
     return $val;
 }
 
