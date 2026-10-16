@@ -1,0 +1,4 @@
+{
+  "_info": "ZIP-urile de plugin permise la /install-plugin. Cheie = SHA-256 al fisierului ZIP exact trimis de push-plugin.ps1, valoare = nota (slug + versiune). Un ZIP care nu e aici e refuzat cu zip_not_allowlisted (raspunsul contine sha256-ul lui).",
+  "sha256": {}
+}
