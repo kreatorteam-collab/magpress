@@ -3163,6 +3163,14 @@ function magpress_render_ad_html($html, $context = 'homepage') {
         update_option('magpress_adsense_publisher_id', $pub_found, false);
     }
 
+    // v0.9.245: loader-ul e deja in <head> (al temei sau al Site Kit) — nu-l mai repetam din
+    // codul copiat in slot. Altfel, cu lazy oprit, fiecare slot il incarca din nou, iar langa
+    // Site Kit (alt URL, cu host=ca-host-pub-...) Google vede doua loadere diferite.
+    if (!empty($GLOBALS['magpress_adsense_loader_in_head'])) {
+        $html = trim(preg_replace('#<script\b[^>]*\bsrc=["\'][^"\']*adsbygoogle\.js[^"\']*["\'][^>]*>\s*</script>#i', '', $html));
+        if ($html === '') return '';
+    }
+
     if (!magpress_is_adsense_lazy_enabled()) {
         // Non-lazy: păstrăm comportament vechi (include scriptul + push() inline)
         return '<div class="ad-slot ad-slot--' . esc_attr($context) . '">' . $html . '</div>';
@@ -3203,7 +3211,10 @@ function magpress_sitekit_outputs_adsense() {
 }
 
 function magpress_enqueue_adsense_loader() {
-    if (magpress_sitekit_outputs_adsense()) return; // Site Kit il pune deja
+    if (magpress_sitekit_outputs_adsense()) { // Site Kit il pune deja
+        $GLOBALS['magpress_adsense_loader_in_head'] = true;
+        return;
+    }
 
     // Customizer override are prioritate
     $custom = trim((string) get_theme_mod('magpress_adsense_publisher_id', ''));
@@ -3234,6 +3245,7 @@ function magpress_enqueue_adsense_loader() {
 
     if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) return;
     echo '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . esc_attr($pub) . '" crossorigin="anonymous"></script>' . "\n";
+    $GLOBALS['magpress_adsense_loader_in_head'] = true;
 }
 add_action('wp_head', 'magpress_enqueue_adsense_loader', 5);
 
