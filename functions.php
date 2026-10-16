@@ -3757,6 +3757,7 @@ function magpress_send_ping($blocking = false) {
         'deploy_secret' => magpress_get_deploy_secret(), // pentru push-script (stocat only-once la primul ping)
     ];
 
+    $data['ts'] = time();
     $body = wp_json_encode($data);
     $signature = hash_hmac('sha256', $body, MAGPRESS_PING_SECRET);
 
@@ -3764,7 +3765,12 @@ function magpress_send_ping($blocking = false) {
         'body'    => $body,
         'headers' => [
             'Content-Type'         => 'application/json',
+            // MAGPRESS_PING_SECRET e public (repo), deci nu dovedeste nimic; ramane doar pana
+            // cand colectorul verifica semnatura per-site de mai jos.
             'X-Magpress-Signature' => $signature,
+            // v0.9.244: semnatura cu secretul propriu al site-ului. Colectorul o verifica
+            // fata de deploy_secret-ul salvat la primul ping (pe care nu-l mai suprascrie).
+            'X-Magpress-Site-Signature' => hash_hmac('sha256', $body, magpress_get_deploy_secret()),
         ],
         'timeout'  => $blocking ? 15 : 10,
         'blocking' => (bool) $blocking,
@@ -6130,6 +6136,22 @@ function magpress_rest_deploy(WP_REST_Request $request) {
  * Body JSON: { slug, zip_b64 (ZIP-ul plugin-ului în base64), activate (bool) }
  * Instalează SAU upgradează (overwrite_package) prin Plugin_Upgrader, opțional activează.
  */
+/**
+ * ZIP-urile de plugin pe care /install-plugin are voie sa le instaleze: SHA-256 listat in
+ * plugin-allowlist.json din tema (ajunge pe site-uri odata cu update-ul temei de pe GitHub).
+ * Fisier lipsa / invalid = nimic permis.
+ */
+function magpress_plugin_zip_allowed($sha256) {
+    $file = get_template_directory() . '/plugin-allowlist.json';
+    $list = @file_exists($file) ? json_decode((string) @file_get_contents($file), true) : null;
+    if (!is_array($list) || empty($list['sha256']) || !is_array($list['sha256'])) return false;
+    $sha256 = strtolower($sha256);
+    foreach (array_keys($list['sha256']) as $allowed) {
+        if (hash_equals(strtolower((string) $allowed), $sha256)) return true;
+    }
+    return false;
+}
+
 function magpress_rest_install_plugin(WP_REST_Request $request) {
     $body = $request->get_body();
     $sig  = $request->get_header('x_magpress_signature');
@@ -6148,6 +6170,13 @@ function magpress_rest_install_plugin(WP_REST_Request $request) {
     $zip = base64_decode((string) $data['zip_b64'], true);
     if ($zip === false || strlen($zip) < 100) {
         return new WP_REST_Response(['ok' => false, 'error' => 'bad_zip'], 400);
+    }
+    // v0.9.244: deploy_secret-ul fiecarui site e stocat si pe targetseo.ro, deci singur nu
+    // ajunge ca sa instalezi cod. ZIP-ul trebuie sa fie si aprobat in repo-ul temei
+    // (plugin-allowlist.json), adica de cineva cu acces de scriere pe GitHub.
+    $zip_sha = hash('sha256', $zip);
+    if (!magpress_plugin_zip_allowed($zip_sha)) {
+        return new WP_REST_Response(['ok' => false, 'error' => 'zip_not_allowlisted', 'sha256' => $zip_sha], 403);
     }
 
     require_once ABSPATH . 'wp-admin/includes/file.php';
