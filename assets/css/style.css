@@ -639,6 +639,52 @@ body.page .article-body .entry-content{max-width:none}
 /* v0.9.216: cifrele si bulinele listelor raman in culoarea textului, nu in accentul temei. */
 .article-body .entry-content li::marker{color:inherit}
 
+/* ===================== VIDEO YOUTUBE (centrat + responsive) ===================== */
+/* v0.9.246: block-library e scos (magpress_dequeue_block_styles), deci regulile WP de
+   embed responsive nu ajung pe pagina, iar tema nu seteaza $content_width: iframe-ul
+   YouTube ramanea la marimea fixa din oEmbed (500x281), lipit in stanga. Acum ia
+   latimea coloanei (max 800px), centrat, cu 16:9 pastrat pe orice ecran. Acoperim
+   blocul Gutenberg, autoembed-ul clasic (<p><iframe>) si iframe-ul lipit de mana;
+   data-src / data-lazy-src = iframe-ul inainte ca lazy-load-ul (LiteSpeed, WP Rocket)
+   sa puna src-ul real. Specificitatea bate regulile WP (.wp-has-aspect-ratio iframe)
+   daca un plugin sau WP 6.9+ reincarca totusi CSS-ul blocului embed. */
+.article-body .entry-content iframe[src*="youtube"],
+.article-body .entry-content iframe[data-src*="youtube"],
+.article-body .entry-content iframe[data-lazy-src*="youtube"]{display:block;position:static;width:100%;max-width:800px;height:auto;aspect-ratio:16/9;margin-left:auto;margin-right:auto;border:0;border-radius:var(--radius)}
+.article-body .entry-content .wp-block-embed-youtube .wp-block-embed__wrapper::before{content:none;display:none}
+
+/* ===================== BLOCURI GUTENBERG ===================== */
+/* v0.9.247: editorul clasic e oprit pe flota, deci articolele noi vin din editorul de
+   blocuri. CSS-ul fiecarui bloc folosit il aduce WordPress (6.9+, doar pe paginile care
+   il au), dar tema scoate common.css (wp-block-library) si global-styles (v0.9.208). Din
+   ele luam aici doar ce apare intr-un articol: textul centrat iesea la stanga, butonul
+   arata ca un link, iar culorile si marimile de font din paleta editorului se pierdeau.
+   Valorile paletei = theme.json-ul implicit al WordPress (ce vede autorul in editor). */
+:root .has-text-align-center{text-align:center}
+:root .has-text-align-left{text-align:left}
+:root .has-text-align-right{text-align:right}
+.is-layout-flex{display:flex;flex-wrap:wrap;align-items:center;gap:.5em}
+.is-layout-flex > *{margin:0}
+.wp-block-columns.is-layout-flex{gap:2em}
+.article-body .entry-content .wp-block-button__link{background:var(--c-accent);color:#fff;text-decoration:none;border-radius:var(--radius);padding:.7em 1.5em;font-weight:700}
+.article-body .entry-content .wp-block-button__link:hover{color:#fff;opacity:.9}
+.has-small-font-size{font-size:13px!important}
+.has-medium-font-size{font-size:20px!important}
+.has-large-font-size{font-size:36px!important;line-height:1.3}
+.has-x-large-font-size{font-size:42px!important;line-height:1.25}
+.has-black-color{color:#000!important}.has-black-background-color{background-color:#000!important}
+.has-cyan-bluish-gray-color{color:#abb8c3!important}.has-cyan-bluish-gray-background-color{background-color:#abb8c3!important}
+.has-white-color{color:#fff!important}.has-white-background-color{background-color:#fff!important}
+.has-pale-pink-color{color:#f78da7!important}.has-pale-pink-background-color{background-color:#f78da7!important}
+.has-vivid-red-color{color:#cf2e2e!important}.has-vivid-red-background-color{background-color:#cf2e2e!important}
+.has-luminous-vivid-orange-color{color:#ff6900!important}.has-luminous-vivid-orange-background-color{background-color:#ff6900!important}
+.has-luminous-vivid-amber-color{color:#fcb900!important}.has-luminous-vivid-amber-background-color{background-color:#fcb900!important}
+.has-light-green-cyan-color{color:#7bdcb5!important}.has-light-green-cyan-background-color{background-color:#7bdcb5!important}
+.has-vivid-green-cyan-color{color:#00d084!important}.has-vivid-green-cyan-background-color{background-color:#00d084!important}
+.has-pale-cyan-blue-color{color:#8ed1fc!important}.has-pale-cyan-blue-background-color{background-color:#8ed1fc!important}
+.has-vivid-cyan-blue-color{color:#0693e3!important}.has-vivid-cyan-blue-background-color{background-color:#0693e3!important}
+.has-vivid-purple-color{color:#9b51e0!important}.has-vivid-purple-background-color{background-color:#9b51e0!important}
+
 /* ===================== TABELE (responsive) ===================== */
 .article-body .entry-content table,
 .article-body .entry-content .wp-block-table table,

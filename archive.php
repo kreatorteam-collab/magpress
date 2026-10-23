@@ -30,7 +30,7 @@ get_header();
       $mp_ad_row = magpress_get_category_top_ad();
       $mp_i = 0;
       while (have_posts()): the_post(); $mp_i++;
-        get_template_part('template-parts/card');
+        get_template_part('template-parts/card', null, ['lcp' => $mp_i === 1 && empty($GLOBALS['magpress_catfeat_rendered'])]);
         if ($mp_i === 3 && $mp_ad_row !== '' && $wp_query->post_count > 3):
           echo '<div class="card-grid__ad">' . $mp_ad_row . '</div>';
         endif;

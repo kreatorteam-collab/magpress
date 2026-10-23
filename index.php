@@ -16,7 +16,7 @@ get_header();
   <?php if (have_posts()): ?>
     <div class="card-grid">
       <?php while (have_posts()): the_post();
-        get_template_part('template-parts/card');
+        get_template_part('template-parts/card', null, ['lcp' => $wp_query->current_post === 0]);
       endwhile; ?>
     </div>
     <?php the_posts_pagination(['mid_size' => 2, 'class' => 'magpress-pagination', 'screen_reader_text' => ' ', 'aria_label' => 'Paginare']); ?>
