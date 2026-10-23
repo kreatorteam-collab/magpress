@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.246');
+define('MAGPRESS_VERSION', '0.9.247');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -8252,6 +8252,31 @@ function magpress_fix_be_wprocket() {
         }
     }
     update_option('magpress_be_wprocket_fixed', 'done');
+}
+
+/* =====================================================================
+ * v0.9.247 — EDITORUL CLASIC OPRIT PE TOATĂ FLOTA. Articolele se editează în
+ * editorul de blocuri (Gutenberg). Pluginurile care îl înlocuiesc cu editorul
+ * clasic (Classic Editor, Disable Gutenberg) se dezactivează la prima încărcare
+ * din wp-admin și rămân oprite și dacă le reactivează cineva. AI Writer și
+ * casetele temei (18+, Recomandat în categorie) merg în ambele editoare.
+ * Excepție per site: add_filter('magpress_block_editor_only', '__return_false').
+ * ===================================================================== */
+add_action('admin_init', 'magpress_disable_classic_editor');
+function magpress_disable_classic_editor() {
+    if (!apply_filters('magpress_block_editor_only', true)) {
+        return;
+    }
+    if (!function_exists('is_plugin_active')) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    $active = array_values(array_filter(
+        ['classic-editor/classic-editor.php', 'disable-gutenberg/disable-gutenberg.php'],
+        'is_plugin_active'
+    ));
+    if ($active) {
+        deactivate_plugins($active);
+    }
 }
 
 /* =====================================================================
