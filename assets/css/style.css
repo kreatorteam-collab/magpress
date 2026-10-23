@@ -639,6 +639,20 @@ body.page .article-body .entry-content{max-width:none}
 /* v0.9.216: cifrele si bulinele listelor raman in culoarea textului, nu in accentul temei. */
 .article-body .entry-content li::marker{color:inherit}
 
+/* ===================== VIDEO YOUTUBE (centrat + responsive) ===================== */
+/* v0.9.246: block-library e scos (magpress_dequeue_block_styles), deci regulile WP de
+   embed responsive nu ajung pe pagina, iar tema nu seteaza $content_width: iframe-ul
+   YouTube ramanea la marimea fixa din oEmbed (500x281), lipit in stanga. Acum ia
+   latimea coloanei (max 800px), centrat, cu 16:9 pastrat pe orice ecran. Acoperim
+   blocul Gutenberg, autoembed-ul clasic (<p><iframe>) si iframe-ul lipit de mana;
+   data-src / data-lazy-src = iframe-ul inainte ca lazy-load-ul (LiteSpeed, WP Rocket)
+   sa puna src-ul real. Specificitatea bate regulile WP (.wp-has-aspect-ratio iframe)
+   daca un plugin sau WP 6.9+ reincarca totusi CSS-ul blocului embed. */
+.article-body .entry-content iframe[src*="youtube"],
+.article-body .entry-content iframe[data-src*="youtube"],
+.article-body .entry-content iframe[data-lazy-src*="youtube"]{display:block;position:static;width:100%;max-width:800px;height:auto;aspect-ratio:16/9;margin-left:auto;margin-right:auto;border:0;border-radius:var(--radius)}
+.article-body .entry-content .wp-block-embed-youtube .wp-block-embed__wrapper::before{content:none;display:none}
+
 /* ===================== TABELE (responsive) ===================== */
 .article-body .entry-content table,
 .article-body .entry-content .wp-block-table table,
