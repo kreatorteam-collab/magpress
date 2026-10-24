@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.247');
+define('MAGPRESS_VERSION', '0.9.248');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -8261,10 +8261,25 @@ function magpress_fix_be_wprocket() {
  * din wp-admin și rămân oprite și dacă le reactivează cineva. AI Writer și
  * casetele temei (18+, Recomandat în categorie) merg în ambele editoare.
  * Excepție per site: add_filter('magpress_block_editor_only', '__return_false').
+ *
+ * v0.9.248 — excepții cerute de owner: site-urile din lista de mai jos rămân pe
+ * editorul clasic. Îl pornește tema direct, cu aceleași două filtre pe care le
+ * pune pluginul Classic Editor, deci nu trebuie instalat nimic pe site; dacă
+ * pluginul e deja acolo, tema nu-l mai dezactivează.
  * ===================================================================== */
+function magpress_classic_editor_site() {
+    $host = preg_replace('/^www\./i', '', strtolower((string) parse_url(home_url('/'), PHP_URL_HOST)));
+    return in_array($host, ['comunicateinpresa.ro', 'revistabravo.ro'], true);
+}
+function magpress_maybe_classic_editor($use) {
+    return magpress_classic_editor_site() ? false : $use;
+}
+add_filter('use_block_editor_for_post_type', 'magpress_maybe_classic_editor', 100);
+add_filter('use_block_editor_for_post', 'magpress_maybe_classic_editor', 100);
+
 add_action('admin_init', 'magpress_disable_classic_editor');
 function magpress_disable_classic_editor() {
-    if (!apply_filters('magpress_block_editor_only', true)) {
+    if (magpress_classic_editor_site() || !apply_filters('magpress_block_editor_only', true)) {
         return;
     }
     if (!function_exists('is_plugin_active')) {
