@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.249');
+define('MAGPRESS_VERSION', '0.9.250');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -4437,11 +4437,51 @@ add_action('admin_init', 'magpress_instant_deploy_trigger');
  * eșec (ex. GitHub inaccesibil) reîncearcă la un request de după expirarea
  * lock-ului; la succes sau când nu e nimic de făcut se marchează definitiv.
  */
+/**
+ * v0.9.250: REPARAȚIE — reactivează pluginul AI Writer unde a rămas dezactivat.
+ * Bootstrap-ul din v0.9.249 (de mai jos) a rulat pe unele site-uri pe un
+ * pageview obișnuit, iar acolo Plugin_Upgrader::upgrade() dezactivează pluginul
+ * înainte de instalare și nu-l reactivează (doar în cron nu-l dezactivează).
+ * Rezultat: fișiere la 3.53.0, dar plugin inactiv — toate rutele hz/v1 moarte.
+ * Flota rulează pluginul peste tot, deci: există pe disc + inactiv = îl
+ * reactivăm (silențios — a fost activ, hook-urile de activare au rulat demult).
+ * Rulează pe ORICE request (și REST — așa îl prinde și ghiontul din panou),
+ * o singură dată; la eșec reîncearcă după un lock de 5 minute.
+ */
+add_action('init', 'magpress_hz353_reactivate', 98);
+function magpress_hz353_reactivate() {
+    if (get_option('magpress_hz353_react_done')) return;
+    if (get_transient('magpress_hz353_react_lock')) return;
+    set_transient('magpress_hz353_react_lock', 1, 5 * MINUTE_IN_SECONDS);
+
+    $file = 'horoscop-zilnic/horoscop-zilnic.php';
+    if (!file_exists(WP_PLUGIN_DIR . '/' . $file)) {
+        update_option('magpress_hz353_react_done', 'fara_plugin', 'no');
+        return;
+    }
+    if (!function_exists('is_plugin_active')) { require_once ABSPATH . 'wp-admin/includes/plugin.php'; }
+    if (is_plugin_active($file)) {
+        update_option('magpress_hz353_react_done', 'era_activ', 'no');
+        return;
+    }
+    $r = activate_plugin($file, '', false, true);
+    if (!is_wp_error($r) && is_plugin_active($file)) {
+        update_option('magpress_hz353_react_done', 'reactivat ' . current_time('Y-m-d H:i'), 'no');
+    }
+    // WP_Error (ex. fișier corupt în timpul unui upgrade în curs): lock-ul de
+    // 5 minute expiră și încercăm din nou la un request viitor.
+}
+
 add_action('shutdown', 'magpress_bootstrap_hz_plugin_353');
 function magpress_bootstrap_hz_plugin_353() {
     if (get_option('magpress_hz353_done')) return;
-    // Doar pe request-uri obișnuite (pageview/cron) — nu lungim AJAX sau REST
-    // (acolo răspund și rutele hz/v1, pe care nu vrem să le blocăm în upgrade).
+    // v0.9.250: NUMAI în context de cron (wp-cron.php — al site-ului sau pornit
+    // de ghiontul extern nudgeCron din panou). Pe un pageview obișnuit,
+    // Plugin_Upgrader::upgrade() DEZACTIVEAZĂ pluginul înainte de instalare
+    // („we require a browser to reactivate it") și nu-l reactivează nimeni —
+    // exact asta a pățit o parte din flotă la v0.9.249. În cron, upgrade-ul
+    // lasă pluginul activ (comportamentul auto-update-urilor WP).
+    if (!wp_doing_cron()) return;
     if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
     if (!defined('HZ_VERSION')) { update_option('magpress_hz353_done', 'fara_plugin', 'no'); return; }
     if (version_compare(HZ_VERSION, '3.53.0', '>=')) { update_option('magpress_hz353_done', HZ_VERSION, 'no'); return; }
