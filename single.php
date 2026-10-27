@@ -10,10 +10,11 @@ $cats = get_the_category();
 
 <div class="container site-content">
 
-  <?php /* v0.9.212 — ordinea cerută: firimituri → poză → titlu → profil redactor
-           (cu categoria în același rând, nu deasupra titlului). */ ?>
+  <?php /* v0.9.249 — ordinea cerută: firimituri → TITLU → poză → sapou + profil redactor
+           (titlul a urcat deasupra pozei; înainte, din v0.9.212, era sub ea). */ ?>
   <header class="article-hero article-hero--top">
     <?php magpress_breadcrumbs(); ?>
+    <h1 class="article-title"><?php the_title(); ?></h1>
   </header>
 
   <?php if (has_post_thumbnail()): ?>
@@ -23,8 +24,6 @@ $cats = get_the_category();
   <?php endif; ?>
 
   <header class="article-hero article-hero--after-image">
-    <h1 class="article-title"><?php the_title(); ?></h1>
-
     <?php if (has_excerpt()): ?>
       <p class="article-excerpt"><?php echo esc_html(get_the_excerpt()); ?></p>
     <?php endif; ?>
