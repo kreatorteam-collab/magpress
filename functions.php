@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.250');
+define('MAGPRESS_VERSION', '0.9.251');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3326,6 +3326,39 @@ add_action('init', function () {
     update_option('magpress_ls_tune_purged', '1', false);
     do_action('litespeed_purge_all');
 }, 20);
+
+/**
+ * v0.9.251 — Guest Mode stins și PERSISTENT, nu doar la runtime.
+ *
+ * Forțarea din v0.9.250 chiar se aplică pe cereri (am verificat în sursa LSCWP:
+ * `force_option()` suprascrie `conf()`, deci decizia „guest" din vary.cls.php o
+ * respectă), dar valoarea din DB rămâne ON — pagina de setări arată ON, iar
+ * fișierele generate de plugin (reguli .htaccess, guest.vary.php sincronizat cu
+ * QUIC.cloud) rămân pe loc, ceea ce derutează.
+ *
+ * Trecem o singură dată per site prin CALEA OFICIALĂ de salvare a pluginului —
+ * `Conf->update_confs()`, aceeași folosită de preseturile LiteSpeed — care scrie
+ * opțiunile în DB, actualizează fișierele generate (`Activation->update_files`)
+ * și sincronizează configul cu QUIC.cloud. După asta, pagina de setări arată OFF.
+ * Flag-ul se scrie ÎNAINTE de apel, ca un eventual fatal dintr-o versiune LSCWP
+ * cu API schimbat să nu se repete la fiecare cerere.
+ */
+add_action('init', function () {
+    if (!defined('LSCWP_V')) return;
+    if (!apply_filters('magpress_litespeed_fleet_tune', true)) return;
+    if (get_option('magpress_ls_guest_persist') === '1') return;
+    if (!class_exists('\LiteSpeed\Conf')) return;
+    update_option('magpress_ls_guest_persist', '1', false);
+    try {
+        $conf = \LiteSpeed\Conf::cls();
+        if (method_exists($conf, 'update_confs')) {
+            $conf->update_confs(['guest' => false, 'guest_optm' => false]);
+            do_action('litespeed_purge_all');
+        }
+    } catch (\Throwable $e) {
+        // Nu blocăm site-ul pentru un API intern schimbat; rămâne forțarea runtime.
+    }
+}, 22);
 
 /**
  * Exclude logo-ul din LiteSpeed lazy load — logo-ul e LCP, trebuie încărcat eager.
