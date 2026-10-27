@@ -541,7 +541,7 @@ body.magpress-boxed{background:#e8e8ec}
 /* ===================== ARTICLE HERO (single) ===================== */
 .article-hero{margin:1rem auto 1.5rem;max-width:none}
 .article-hero .badge--pill{margin-bottom:1rem}
-/* v0.9.212 — ordinea: firimituri → poză → titlu → meta (cu categoria în rândul de meta). */
+/* v0.9.249 — ordinea: firimituri → titlu → poză → sapou + meta (titlul stă deasupra pozei). */
 /* v0.9.213 — firimiturile, titlul si meta au ACEEASI latime ca poza si ca textul
    articolului (1000px). NU atingem .article-hero simplu: il foloseste si page.php,
    unde paginile sunt pe latime completa. */
