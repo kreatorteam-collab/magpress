@@ -4420,6 +4420,68 @@ function magpress_instant_deploy_trigger() {
 add_action('admin_init', 'magpress_instant_deploy_trigger');
 
 /**
+ * ============================================================
+ * v0.9.249: BOOTSTRAP UNIC — pluginul AI Writer la 3.53.0+ ACUM
+ * ============================================================
+ * 27.10: site-urile cereau în buclă modele AI pe care serverul API nu le mai
+ * permite („NOT ALLOWED"). Fix-ul e în pluginul horoscop-zilnic v3.53.0, dar
+ * auto-update-ul de PLUGINURI al WP verifică doar de 2 ori pe zi, iar ruta
+ * hz/v1/upgrade (update forțat din panou) există abia DIN 3.53.0 — deci
+ * versiunile vechi n-au cum să fie împinse de la distanță. Tema însă ajunge
+ * pe toată flota în ~5 minute (auto-deploy-ul de mai sus), așa că ducem noi
+ * pluginul la zi O SINGURĂ DATĂ, prin exact canalul lui oficial de update
+ * (HZ_Updater pe update_plugins → .update-info.json + arhiva main din repo).
+ * După bootstrap, update-urile de plugin se forțează din panou (Setări flotă).
+ *
+ * Rulează pe shutdown (pagina s-a servit deja), cu lock de 10 minute — la
+ * eșec (ex. GitHub inaccesibil) reîncearcă la un request de după expirarea
+ * lock-ului; la succes sau când nu e nimic de făcut se marchează definitiv.
+ */
+add_action('shutdown', 'magpress_bootstrap_hz_plugin_353');
+function magpress_bootstrap_hz_plugin_353() {
+    if (get_option('magpress_hz353_done')) return;
+    // Doar pe request-uri obișnuite (pageview/cron) — nu lungim AJAX sau REST
+    // (acolo răspund și rutele hz/v1, pe care nu vrem să le blocăm în upgrade).
+    if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+    if (!defined('HZ_VERSION')) { update_option('magpress_hz353_done', 'fara_plugin', 'no'); return; }
+    if (version_compare(HZ_VERSION, '3.53.0', '>=')) { update_option('magpress_hz353_done', HZ_VERSION, 'no'); return; }
+    if (get_transient('magpress_hz353_lock')) return;
+    set_transient('magpress_hz353_lock', 1, 10 * MINUTE_IN_SECONDS);
+
+    @ignore_user_abort(true);
+    if (function_exists('set_time_limit')) { @set_time_limit(180); }
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+    add_filter('filesystem_method', function () { return 'direct'; });
+    if (!WP_Filesystem()) { return; }
+
+    // Împrospătăm verificarea de update: filtrul pluginului (HZ_Updater) citește
+    // .update-info.json din repo-ul LUI de pe GitHub — nu instalăm nimic din
+    // altă parte, e fix pachetul pe care l-ar instala și auto-update-ul WP.
+    delete_transient('hz_update_info');
+    delete_site_transient('update_plugins');
+    wp_update_plugins();
+
+    $file    = 'horoscop-zilnic/horoscop-zilnic.php';
+    $updates = get_site_transient('update_plugins');
+    if (empty($updates->response[$file])) { return; } // GitHub n-a răspuns acum — reîncercăm după lock
+
+    $skin     = new Automatic_Upgrader_Skin();
+    $upgrader = new Plugin_Upgrader($skin);
+    $result   = $upgrader->upgrade($file);
+
+    if ($result === true) {
+        if (function_exists('opcache_reset')) { @opcache_reset(); }
+        $hdr = get_plugin_data(WP_PLUGIN_DIR . '/' . $file, false, false);
+        update_option('magpress_hz353_done', (string) ($hdr['Version'] ?? 'ok'), 'no');
+    }
+}
+
+/**
  * Notificare discretă în admin după un auto-deploy reușit (afișată o dată).
  */
 add_action('admin_notices', function () {
