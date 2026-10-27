@@ -3265,6 +3265,69 @@ add_action('litespeed_init', 'magpress_litespeed_disable_localize');
 add_action('init', 'magpress_litespeed_disable_localize', 1);
 
 /**
+ * v0.9.250 — Setări LiteSpeed forțate CENTRAL, pe toată flota (runtime, prin
+ * `litespeed_conf_force` — nu scriem în DB, deci se pot reveni oricând doar
+ * scoțând codul; setările din admin rămân neatinse, doar nu se mai aplică).
+ *
+ * De ce: pe site-uri cu Guest Mode pornit, LiteSpeed servea varianta „guest"
+ * din cache și adminilor logați → bara de admin dispărea pe articolele deja
+ * cache-uite. În plus, combine/defer pe JS și lazy pe iframe-uri pot strica
+ * reclamele Google (adsbygoogle nu se mai execută, iframe-urile de reclame
+ * se încarcă târziu, mesajul de consimțământ nu mai apare → fără reclame).
+ *
+ * Oprire per site (de ex. în mu-plugin): add_filter('magpress_litespeed_fleet_tune', '__return_false');
+ */
+function magpress_litespeed_fleet_tune() {
+    if (!defined('LSCWP_V')) return; // LiteSpeed Cache nu e activ
+    if (!apply_filters('magpress_litespeed_fleet_tune', true)) return;
+
+    // 1) Guest Mode + Guest Optimization OFF — cauza barei de admin dispărute;
+    //    varianta „guest" încurcă și măsurarea/consimțământul reclamelor.
+    do_action('litespeed_conf_force', 'guest', false);
+    do_action('litespeed_conf_force', 'guest_optm', false);
+
+    // 2) Combine JS OFF — concatenarea rupe ordinea/execuția adsbygoogle și e
+    //    oricum descurajată pe HTTP/2+. Minify și defer rămân cum sunt per site.
+    do_action('litespeed_conf_force', 'optm-js_comb', false);
+
+    // 3) Lazy load pe <iframe> OFF — reclamele Google se randează în iframe-uri;
+    //    lazy pe ele întârzie afișarea și taie din viewability/venit.
+    do_action('litespeed_conf_force', 'media-iframe_lazy', false);
+
+    // 4) Scripturile de reclame/consimțământ excluse de la minify/defer/delay.
+    //    Citim lista curentă a site-ului (filtrul oficial `litespeed_conf`) și o
+    //    COMPLETĂM, ca să nu pierdem excluderile puse manual per site. Pe versiuni
+    //    vechi fără filtrul ăsta, cădem pe lista noastră.
+    $ads = [
+        'adsbygoogle',                        // loader + push-urile inline
+        'googlesyndication.com',
+        'googletagservices',
+        'doubleclick.net',                    // gpt.js (Ad Manager)
+        'googletagmanager.com',
+        'fundingchoicesmessages.google.com',  // mesajul de consimțământ (fără el, fără reclame în UE)
+    ];
+    foreach (['optm-js_exc', 'optm-js_defer_exc'] as $key) {
+        $cur = apply_filters('litespeed_conf', $key);
+        $cur = is_array($cur) ? $cur : [];
+        do_action('litespeed_conf_force', $key, array_values(array_unique(array_merge($cur, $ads))));
+    }
+}
+add_action('litespeed_init', 'magpress_litespeed_fleet_tune');
+add_action('init', 'magpress_litespeed_fleet_tune', 1);
+
+/**
+ * O singură golire de cache per site după sosirea tuning-ului de mai sus, ca să
+ * dispară copiile „guest" deja stocate (altfel bara de admin tot nu apare până
+ * expiră singure).
+ */
+add_action('init', function () {
+    if (!defined('LSCWP_V')) return;
+    if (get_option('magpress_ls_tune_purged') === '1') return;
+    update_option('magpress_ls_tune_purged', '1', false);
+    do_action('litespeed_purge_all');
+}, 20);
+
+/**
  * Exclude logo-ul din LiteSpeed lazy load — logo-ul e LCP, trebuie încărcat eager.
  * Filtrul `litespeed_media_lazy_img_excludes` primește array de string-uri care, dacă
  * apar în tag-ul <img>, sar peste lazy. „site-logo" e clasa pusă de header.php.
