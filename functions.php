@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.251');
+define('MAGPRESS_VERSION', '0.9.252');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -2683,6 +2683,10 @@ function magpress_inline_critical_css() {
          // Slot fara reclama: il retragem complet, ca sa nu ramana o gaura alba de 280px.
          . 'ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}'
          . '.ad-slot--empty{min-height:0!important;height:0!important;margin:0!important;overflow:hidden}'
+         // v0.9.252: spatiul ramane rezervat dupa push(), pana raspunde Google (anti-CLS +
+         // nu mai pare slot „gol"). Inline, nu in style.css: clasa apare doar din JS si
+         // UCSS-ul LiteSpeed ar arunca-o ca „nefolosita".
+         . '.ad-slot.ad-slot--pending{min-height:280px}'
          . '.featured-card::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.4) 50%,transparent 80%);z-index:2}'
          . '.featured-card__content{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(1.25rem,3vw,2rem);color:#fff}'
          . '.featured-card__title{margin:.75rem 0 0;font-size:clamp(1.15rem,2vw,1.65rem);line-height:1.25;color:#fff;font-weight:800}'
@@ -3244,7 +3248,9 @@ function magpress_enqueue_adsense_loader() {
     }
 
     if (!$pub || !preg_match('/^ca-pub-\d+$/', $pub)) return;
-    echo '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . esc_attr($pub) . '" crossorigin="anonymous"></script>' . "\n";
+    // v0.9.252: data-no-optimize/data-no-defer (LiteSpeed) + data-cfasync (Cloudflare Rocket
+    // Loader) — loader-ul nu trebuie NICIODATĂ amânat până la interacțiunea userului.
+    echo '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . esc_attr($pub) . '" crossorigin="anonymous" data-no-optimize="1" data-no-defer="1" data-cfasync="false"></script>' . "\n";
     $GLOBALS['magpress_adsense_loader_in_head'] = true;
 }
 add_action('wp_head', 'magpress_enqueue_adsense_loader', 5);
@@ -3294,6 +3300,13 @@ function magpress_litespeed_fleet_tune() {
     //    lazy pe ele întârzie afișarea și taie din viewability/venit.
     do_action('litespeed_conf_force', 'media-iframe_lazy', false);
 
+    // 3b) v0.9.252: Lazy load LiteSpeed pe <img> OFF. LiteSpeed înlocuiește `src` cu un
+    //     placeholder (data:image) și mută URL-ul real în `data-src`, iar Google Images,
+    //     Discover și crawlerele care nu rulează JS văd doar placeholder-ul. Tema și WP
+    //     pun deja `loading="lazy"` NATIV pe toate imaginile (carduri + conținut), care
+    //     păstrează `src`-ul real în HTML și dă aceeași economie la PageSpeed.
+    do_action('litespeed_conf_force', 'media-lazy', false);
+
     // 4) Scripturile de reclame/consimțământ excluse de la minify/defer/delay.
     //    Citim lista curentă a site-ului (filtrul oficial `litespeed_conf`) și o
     //    COMPLETĂM, ca să nu pierdem excluderile puse manual per site. Pe versiuni
@@ -3305,6 +3318,12 @@ function magpress_litespeed_fleet_tune() {
         'doubleclick.net',                    // gpt.js (Ad Manager)
         'googletagmanager.com',
         'fundingchoicesmessages.google.com',  // mesajul de consimțământ (fără el, fără reclame în UE)
+        // v0.9.252: și rețelele native + scripturile temei care pornesc reclamele.
+        // Cu „JS Delayed" pe un site, scriptul de lazy-ads al temei aștepta prima
+        // interacțiune (scroll/click) → pe mobil reclamele apăreau târziu sau deloc.
+        '_mgq', 'mgid.com', 'adskeeper',      // MGID / AdsKeeper (coada _mgq + loader)
+        'magpress-adsense-lazy',              // scriptul temei care face push() la sloturi
+        'magpress-ad-guard',                  // garanția că loader-ul AdSense există
     ];
     foreach (['optm-js_exc', 'optm-js_defer_exc'] as $key) {
         $cur = apply_filters('litespeed_conf', $key);
@@ -3388,26 +3407,40 @@ function magpress_adminbar_site_icon_css() {
 add_action('wp_head', 'magpress_adminbar_site_icon_css', 99);
 add_action('admin_head', 'magpress_adminbar_site_icon_css', 99);
 
+/**
+ * v0.9.252 — Garanția loader-ului AdSense, INDIFERENT de setarea de lazy.
+ *
+ * Înainte, verificarea „există adsbygoogle.js pe pagină?" trăia doar în scriptul de
+ * lazy. Cu lazy OPRIT, dacă tema credea că Site Kit pune loader-ul (useSnippet=1) și
+ * îl scotea din codul sloturilor, dar Site Kit NU îl tipărea (cont AdSense neaprobat
+ * încă, utilizatori excluși, snippet oprit doar pe unele pagini), pagina rămânea cu
+ * <ins>-uri fără niciun loader → zero reclame, fără nicio eroare vizibilă.
+ */
+function magpress_adsense_loader_guard() {
+    ?>
+<script id="magpress-ad-guard" data-no-optimize="1" data-no-defer="1" data-cfasync="false">
+(function(){
+  if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja încărcat
+  var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"]');
+  if (!firstIns) return;
+  var client = firstIns.getAttribute('data-ad-client');
+  if (!/^ca-pub-\d+$/.test(client)) return;
+  var s = document.createElement('script');
+  s.async = true;
+  s.crossOrigin = 'anonymous';
+  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(client);
+  document.head.appendChild(s);
+})();
+</script>
+    <?php
+}
+add_action('wp_footer', 'magpress_adsense_loader_guard', 4);
+
 function magpress_adsense_lazy_script() {
     if (!magpress_is_adsense_lazy_enabled()) return;
     ?>
-<script id="magpress-adsense-lazy">
+<script id="magpress-adsense-lazy" data-no-optimize="1" data-no-defer="1" data-cfasync="false">
 (function(){
-  // Auto-inject loader adsbygoogle.js dacă nu există deja (când sloturile vin din plugin extern).
-  // Detectează publisher ID din data-ad-client al primului <ins> și încarcă scriptul în <head>.
-  function ensureAdsenseLoader(){
-    if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja încărcat
-    var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"]');
-    if (!firstIns) return;
-    var client = firstIns.getAttribute('data-ad-client');
-    if (!/^ca-pub-\d+$/.test(client)) return;
-    var s = document.createElement('script');
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(client);
-    document.head.appendChild(s);
-  }
-  ensureAdsenseLoader();
 
   // Injectează HTML custom + execută scripturile. Suportă și scripturi care
   // afișează bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
@@ -3477,36 +3510,50 @@ function magpress_adsense_lazy_script() {
   }
 
   // Un slot pe care Google nu-l umple ramane o cutie goala de 280px in mijlocul
-  // paginii. Dupa push verificam rezultatul si, daca n-a venit nicio reclama,
-  // retragem spatiul. Google permite explicit colapsarea sloturilor neumplute.
-  function collapseIfEmpty(slot, ins){
-    if (!slot || slot.classList.contains('ad-slot--empty')) return;
-    var unfilled = ins && ins.getAttribute('data-ad-status') === 'unfilled';
-    var gol = !ins || (!ins.querySelector('iframe') && ins.getBoundingClientRect().height < 40);
-    if (unfilled || gol) slot.classList.add('ad-slot--empty');
+  // paginii, deci il retragem — dar NUMAI cand Google spune clar „unfilled".
+  //
+  // v0.9.252: inainte, dupa 4s fara iframe slotul era colapsat la height:0 si
+  // observatorul se oprea dupa 12s. In UE, cererea de reclama pleaca abia DUPA ce
+  // omul accepta mesajul de consimtamant (adesea dupa 5-30s), iar pe 4G raspunsul
+  // vine si el tarziu → reclama se umplea INTR-UN SLOT DEJA ASCUNS si nu mai aparea
+  // niciodata (plus impresie numarata ca nevizibila). Acum:
+  //  - spatiul de 280px ramane rezervat (ad-slot--pending) pana vine un raspuns,
+  //    deci nici CLS cand apare reclama;
+  //  - „filled" readuce oricand slotul, chiar daca a fost retras intre timp;
+  //  - plasa pe timp (raspunsuri goale fara data-ad-status) asteapta 30s, nu 4s.
+  function settle(slot, st){
+    slot.classList.remove('ad-slot--pending');
+    if (st === 'unfilled') slot.classList.add('ad-slot--empty');
+    else slot.classList.remove('ad-slot--empty');
   }
 
   function watchFill(slot, ins){
     if (!ins) { slot.classList.add('ad-slot--empty'); return; }
-    // Reactie imediata cand Google scrie data-ad-status pe <ins>.
+    var st0 = ins.getAttribute('data-ad-status');
+    if (st0 === 'filled' || st0 === 'unfilled') { settle(slot, st0); }
     if (window.MutationObserver){
+      // Fara disconnect pe timp: un „filled" tarziu trebuie sa readuca slotul.
       var mo = new MutationObserver(function(){
         var st = ins.getAttribute('data-ad-status');
-        if (st === 'unfilled') { slot.classList.add('ad-slot--empty'); mo.disconnect(); }
-        else if (st === 'filled') { slot.classList.remove('ad-slot--empty'); mo.disconnect(); }
+        if (st === 'filled' || st === 'unfilled') settle(slot, st);
+        if (st === 'filled') mo.disconnect();
       });
       mo.observe(ins, {attributes:true, attributeFilter:['data-ad-status']});
-      setTimeout(function(){ mo.disconnect(); }, 12000);
     }
-    // Plasa de siguranta: unele raspunsuri goale nu seteaza deloc data-ad-status.
-    setTimeout(function(){ collapseIfEmpty(slot, ins); }, 4000);
+    setTimeout(function(){
+      if (ins.getAttribute('data-ad-status')) return; // Google a raspuns deja
+      if (ins.querySelector('iframe')) { slot.classList.remove('ad-slot--pending'); return; }
+      slot.classList.remove('ad-slot--pending');
+      slot.classList.add('ad-slot--empty'); // inca nimic dupa 30s; observatorul il readuce daca se umple
+    }, 30000);
   }
 
   function activatePushSlot(slot){
     var ins = slot.querySelector('ins.adsbygoogle');
-    if (ins) pushAdsense(ins);
+    // pending INAINTE de a scoate lazy-push, ca rezerva de 280px sa nu clipeasca la 0.
+    slot.classList.add('ad-slot--loaded', 'ad-slot--pending');
     slot.classList.remove('ad-slot--lazy-push');
-    slot.classList.add('ad-slot--loaded');
+    if (ins) pushAdsense(ins);
     watchFill(slot, ins);
   }
 
@@ -3572,9 +3619,10 @@ function magpress_adsense_lazy_script() {
     return;
   }
 
-  // rootMargin redus de la 400px la 200px — recomandarea Google:
-  // declanșează push() înainte ca slot-ul să fie vizibil, dar nu prea devreme
-  // (slot-uri unfilled because ad nu e încă "in viewable position")
+  // v0.9.252: rootMargin 200px → 600px. Licitatia + randarea dureaza 1-3s; cu
+  // doar 200px avans, pe mobil (scroll rapid) omul trecea de slot inainte sa apara
+  // reclama → pare ca „nu apar reclame" si viewability scade. 600px ≈ un ecran de
+  // telefon: cererea pleaca destul de devreme, dar tot nu incarcam toate sloturile.
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
@@ -3582,7 +3630,7 @@ function magpress_adsense_lazy_script() {
         io.unobserve(e.target);
       }
     });
-  },{rootMargin:'200px 0px',threshold:0.01});
+  },{rootMargin:'600px 0px',threshold:0});
 
   document.querySelectorAll(selectors).forEach(function(s){ io.observe(s); });
 
@@ -3793,7 +3841,7 @@ function magpress_register_adsense_lazy_setting($wp_customize) {
     ]);
     $wp_customize->add_control('magpress_adsense_lazy', [
         'label'       => 'AdSense lazy load (recomandat)',
-        'description' => 'Încarcă reclamele DOAR când userul scrolează aproape de ele (~200px). Reduce TBT/LCP cu 200-1000ms. Dezactivează doar dacă observi că ads nu se mai afișează deloc.',
+        'description' => 'Încarcă reclamele DOAR când userul scrolează aproape de ele (~600px / un ecran înainte). Reduce TBT/LCP cu 200-1000ms. Dezactivează doar dacă observi că ads nu se mai afișează deloc.',
         'section'     => 'magpress_layout',
         'type'        => 'checkbox',
     ]);
@@ -7820,6 +7868,7 @@ function magpress_build_article_schema() {
 
     $image_url = '';
     $image_w = $image_h = null;
+    $thumb_id = 0;
     if (has_post_thumbnail($post)) {
         $thumb_id = get_post_thumbnail_id($post);
         $img = wp_get_attachment_image_src($thumb_id, 'magpress-feature');
@@ -7832,6 +7881,7 @@ function magpress_build_article_schema() {
     // Fallback: fără imagine reprezentativă → logo-ul site-ului, ca Article schema să aibă mereu 'image'
     // (recomandat de Google pentru rich results).
     if ($image_url === '') {
+        $thumb_id = 0;
         $logo_id = (int) get_theme_mod('custom_logo');
         if ($logo_id) {
             $limg = wp_get_attachment_image_src($logo_id, 'full');
@@ -7902,7 +7952,24 @@ function magpress_build_article_schema() {
         ];
         if ($image_w) $img_obj['width']  = (int) $image_w;
         if ($image_h) $img_obj['height'] = (int) $image_h;
-        $schema['image'] = $img_obj;
+        $images = [$img_obj];
+
+        // v0.9.252: și originalul, nu doar crop-ul 1200x750. Pe imaginile urcate înainte
+        // ca `magpress-feature` să existe, WP cade pe o mărime mai mică (600px), sub
+        // pragul de 1200px cerut de Google Discover / imagini mari în rezultate. Google
+        // recomandă oricum mai multe variante (rapoarte diferite) în `image`.
+        if ($thumb_id) {
+            $full = wp_get_attachment_image_src($thumb_id, 'full');
+            if ($full && $full[0] !== $image_url) {
+                $images[] = [
+                    '@type'  => 'ImageObject',
+                    'url'    => $full[0],
+                    'width'  => (int) $full[1],
+                    'height' => (int) $full[2],
+                ];
+            }
+        }
+        $schema['image'] = count($images) === 1 ? $images[0] : $images;
     }
 
     if ($section) {
