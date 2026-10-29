@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.252');
+define('MAGPRESS_VERSION', '0.9.253');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3292,6 +3292,13 @@ function magpress_litespeed_fleet_tune() {
     do_action('litespeed_conf_force', 'guest', false);
     do_action('litespeed_conf_force', 'guest_optm', false);
 
+    // 1b) v0.9.253: ESI OFF. Cu ESI pornit, pentru adminul logat LiteSpeed SCOATE bara
+    //     de admin din pagină și pune în locul ei un `<esi:include>` pe care trebuie să-l
+    //     completeze serverul. OpenLiteSpeed (și orice server fără ESI) nu-l completează,
+    //     browserul ignoră tag-ul și bara dispare. Pe site-uri de știri, fără cititori
+    //     logați, ESI nu aduce nimic: paginile adminului oricum nu se cache-uiesc.
+    do_action('litespeed_conf_force', 'esi', false);
+
     // 2) Combine JS OFF — concatenarea rupe ordinea/execuția adsbygoogle și e
     //    oricum descurajată pe HTTP/2+. Minify și defer rămân cum sunt per site.
     do_action('litespeed_conf_force', 'optm-js_comb', false);
@@ -3380,6 +3387,19 @@ add_action('init', function () {
 }, 22);
 
 /**
+ * v0.9.253 — încă o golire unică, după ESI OFF: paginile cache-uite cât ESI era
+ * pornit (varianta pentru logați, cu `<esi:include>` în locul barei de admin) ar
+ * fi servite mai departe din cache, fără să mai treacă prin PHP.
+ */
+add_action('init', function () {
+    if (!defined('LSCWP_V')) return;
+    if (!apply_filters('magpress_litespeed_fleet_tune', true)) return;
+    if (get_option('magpress_ls_esi_purged') === '1') return;
+    update_option('magpress_ls_esi_purged', '1', false);
+    do_action('litespeed_purge_all');
+}, 23);
+
+/**
  * Exclude logo-ul din LiteSpeed lazy load — logo-ul e LCP, trebuie încărcat eager.
  * Filtrul `litespeed_media_lazy_img_excludes` primește array de string-uri care, dacă
  * apar în tag-ul <img>, sar peste lazy. „site-logo" e clasa pusă de header.php.
@@ -3406,6 +3426,94 @@ function magpress_adminbar_site_icon_css() {
 }
 add_action('wp_head', 'magpress_adminbar_site_icon_css', 99);
 add_action('admin_head', 'magpress_adminbar_site_icon_css', 99);
+
+/**
+ * v0.9.253 — Bara de admin se repară singură când un cache îi servește adminului
+ * copia pentru vizitatori.
+ *
+ * Bara lipsește când pagina nu mai trece prin PHP: o servește un cache care nu-l
+ * recunoaște pe admin ca logat — LiteSpeed fără cookie-ul `_lscache_vary` (pierdut,
+ * expirat, logare făcută înainte de activarea pluginului), o copie „guest" rămasă,
+ * Cloudflare „Cache Everything". Cookie-ul de login al WP e HttpOnly, deci din JS nu
+ * se vede dacă omul e logat.
+ *
+ * Soluția: un cookie-semn propriu, `magpress_ab=1`, citibil din JS, care există cât
+ * timp un editor (edit_posts) e logat și are bara pornită în profil. Pe copia pentru
+ * vizitatori, un script mic din <head> vede semnul și reîncarcă pagina O DATĂ cu
+ * `?mp_ab=...` — URL nou, pe care niciun cache nu-l are → trece prin PHP → bara apare,
+ * iar LiteSpeed își repune singur cookie-ul de vary, deci și navigarea următoare e
+ * corectă. Parametrul se scoate apoi din bara de adrese. Vizitatorii n-au semnul,
+ * deci pentru ei scriptul nu face nimic.
+ */
+const MAGPRESS_AB_COOKIE = 'magpress_ab';
+
+function magpress_ab_wanted($uid) {
+    $uid = (int) $uid;
+    if ($uid <= 0 || !user_can($uid, 'edit_posts')) return false;
+    // Ca în WP (_get_admin_bar_pref): fără opțiune salvată, bara e pornită.
+    $pref = get_user_option('show_admin_bar_front', $uid);
+    return $pref === false || $pref === 'true';
+}
+
+function magpress_ab_cookie($on, $expire = 0) {
+    if (headers_sent()) return;
+    setcookie(MAGPRESS_AB_COOKIE, $on ? '1' : '', [
+        'expires'  => $on ? (int) $expire : 1,
+        'path'     => COOKIEPATH ?: '/',
+        'domain'   => COOKIE_DOMAIN ?: '',
+        'secure'   => is_ssl(),
+        'httponly' => false, // trebuie citit din JS
+        'samesite' => 'Lax',
+    ]);
+}
+
+// La logare: aceeași durată ca a cookie-ului de login (0 = până se închide browserul).
+add_action('set_logged_in_cookie', function ($cookie, $expire, $expiration, $user_id) {
+    magpress_ab_cookie(magpress_ab_wanted($user_id), $expire);
+}, 10, 4);
+
+add_action('clear_auth_cookie', function () {
+    magpress_ab_cookie(false);
+});
+
+// Pe orice cerere care trece prin PHP (wp-admin sau pagină necache-uită) semnul se
+// aliniază cu realitatea — și pentru cei logați dinainte de versiunea asta.
+function magpress_ab_sync() {
+    $want = magpress_ab_wanted(get_current_user_id());
+    $has  = !empty($_COOKIE[MAGPRESS_AB_COOKIE]);
+    if ($want && !$has) {
+        $auth = wp_parse_auth_cookie('', 'logged_in');
+        magpress_ab_cookie(true, !empty($auth['expiration']) ? (int) $auth['expiration'] : 0);
+    } elseif (!$want && $has) {
+        magpress_ab_cookie(false);
+        if (!is_admin()) {
+            do_action('litespeed_control_set_nocache', 'magpress: admin bar cookie cleared');
+        }
+    }
+}
+add_action('admin_init', 'magpress_ab_sync');
+add_action('template_redirect', 'magpress_ab_sync');
+
+// URL-ul de reparare nu intră în cache (altfel ar rămâne o copie per timestamp).
+add_action('template_redirect', function () {
+    if (!isset($_GET['mp_ab'])) return;
+    do_action('litespeed_control_set_nocache', 'magpress: admin bar heal');
+    nocache_headers();
+}, 1);
+
+function magpress_ab_heal_script() {
+    if (is_user_logged_in()) {
+        // Pagina reparată: scoatem ?mp_ab din bara de adrese.
+        if (!isset($_GET['mp_ab'])) return;
+        echo '<script data-no-optimize="1" data-no-defer="1" data-cfasync="false">(function(){try{var u=new URL(location.href);u.searchParams.delete("mp_ab");history.replaceState(history.state,"",u.href);}catch(e){}})();</script>' . "\n";
+        return;
+    }
+    // Copia pentru vizitatori (cea care ajunge în cache). Plasă anti-buclă: cel mult o
+    // reîncărcare la 30s pentru ACELAȘI URL (dacă și varianta cu ?mp_ab vine tot din
+    // cache, ne oprim); fără sessionStorage nu reîncărcăm deloc.
+    echo '<script id="magpress-ab-heal" data-no-optimize="1" data-no-defer="1" data-cfasync="false">(function(){try{if(!/(?:^|;\s*)magpress_ab=1/.test(document.cookie))return;var u=new URL(location.href);u.searchParams.delete("mp_ab");var s=sessionStorage,k="magpress_ab:"+u.pathname+u.search,n=Date.now();if(n-(+s.getItem(k)||0)<30000)return;s.setItem(k,n);u.searchParams.set("mp_ab",n.toString(36));location.replace(u.href);}catch(e){}})();</script>' . "\n";
+}
+add_action('wp_head', 'magpress_ab_heal_script', 0);
 
 /**
  * v0.9.252 — Garanția loader-ului AdSense, INDIFERENT de setarea de lazy.
