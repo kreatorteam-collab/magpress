@@ -23,6 +23,8 @@
  * (imaginile articolului), în fundal pentru toată biblioteca (cron, se oprește singur
  * la final) și la prima afișare. Corecție manuală: Media → imagine → „AI Act”.
  *
+ * Mod: Activ (implicit — v0.9.254 a pornit deja pe flotă) / Test (doar adminii logați) / Oprit.
+ *
  * Setări: Customizer → „Magpress: AI Act (transparență AI)” sau, pe toată flota,
  * app.targetseo.ro → AI Act (REST magpress/v1/ai-act, semnat HMAC).
  */
@@ -31,6 +33,7 @@ if (!defined('ABSPATH')) { exit; }
 const MAGPRESS_AI_DETECT_VER = 1;          // crește-l când se schimbă regulile → rescanare
 const MAGPRESS_AI_META_AUTO  = '_magpress_ai_auto';     // "ver|clasă|motiv" (clasă: 1 AI, c cameră, 0 necunoscut)
 const MAGPRESS_AI_META_FORCE = '_magpress_ai_override'; // "" (auto) / "yes" / "no"
+const MAGPRESS_AI_META_VISION = '_magpress_ai_vision';  // "ai|real|unsure|error" + "|încredere|motiv" (verificare vizuală din app)
 
 function magpress_ai_default_note() {
     return '<strong>Informare privind utilizarea inteligenței artificiale.</strong> Imaginile și textele publicate pe acest site pot fi generate sau modificate cu ajutorul instrumentelor de inteligență artificială. Conținutul are caracter exclusiv informativ, imaginile au rol ilustrativ, iar materialele nu constituie consultanță juridică, medicală, financiară sau de altă natură. Pentru sesizări sau corecturi, ne puteți contacta la adresa de contact din pagina site-ului.';
@@ -42,6 +45,13 @@ function magpress_ai_default_note() {
 function magpress_ai_settings_schema() {
     $bool = function ($v) { return $v ? 1 : 0; };
     return [
+        'magpress_ai_mode' => [
+            'default' => 'on', 'type' => 'select',
+            'sanitize' => function ($v) { return in_array($v, ['off', 'test', 'on'], true) ? $v : 'on'; },
+            'label'   => 'Mod AI Act',
+            'description' => 'Test = iconițele și nota apar DOAR pentru adminii logați (vizitatorii și cache-ul nu le văd). Verifică pozele, apoi treci pe Activ.',
+            'choices' => ['off' => 'Oprit (vizitatorii nu văd nimic)', 'test' => 'Test (doar adminii logați)', 'on' => 'Activ (toți vizitatorii)'],
+        ],
         'magpress_ai_badge' => [
             'default' => 1, 'sanitize' => $bool, 'type' => 'checkbox',
             'label'   => 'Iconiță peste imaginile generate cu AI',
@@ -51,6 +61,13 @@ function magpress_ai_settings_schema() {
             'sanitize' => function ($v) { return in_array($v, ['mini', 'pill', 'split'], true) ? $v : 'mini'; },
             'label'   => 'Stil iconiță',
             'choices' => ['mini' => '✦ IA (mică, închisă la culoare)', 'pill' => '✦ Generat cu AI (pilulă mov)', 'split' => 'IA | generat (două culori)'],
+        ],
+        'magpress_ai_badge_opacity' => [
+            'default' => 50, 'type' => 'range',
+            'sanitize' => function ($v) { return max(10, min(100, (int) $v)); },
+            'label'   => 'Vizibilitate iconiță (stilul mic)',
+            'description' => '10 = foarte ștearsă, 50 = discretă (implicit), 100 = plină, la contrast maxim.',
+            'input_attrs' => ['min' => 10, 'max' => 100, 'step' => 5],
         ],
         'magpress_ai_badge_text' => [
             'default' => '', 'sanitize' => 'sanitize_text_field', 'type' => 'text',
@@ -102,6 +119,7 @@ function magpress_register_ai_act_settings($wp_customize) {
         $ctl = ['label' => $f['label'], 'section' => 'magpress_ai_act', 'type' => $f['type']];
         if (!empty($f['description'])) $ctl['description'] = $f['description'];
         if (!empty($f['choices']))     $ctl['choices']     = $f['choices'];
+        if (!empty($f['input_attrs'])) $ctl['input_attrs'] = $f['input_attrs'];
         $wp_customize->add_control($key, $ctl);
     }
 }
@@ -269,10 +287,32 @@ add_filter('attachment_fields_to_save', function ($post, $attachment) {
 // =========================================================================
 // Afișare iconiță
 // =========================================================================
+/**
+ * Pornit pentru cererea curentă? Activ (implicit) / Test (doar cine poate
+ * edita articole — logații nu primesc pagini din cache-ul public, deci vizitatorii nu
+ * văd nimic) / Activ. Scanarea imaginilor rulează în toate modurile (doar citește fișierele).
+ */
+function magpress_ai_visible() {
+    static $v = null;
+    if ($v !== null) return $v;
+    $mode = get_theme_mod('magpress_ai_mode', 'on');
+    if ($mode === 'test') {
+        $v = is_user_logged_in() && current_user_can('edit_posts');
+        // LiteSpeed: pagina adminului nu ajunge în cache-ul public nici din greșeală.
+        if ($v) do_action('litespeed_control_set_nocache', 'magpress ai-act test');
+        return $v;
+    }
+    return $v = ($mode === 'on');
+}
+
 function magpress_ai_frontend() {
     if (is_admin() || is_feed() || wp_doing_ajax()) return false;
     if (defined('REST_REQUEST') && REST_REQUEST) return false;
-    return (bool) get_theme_mod('magpress_ai_badge', 1);
+    return get_theme_mod('magpress_ai_badge', 1) && magpress_ai_visible();
+}
+
+function magpress_ai_star_svg() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.4 4.9 2.2 8.1 5.4 9.6 1.3.6 2.9.9 5.1 1-4.9.4-8.1 2.2-9.6 5.4-.6 1.3-.9 2.9-1 5.1-.4-4.9-2.2-8.1-5.4-9.6-1.3-.6-2.9-.9-5.1-1 4.9-.4 8.1-2.2 9.6-5.4.6-1.3.9-2.9 1-5.1z"/></svg>';
 }
 
 function magpress_ai_badge_html() {
@@ -283,7 +323,7 @@ function magpress_ai_badge_html() {
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', '')) ?: ($style === 'pill' ? 'AI' : 'IA');
     // Textul vine din CSS (attr), nu din DOM: nu intră în anchor text-ul cardurilor
     // și nici în textul indexat al articolului. Numele accesibil e în aria-label.
-    $star = $split ? '' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c.4 4.9 2.2 8.1 5.4 9.6 1.3.6 2.9.9 5.1 1-4.9.4-8.1 2.2-9.6 5.4-.6 1.3-.9 2.9-1 5.1-.4-4.9-2.2-8.1-5.4-9.6-1.3-.6-2.9-.9-5.1-1 4.9-.4 8.1-2.2 9.6-5.4.6-1.3.9-2.9 1-5.1z"/></svg>';
+    $star = $split ? '' : magpress_ai_star_svg();
     return '<span class="mp-ai-badge mp-ai-badge--' . $style . '" role="img" aria-label="Imagine generată cu inteligență artificială" data-l="'
         . esc_attr($long) . '" data-s="' . esc_attr($short) . '">' . $star . '</span>';
 }
@@ -312,11 +352,14 @@ add_filter('wp_content_img_tag', function ($img, $context, $attachment_id) {
 function magpress_ai_note_html() {
     $txt = trim((string) get_theme_mod('magpress_ai_note_text', ''));
     if ($txt === '') $txt = magpress_ai_default_note();
-    return '<aside class="ai-note"><p>' . $txt . '</p></aside>';
+    $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
+    if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
+    // Bandă verticală gri, discretă, în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
+    return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
 
 add_filter('the_content', function ($content) {
-    if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed()) return $content;
+    if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed() || !magpress_ai_visible()) return $content;
     if (!in_the_loop() || !is_main_query()) return $content;
     $ok = is_singular('post') || (get_theme_mod('magpress_ai_note_pages', 0) && is_page() && !is_front_page());
     if (!$ok || get_the_ID() !== get_queried_object_id()) return $content;
@@ -327,28 +370,36 @@ add_filter('the_content', function ($content) {
 // CSS (inline, doar dacă vreo funcție e activă)
 // =========================================================================
 add_action('wp_enqueue_scripts', function () {
+    if (!magpress_ai_visible()) return;
     $badge = get_theme_mod('magpress_ai_badge', 1);
     $note  = get_theme_mod('magpress_ai_note', 1);
     if (!$badge && !$note) return;
     $css = '';
     if ($badge) {
+        $vis = max(10, min(100, (int) get_theme_mod('magpress_ai_badge_opacity', 50))) / 100;
+        $bg  = round(0.9 * $vis, 2);              // 50 → .45 (fundalul)
+        $bd  = round(0.25 + 0.6 * $vis, 2);       // 50 → .55 (conturul)
+        $fg  = round(min(1, 0.55 + 0.75 * $vis), 2); // 50 → .92 (text + steluță)
         // Containerele de imagini statice primesc position:relative ca iconița să se
         // ancoreze pe ele; restul (card-image, featured-card, overlay) sunt deja poziționate.
         $css .= ':is(.article-image,.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg):has(>.mp-ai-badge){position:relative}'
-              . '.mp-ai-badge{position:absolute;top:.6rem;right:.6rem;z-index:3;display:inline-flex;align-items:center;gap:.4em;'
+              . '.mp-ai-badge{position:absolute;bottom:.6rem;right:.6rem;z-index:3;display:inline-flex;align-items:center;gap:.4em;'
               . 'font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.01em;color:#fff;'
               . 'pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)}'
               . '.mp-ai-badge--pill{background:#5b4fe0;padding:.5em .9em;border-radius:999px}'
               . '.mp-ai-badge--pill::after{content:attr(data-l)}'
               . '.mp-ai-badge svg{width:1.05em;height:1.05em;fill:currentColor;display:block;flex:none}'
-              . '.mp-ai-badge--mini{background:#0f1b2d;border:2px solid #fff;border-radius:999px;padding:.4em .75em;font-size:11px;font-weight:700;gap:.35em;letter-spacing:.03em}'
-              . '.mp-ai-badge--mini svg{color:#3ddbc1}'
+              // Discretă: fundal închis semi-transparent + blur, contur alb subțire, fără umbră.
+              // Cât de ștearsă e: „Vizibilitate iconiță” (10–100, implicit 50).
+              . '.mp-ai-badge--mini{background:rgba(15,27,45,' . $bg . ');-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,' . $bd . ');'
+              . 'border-radius:999px;padding:.4em .9em .4em .7em;font-size:11px;font-weight:600;gap:.35em;letter-spacing:.03em;color:rgba(255,255,255,' . $fg . ');box-shadow:none}'
+              . '.mp-ai-badge--mini svg{color:rgba(120,230,210,' . $fg . ')}'
               . '.mp-ai-badge--mini::after{content:attr(data-s)}'
               . '.mp-ai-badge--split{background:#5f6670;border-radius:6px;overflow:hidden;gap:0}'
               . '.mp-ai-badge--split::before{content:attr(data-s);background:#5b4fe0;padding:.5em .65em}'
               . '.mp-ai-badge--split::after{content:attr(data-l);padding:.5em .75em}'
               // Imagini mici (liste, rânduri laterale): doar textul scurt.
-              . ':is(.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg)>.mp-ai-badge{font-size:10px;top:.35rem;right:.35rem}'
+              . ':is(.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg)>.mp-ai-badge{font-size:10px;bottom:.35rem;right:.35rem}'
               . ':is(.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg)>.mp-ai-badge--pill::after{content:attr(data-s)}'
               . ':is(.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg)>.mp-ai-badge--split::after{content:none}'
               . '.mp-ai{position:relative;display:block;width:fit-content;max-width:100%;margin:1.5rem auto}'
@@ -356,12 +407,17 @@ add_action('wp_enqueue_scripts', function () {
               . '.mp-ai--left{float:left;margin:.5rem 1.5rem 1rem 0}'
               . '.mp-ai--right{float:right;margin:.5rem 0 1rem 1.5rem}'
               . 'figure .mp-ai{margin-top:0;margin-bottom:0}'
-              . '@media(max-width:640px){.mp-ai-badge{font-size:11px;top:.45rem;right:.45rem}}';
+              . '@media(max-width:640px){.mp-ai-badge{font-size:11px;bottom:.45rem;right:.45rem}}'
+              // Carduri cu titlul scris peste imagine (jos): iconița urcă în dreapta sus.
+              . ':is(.magpress-card-overlay,.featured-card) .mp-ai-badge{bottom:auto;top:.6rem}';
     }
     if ($note) {
-        $css .= '.ai-note{clear:both;margin:2rem 0 0;padding:.9rem 1.1rem;border:1px solid var(--c-border,#e6e6e6);border-left:3px solid #5b4fe0;'
+        $css .= '.ai-note{display:flex;align-items:stretch;clear:both;margin:2rem 0 0;padding:0;overflow:hidden;border:1px solid var(--c-border,#e6e6e6);'
               . 'border-radius:var(--radius,6px);background:var(--c-surface,#f7f7f8);font-size:.82rem;line-height:1.55;color:var(--c-text-muted,#555)}'
-              . '.ai-note p,.entry-content .ai-note p{margin:0;font-size:inherit;line-height:inherit}.ai-note strong{color:var(--c-text,#1a1a1a)}';
+              . '.ai-note__band{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35rem;'
+              . 'background:#eceef1;border-right:1px solid #e1e4e8;color:#6b7280;font:700 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.06em}'
+              . '.ai-note__band svg{width:15px;height:15px;fill:#8a93a0;display:block}'
+              . '.ai-note p,.entry-content .ai-note p{margin:0;padding:.9rem 1.1rem;font-size:inherit;line-height:inherit}.ai-note strong{color:var(--c-text,#1a1a1a)}';
     }
     wp_add_inline_style('magpress-main', $css);
 }, 20);
@@ -431,7 +487,7 @@ function magpress_ai_scan_batch($limit = 150, $seconds = 15) {
         update_option('magpress_ai_scan_ver', MAGPRESS_AI_DETECT_VER, false);
         wp_clear_scheduled_hook('magpress_ai_scan');
         // Paginile din cache au fost generate fără iconițe — o singură golire, la final.
-        if (get_option('magpress_ai_scan_dirty') && function_exists('magpress_purge_litespeed')) {
+        if (get_option('magpress_ai_scan_dirty') && get_theme_mod('magpress_ai_mode', 'on') === 'on' && function_exists('magpress_purge_litespeed')) {
             magpress_purge_litespeed();
         }
         delete_option('magpress_ai_scan_dirty');
@@ -451,6 +507,28 @@ add_action('init', function () {
 });
 add_action('magpress_ai_scan', function () { magpress_ai_scan_batch(); });
 add_action('switch_theme', function () { wp_clear_scheduled_hook('magpress_ai_scan'); });
+
+/** Imagini necunoscute (fără marcaj AI și fără date de cameră), fără decizie manuală, neverificate vizual. */
+function magpress_ai_unknown_for_vision($limit) {
+    global $wpdb;
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT a.post_id FROM {$wpdb->postmeta} a
+         LEFT JOIN {$wpdb->postmeta} f ON f.post_id = a.post_id AND f.meta_key = %s
+         LEFT JOIN {$wpdb->postmeta} v ON v.post_id = a.post_id AND v.meta_key = %s
+         WHERE a.meta_key = %s AND a.meta_value LIKE %s AND f.meta_id IS NULL AND v.meta_id IS NULL
+         ORDER BY a.post_id DESC LIMIT %d",
+        MAGPRESS_AI_META_FORCE, MAGPRESS_AI_META_VISION, MAGPRESS_AI_META_AUTO,
+        $wpdb->esc_like(MAGPRESS_AI_DETECT_VER . '|0|') . '%', (int) $limit
+    ));
+    $out = [];
+    foreach ($ids as $id) {
+        $id  = (int) $id;
+        $src = wp_get_attachment_image_src($id, 'medium_large') ?: wp_get_attachment_image_src($id, 'large') ?: wp_get_attachment_image_src($id, 'full');
+        if (!$src) continue;
+        $out[] = ['id' => $id, 'url' => $src[0], 'title' => get_the_title($id), 'file' => wp_basename((string) get_attached_file($id))];
+    }
+    return $out;
+}
 
 function magpress_ai_stats() {
     global $wpdb;
@@ -475,6 +553,7 @@ function magpress_ai_stats() {
         'forced_yes'     => isset($forced['yes']) ? (int) $forced['yes']->c : 0,
         'forced_no'      => isset($forced['no']) ? (int) $forced['no']->c : 0,
         'scan_running'   => (bool) wp_next_scheduled('magpress_ai_scan'),
+        'vision_checked' => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", MAGPRESS_AI_META_VISION)),
         'recent_ai'      => $recent,
     ];
 }
@@ -521,6 +600,35 @@ function magpress_rest_ai_act(WP_REST_Request $request) {
     } elseif ($action === 'scan') {
         list($s, $f, $r) = magpress_ai_scan_batch(400, 20);
         $out['scan'] = ['scanned' => $s, 'ai_found' => $f, 'remaining' => $r];
+    } elseif ($action === 'unknown') {
+        // Imaginile „necunoscute” încă neverificate cu AI (pentru verificarea vizuală din app).
+        $out['images'] = magpress_ai_unknown_for_vision(max(1, min(60, (int) ($data['limit'] ?? 24))));
+    } elseif ($action === 'vision') {
+        // Verdictul modelului vizual: doar se memorează (ca să nu fie retrimisă imaginea),
+        // NU schimbă afișarea — decizia o ia omul din app (action=override).
+        $n = 0;
+        foreach ((array) ($data['items'] ?? []) as $it) {
+            $id = (int) ($it['id'] ?? 0);
+            $v  = in_array($it['verdict'] ?? '', ['ai', 'real', 'unsure', 'error'], true) ? $it['verdict'] : 'unsure';
+            if ($id && wp_attachment_is_image($id)) {
+                update_post_meta($id, MAGPRESS_AI_META_VISION, $v . '|' . max(0, min(100, (int) ($it['confidence'] ?? 0))) . '|' . sanitize_text_field(str_replace('|', '/', (string) ($it['reason'] ?? ''))));
+                $n++;
+            }
+        }
+        $out['saved'] = $n;
+    } elseif ($action === 'override') {
+        // Confirmare din app: yes = iconiță, no = fără iconiță, '' = înapoi la automat.
+        $n = 0;
+        foreach ((array) ($data['items'] ?? []) as $it) {
+            $id = (int) ($it['id'] ?? 0);
+            if (!$id || !wp_attachment_is_image($id)) continue;
+            $v = (string) ($it['value'] ?? '');
+            if ($v === 'yes' || $v === 'no') update_post_meta($id, MAGPRESS_AI_META_FORCE, $v);
+            else delete_post_meta($id, MAGPRESS_AI_META_FORCE);
+            $n++;
+        }
+        if ($n && get_theme_mod('magpress_ai_mode', 'on') === 'on' && function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
+        $out['saved'] = $n;
     } elseif ($action !== 'get') {
         return new WP_REST_Response(['ok' => false, 'error' => 'invalid_action'], 400);
     }
