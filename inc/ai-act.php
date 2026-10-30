@@ -101,6 +101,16 @@ function magpress_ai_settings_schema() {
             'label'   => 'Imaginile fără date de cameră = AI',
             'description' => 'Pozele fără niciun indiciu (nici marcaj AI, nici date de cameră) primesc și ele iconița. Pornește doar pe site-urile unde pozele reale vin cu date EXIF.',
         ],
+        'magpress_footer_badges' => [
+            'default' => 1, 'sanitize' => $bool, 'type' => 'checkbox',
+            'label'   => 'Bannere în footer: SAL (ANPC), SOL, AI Act',
+            'description' => 'Pe site-urile care au deja bannerele ANPC / SOL (în widget sau cod personalizat), acelea nu se mai dublează.',
+        ],
+        'magpress_ai_footer_url' => [
+            'default' => '', 'sanitize' => 'esc_url_raw', 'type' => 'url',
+            'label'   => 'Link banner AI Act (opțional)',
+            'description' => 'Gol = secțiunea „Utilizarea inteligenței artificiale” din Termeni și condiții.',
+        ],
         'magpress_ai_note' => [
             'default' => 1, 'sanitize' => $bool, 'type' => 'checkbox',
             'label'   => 'Notă de informare AI sub toate articolele',
@@ -372,24 +382,28 @@ function magpress_ai_note_html() {
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
     if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
     // Bandă verticală gri, discretă, în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
-    // Link spre pagina legală „Politica privind utilizarea inteligenței artificiale”
-    // (sincronizată din app.targetseo.ro → Pagini legale), dacă există pe site.
+    // Link spre secțiunea „Utilizarea inteligenței artificiale” din Termeni și condiții
+    // (sincronizată din app.targetseo.ro → Pagini legale), doar dacă secțiunea există.
     $url = magpress_ai_policy_url();
     if ($url) $txt .= ' <a href="' . esc_url($url) . '">Detalii despre utilizarea AI</a>.';
     return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
 
-/** URL-ul paginii de politică AI (cache 12h; gol dacă pagina nu există încă). */
+/**
+ * URL-ul secțiunii AI din Termeni și condiții (#utilizarea-ai), cache 12h. Gol dacă pagina
+ * n-are încă secțiunea — fără link mort până la sync-ul paginilor legale.
+ */
 function magpress_ai_policy_url() {
     $url = get_transient('magpress_ai_policy_url');
     if ($url === false) {
-        $page = function_exists('magpress_find_legal_page') ? magpress_find_legal_page('politica-inteligenta-artificiala') : null;
-        $url  = $page ? (string) get_permalink($page) : '';
+        $page = function_exists('magpress_find_legal_page') ? magpress_find_legal_page('termeni-si-conditii') : null;
+        $url  = ($page && strpos((string) $page->post_content, 'id="utilizarea-ai"') !== false)
+            ? get_permalink($page) . '#utilizarea-ai' : '';
         set_transient('magpress_ai_policy_url', $url, 12 * HOUR_IN_SECONDS);
     }
     return $url;
 }
-// Pagina tocmai creată / redenumită la sync → linkul din notă se actualizează imediat.
+// Pagina actualizată la sync → linkul din notă se reface imediat.
 add_action('save_post_page', function () { delete_transient('magpress_ai_policy_url'); });
 
 add_filter('the_content', function ($content) {
@@ -674,4 +688,45 @@ function magpress_rest_ai_act(WP_REST_Request $request) {
     $out['settings'] = $settings;
     $out['stats']    = magpress_ai_stats();
     return new WP_REST_Response($out, 200);
+}
+
+// =========================================================================
+// Bannere obligatorii în footer: SAL (ANPC), SOL (Comisia Europeană), AI Act
+// =========================================================================
+
+/**
+ * Rândul de bannere de deasupra copyright-ului. $footer_html = ce s-a tipărit deja în
+ * footer (widget-uri, meniuri) — pe site-urile care au DEJA bannerele ANPC / SOL (în
+ * widget sau în codul personalizat din Customizer), nu le mai punem încă o dată.
+ */
+function magpress_footer_badges_html($footer_html = '') {
+    if (!get_theme_mod('magpress_footer_badges', 1)) return '';
+    $existing = $footer_html . (string) get_theme_mod('magpress_code_footer', '') . (string) get_theme_mod('magpress_code_body_open', '');
+    $uri = get_template_directory_uri() . '/assets/img/';
+    $out = '';
+
+    if (!preg_match('~reclamatiisal|anpc\.ro~i', $existing)) {
+        $out .= '<a href="https://reclamatiisal.anpc.ro/" target="_blank" rel="nofollow noopener">'
+              . '<img src="' . esc_url($uri . 'anpc-sal.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="ANPC — Soluționarea alternativă a litigiilor"></a>';
+    }
+    if (!preg_match('~consumer-redress|ec\.europa\.eu/consumers/odr|webgate\.ec\.europa\.eu/odr~i', $existing)) {
+        $out .= '<a href="https://consumer-redress.ec.europa.eu/index_ro" target="_blank" rel="nofollow noopener">'
+              . '<img src="' . esc_url($uri . 'anpc-sol.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="Soluționarea online a litigiilor"></a>';
+    }
+    // AI Act: secțiunea din Termeni și condiții (sau URL-ul setat în Customizer).
+    $ai_url = trim((string) get_theme_mod('magpress_ai_footer_url', ''));
+    if ($ai_url === '') {
+        $ai_url = magpress_ai_policy_url();
+        if ($ai_url === '' && function_exists('magpress_find_legal_page') && ($p = magpress_find_legal_page('termeni-si-conditii'))) {
+            $ai_url = get_permalink($p);
+        }
+    }
+    if ($ai_url !== '') {
+        $out .= '<a href="' . esc_url($ai_url) . '">'
+              . '<img src="' . esc_url($uri . 'ai-act.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="Transparență conform AI Act — conținut generat cu AI. Detalii"></a>';
+    }
+    if ($out === '') return '';
+    return '<div class="footer-badges">' . $out . '</div>'
+         . '<style>.footer-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin:0 0 1.25rem}'
+         . '.footer-badges a{display:block;line-height:0}.footer-badges img{width:202px;height:50px;max-width:100%;display:block}</style>';
 }

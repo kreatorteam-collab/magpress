@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.257');
+define('MAGPRESS_VERSION', '0.9.258');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -6206,7 +6206,7 @@ function magpress_rest_errorlog(WP_REST_Request $req) {
 }
 
 function magpress_rest_legal_status() {
-    $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate', 'politica-inteligenta-artificiala'];
+    $slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
     $result = [];
     foreach ($slugs as $slug) {
         $page = magpress_find_legal_page($slug);
@@ -6243,8 +6243,7 @@ function magpress_rest_send_ping(WP_REST_Request $request) {
 /**
  * Upsert pagină legală (terms / cookies / privacy) — apelat de targetseo.ro la sync.
  * Validare HMAC cu deploy_secret per site (același mecanism ca /deploy).
- * Slug-uri permise: termeni-si-conditii, politica-cookies, politica-confidentialitate,
- * politica-inteligenta-artificiala (v0.9.257 — AI Act).
+ * Slug-uri permise: termeni-si-conditii, politica-cookies, politica-confidentialitate.
  */
 function magpress_rest_pages_upsert(WP_REST_Request $request) {
     $body = $request->get_body();
@@ -6266,7 +6265,7 @@ function magpress_rest_pages_upsert(WP_REST_Request $request) {
     $title = isset($data['title']) ? wp_strip_all_tags((string) $data['title']) : '';
     $content = isset($data['content']) ? (string) $data['content'] : '';
 
-    $allowed_slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate', 'politica-inteligenta-artificiala'];
+    $allowed_slugs = ['termeni-si-conditii', 'politica-cookies', 'politica-confidentialitate'];
     if (!in_array($slug, $allowed_slugs, true)) {
         return new WP_REST_Response(['ok' => false, 'error' => 'invalid_slug'], 400);
     }
@@ -6367,8 +6366,6 @@ function magpress_legal_slug_aliases() {
         'politica-confidentialitate', 'confidentialitate', 'politica-de-confidentialitate',
         'privacy', 'privacy-policy', 'gdpr', 'politica-de-confidentialitate-gdpr',
         'politica-confidentialitate-gdpr', 'confidential',
-        'politica-inteligenta-artificiala', 'politica-ai', 'utilizarea-inteligentei-artificiale',
-        'inteligenta-artificiala', 'ai-act',
     ];
 }
 
@@ -6437,9 +6434,6 @@ function magpress_find_legal_page($target_slug) {
             'gdpr', 'politica-de-confidentialitate-gdpr', 'politica-confidentialitate-gdpr',
             'confidential',
         ],
-        'politica-inteligenta-artificiala' => [
-            'politica-ai', 'utilizarea-inteligentei-artificiale', 'inteligenta-artificiala', 'ai-act',
-        ],
     ];
     if (isset($alternatives[$target_slug])) {
         foreach ($alternatives[$target_slug] as $alt) {
@@ -6453,7 +6447,6 @@ function magpress_find_legal_page($target_slug) {
         'termeni-si-conditii'         => ['%termeni%', '%conditi%'],
         'politica-cookies'            => ['%cookie%'],
         'politica-confidentialitate'  => ['%confidential%', '%privacy%', '%gdpr%'],
-        'politica-inteligenta-artificiala' => ['%inteligen%artificial%'],
     ];
     if (isset($title_patterns[$target_slug])) {
         global $wpdb;
