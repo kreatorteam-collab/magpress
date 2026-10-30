@@ -346,8 +346,8 @@ function magpress_ai_note_html() {
     if ($txt === '') $txt = magpress_ai_default_note();
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
     if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
-    // Aceeași iconiță ca pe imagini (stilul mic, ✦ IA), în stânga textului.
-    return '<aside class="ai-note"><span class="ai-note__icon" aria-hidden="true">' . magpress_ai_star_svg() . esc_html($short) . '</span><p>' . $txt . '</p></aside>';
+    // Bandă verticală discretă în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
+    return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
 
 add_filter('the_content', function ($content) {
@@ -377,8 +377,10 @@ add_action('wp_enqueue_scripts', function () {
               . '.mp-ai-badge--pill{background:#5b4fe0;padding:.5em .9em;border-radius:999px}'
               . '.mp-ai-badge--pill::after{content:attr(data-l)}'
               . '.mp-ai-badge svg{width:1.05em;height:1.05em;fill:currentColor;display:block;flex:none}'
-              . '.mp-ai-badge--mini{background:#0f1b2d;border:2px solid #fff;border-radius:999px;padding:.4em .9em .4em .7em;font-size:11px;font-weight:700;gap:.35em;letter-spacing:.03em}'
-              . '.mp-ai-badge--mini svg{color:#3ddbc1}'
+              // Discretă: fundal închis semi-transparent + blur, contur alb subțire, fără umbră.
+              . '.mp-ai-badge--mini{background:rgba(15,27,45,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.55);'
+              . 'border-radius:999px;padding:.4em .9em .4em .7em;font-size:11px;font-weight:600;gap:.35em;letter-spacing:.03em;color:rgba(255,255,255,.92);box-shadow:none}'
+              . '.mp-ai-badge--mini svg{color:rgba(150,235,220,.9)}'
               . '.mp-ai-badge--mini::after{content:attr(data-s)}'
               . '.mp-ai-badge--split{background:#5f6670;border-radius:6px;overflow:hidden;gap:0}'
               . '.mp-ai-badge--split::before{content:attr(data-s);background:#5b4fe0;padding:.5em .65em}'
@@ -397,13 +399,12 @@ add_action('wp_enqueue_scripts', function () {
               . ':is(.magpress-card-overlay,.featured-card) .mp-ai-badge{bottom:auto;top:.6rem}';
     }
     if ($note) {
-        $css .= '.ai-note{display:flex;align-items:flex-start;gap:.85rem;clear:both;margin:2rem 0 0;padding:.9rem 1.1rem;border:1px solid var(--c-border,#e6e6e6);border-left:3px solid #5b4fe0;'
+        $css .= '.ai-note{display:flex;align-items:stretch;clear:both;margin:2rem 0 0;padding:0;overflow:hidden;border:1px solid var(--c-border,#e6e6e6);'
               . 'border-radius:var(--radius,6px);background:var(--c-surface,#f7f7f8);font-size:.82rem;line-height:1.55;color:var(--c-text-muted,#555)}'
-              . '.ai-note__icon{flex:none;display:inline-flex;align-items:center;gap:.35em;margin-top:.1rem;padding:.4em .9em .4em .7em;border-radius:999px;background:#0f1b2d;border:2px solid #fff;'
-              . 'box-shadow:0 1px 4px rgba(0,0,0,.2);color:#fff;font:700 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.03em}'
-              . '.ai-note__icon svg{width:1.05em;height:1.05em;fill:#3ddbc1;display:block}'
-              . '@media(max-width:480px){.ai-note{flex-direction:column;gap:.5rem}}'
-              . '.ai-note p,.entry-content .ai-note p{margin:0;font-size:inherit;line-height:inherit}.ai-note strong{color:var(--c-text,#1a1a1a)}';
+              . '.ai-note__band{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35rem;'
+              . 'background:#e7e9f2;border-right:1px solid #dcdfea;color:#4b5375;font:700 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.06em}'
+              . '.ai-note__band svg{width:15px;height:15px;fill:#6b72a3;display:block}'
+              . '.ai-note p,.entry-content .ai-note p{margin:0;padding:.9rem 1.1rem;font-size:inherit;line-height:inherit}.ai-note strong{color:var(--c-text,#1a1a1a)}';
     }
     wp_add_inline_style('magpress-main', $css);
 }, 20);
