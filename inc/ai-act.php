@@ -74,6 +74,13 @@ function magpress_ai_settings_schema() {
             'description' => '10 = foarte ștearsă, 50 = discretă (implicit), 100 = plină, la contrast maxim.',
             'input_attrs' => ['min' => 10, 'max' => 100, 'step' => 5],
         ],
+        'magpress_ai_badge_size' => [
+            'default' => 11, 'type' => 'range',
+            'sanitize' => function ($v) { return max(9, min(22, (int) $v)); },
+            'label'   => 'Mărime iconiță (px)',
+            'description' => '9 = foarte mică, 11 = implicit, 22 = mare. Pe mobil iese cu ~10% mai mică.',
+            'input_attrs' => ['min' => 9, 'max' => 22, 'step' => 1],
+        ],
         'magpress_ai_badge_text' => [
             'default' => '', 'sanitize' => 'sanitize_text_field', 'type' => 'text',
             'label'   => 'Text iconiță',
@@ -365,8 +372,25 @@ function magpress_ai_note_html() {
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
     if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
     // Bandă verticală gri, discretă, în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
+    // Link spre pagina legală „Politica privind utilizarea inteligenței artificiale”
+    // (sincronizată din app.targetseo.ro → Pagini legale), dacă există pe site.
+    $url = magpress_ai_policy_url();
+    if ($url) $txt .= ' <a href="' . esc_url($url) . '">Detalii despre utilizarea AI</a>.';
     return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
+
+/** URL-ul paginii de politică AI (cache 12h; gol dacă pagina nu există încă). */
+function magpress_ai_policy_url() {
+    $url = get_transient('magpress_ai_policy_url');
+    if ($url === false) {
+        $page = function_exists('magpress_find_legal_page') ? magpress_find_legal_page('politica-inteligenta-artificiala') : null;
+        $url  = $page ? (string) get_permalink($page) : '';
+        set_transient('magpress_ai_policy_url', $url, 12 * HOUR_IN_SECONDS);
+    }
+    return $url;
+}
+// Pagina tocmai creată / redenumită la sync → linkul din notă se actualizează imediat.
+add_action('save_post_page', function () { delete_transient('magpress_ai_policy_url'); });
 
 add_filter('the_content', function ($content) {
     if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed() || !magpress_ai_visible()) return $content;
@@ -390,11 +414,13 @@ add_action('wp_enqueue_scripts', function () {
         $bg  = round(0.9 * $vis, 2);              // 50 → .45 (fundalul)
         $bd  = round(0.25 + 0.6 * $vis, 2);       // 50 → .55 (conturul)
         $fg  = round(min(1, 0.55 + 0.75 * $vis), 2); // 50 → .92 (text + steluță)
+        $size  = max(9, min(22, (int) get_theme_mod('magpress_ai_badge_size', 11))); // px; tot restul e în em
+        $msize = max(9, (int) round($size * 0.9));                                    // pe mobil, puțin mai mică
         // Containerele de imagini statice primesc position:relative ca iconița să se
         // ancoreze pe ele; restul (card-image, featured-card, overlay) sunt deja poziționate.
         $css .= ':is(.article-image,.card-list__image,.mp-featcat__rowimg,.mp-featcat__crowimg):has(>.mp-ai-badge){position:relative}'
               . '.mp-ai-badge{position:absolute;bottom:.6rem;right:.6rem;z-index:3;display:inline-flex;align-items:center;gap:.4em;'
-              . 'font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.01em;color:#fff;'
+              . 'font:600 ' . $size . 'px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.01em;color:#fff;'
               . 'pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)}'
               . '.mp-ai-badge--pill{background:#5b4fe0;padding:.5em .9em;border-radius:999px}'
               . '.mp-ai-badge--pill::after{content:attr(data-l)}'
@@ -402,7 +428,7 @@ add_action('wp_enqueue_scripts', function () {
               // Discretă: fundal închis semi-transparent + blur, contur alb subțire, fără umbră.
               // Cât de ștearsă e: „Vizibilitate iconiță” (10–100, implicit 50).
               . '.mp-ai-badge--mini{background:rgba(15,27,45,' . $bg . ');-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,' . $bd . ');'
-              . 'border-radius:999px;padding:.4em .9em .4em .7em;font-size:11px;font-weight:600;gap:.35em;letter-spacing:.03em;color:rgba(255,255,255,' . $fg . ');box-shadow:none}'
+              . 'border-radius:999px;padding:.4em .9em .4em .7em;font-weight:600;gap:.35em;letter-spacing:.03em;color:rgba(255,255,255,' . $fg . ');box-shadow:none}'
               . '.mp-ai-badge--mini svg{color:rgba(120,230,210,' . $fg . ')}'
               . '.mp-ai-badge--mini::after{content:attr(data-s)}'
               . '.mp-ai-badge--split{background:#5f6670;border-radius:6px;overflow:hidden;gap:0}'
@@ -417,7 +443,7 @@ add_action('wp_enqueue_scripts', function () {
               . '.mp-ai--left{float:left;margin:.5rem 1.5rem 1rem 0}'
               . '.mp-ai--right{float:right;margin:.5rem 0 1rem 1.5rem}'
               . 'figure .mp-ai{margin-top:0;margin-bottom:0}'
-              . '@media(max-width:640px){.mp-ai-badge{font-size:11px;bottom:.45rem;right:.45rem}}'
+              . '@media(max-width:640px){.mp-ai-badge{font-size:' . $msize . 'px;bottom:.45rem;right:.45rem}}'
               // Carduri cu titlul scris peste imagine (jos): iconița urcă în dreapta sus.
               . ':is(.magpress-card-overlay,.featured-card) .mp-ai-badge{bottom:auto;top:.6rem}';
     }
