@@ -56,6 +56,11 @@ function magpress_ai_settings_schema() {
             'default' => 1, 'sanitize' => $bool, 'type' => 'checkbox',
             'label'   => 'Iconiță peste imaginile generate cu AI',
         ],
+        'magpress_ai_badge_cards' => [
+            'default' => 0, 'sanitize' => $bool, 'type' => 'checkbox',
+            'label'   => 'Iconiță și pe carduri (homepage, categorii, articole similare)',
+            'description' => 'Implicit iconița apare doar în articol: pe imaginea principală și pe imaginile din text.',
+        ],
         'magpress_ai_badge_style' => [
             'default' => 'mini', 'type' => 'select',
             'sanitize' => function ($v) { return in_array($v, ['mini', 'pill', 'split'], true) ? $v : 'mini'; },
@@ -330,7 +335,12 @@ function magpress_ai_badge_html() {
 
 // Imaginea reprezentativă: iconița e sora imaginii, în containerul ei (card, figure).
 add_filter('post_thumbnail_html', function ($html, $post_id, $thumb_id) {
-    if ($html === '' || !magpress_ai_frontend() || !magpress_ai_image_is_ai($thumb_id)) return $html;
+    if ($html === '' || !magpress_ai_frontend()) return $html;
+    // Implicit doar în articol (imaginea lui principală); cardurile din liste, homepage și
+    // „Articole similare” rămân curate, dacă nu se bifează „Iconiță și pe carduri”.
+    $is_main = is_singular() && (int) $post_id === (int) get_queried_object_id();
+    if (!$is_main && !get_theme_mod('magpress_ai_badge_cards', 0)) return $html;
+    if (!magpress_ai_image_is_ai($thumb_id)) return $html;
     return $html . magpress_ai_badge_html();
 }, 20, 3);
 
