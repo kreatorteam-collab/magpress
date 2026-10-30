@@ -23,6 +23,8 @@
  * (imaginile articolului), în fundal pentru toată biblioteca (cron, se oprește singur
  * la final) și la prima afișare. Corecție manuală: Media → imagine → „AI Act”.
  *
+ * Mod: Oprit (implicit — vizitatorii nu văd nimic) / Test (doar adminii logați) / Activ.
+ *
  * Setări: Customizer → „Magpress: AI Act (transparență AI)” sau, pe toată flota,
  * app.targetseo.ro → AI Act (REST magpress/v1/ai-act, semnat HMAC).
  */
@@ -42,6 +44,13 @@ function magpress_ai_default_note() {
 function magpress_ai_settings_schema() {
     $bool = function ($v) { return $v ? 1 : 0; };
     return [
+        'magpress_ai_mode' => [
+            'default' => 'off', 'type' => 'select',
+            'sanitize' => function ($v) { return in_array($v, ['off', 'test', 'on'], true) ? $v : 'off'; },
+            'label'   => 'Mod AI Act',
+            'description' => 'Test = iconițele și nota apar DOAR pentru adminii logați (vizitatorii și cache-ul nu le văd). Verifică pozele, apoi treci pe Activ.',
+            'choices' => ['off' => 'Oprit (vizitatorii nu văd nimic)', 'test' => 'Test (doar adminii logați)', 'on' => 'Activ (toți vizitatorii)'],
+        ],
         'magpress_ai_badge' => [
             'default' => 1, 'sanitize' => $bool, 'type' => 'checkbox',
             'label'   => 'Iconiță peste imaginile generate cu AI',
@@ -269,10 +278,28 @@ add_filter('attachment_fields_to_save', function ($post, $attachment) {
 // =========================================================================
 // Afișare iconiță
 // =========================================================================
+/**
+ * Pornit pentru cererea curentă? Oprit (implicit după deploy) / Test (doar cine poate
+ * edita articole — logații nu primesc pagini din cache-ul public, deci vizitatorii nu
+ * văd nimic) / Activ. Scanarea imaginilor rulează în toate modurile (doar citește fișierele).
+ */
+function magpress_ai_visible() {
+    static $v = null;
+    if ($v !== null) return $v;
+    $mode = get_theme_mod('magpress_ai_mode', 'off');
+    if ($mode === 'test') {
+        $v = is_user_logged_in() && current_user_can('edit_posts');
+        // LiteSpeed: pagina adminului nu ajunge în cache-ul public nici din greșeală.
+        if ($v) do_action('litespeed_control_set_nocache', 'magpress ai-act test');
+        return $v;
+    }
+    return $v = ($mode === 'on');
+}
+
 function magpress_ai_frontend() {
     if (is_admin() || is_feed() || wp_doing_ajax()) return false;
     if (defined('REST_REQUEST') && REST_REQUEST) return false;
-    return (bool) get_theme_mod('magpress_ai_badge', 1);
+    return get_theme_mod('magpress_ai_badge', 1) && magpress_ai_visible();
 }
 
 function magpress_ai_badge_html() {
@@ -316,7 +343,7 @@ function magpress_ai_note_html() {
 }
 
 add_filter('the_content', function ($content) {
-    if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed()) return $content;
+    if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed() || !magpress_ai_visible()) return $content;
     if (!in_the_loop() || !is_main_query()) return $content;
     $ok = is_singular('post') || (get_theme_mod('magpress_ai_note_pages', 0) && is_page() && !is_front_page());
     if (!$ok || get_the_ID() !== get_queried_object_id()) return $content;
@@ -327,6 +354,7 @@ add_filter('the_content', function ($content) {
 // CSS (inline, doar dacă vreo funcție e activă)
 // =========================================================================
 add_action('wp_enqueue_scripts', function () {
+    if (!magpress_ai_visible()) return;
     $badge = get_theme_mod('magpress_ai_badge', 1);
     $note  = get_theme_mod('magpress_ai_note', 1);
     if (!$badge && !$note) return;
@@ -431,7 +459,7 @@ function magpress_ai_scan_batch($limit = 150, $seconds = 15) {
         update_option('magpress_ai_scan_ver', MAGPRESS_AI_DETECT_VER, false);
         wp_clear_scheduled_hook('magpress_ai_scan');
         // Paginile din cache au fost generate fără iconițe — o singură golire, la final.
-        if (get_option('magpress_ai_scan_dirty') && function_exists('magpress_purge_litespeed')) {
+        if (get_option('magpress_ai_scan_dirty') && get_theme_mod('magpress_ai_mode', 'off') === 'on' && function_exists('magpress_purge_litespeed')) {
             magpress_purge_litespeed();
         }
         delete_option('magpress_ai_scan_dirty');
