@@ -354,7 +354,7 @@ function magpress_ai_note_html() {
     if ($txt === '') $txt = magpress_ai_default_note();
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
     if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
-    // Bandă verticală închisă în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
+    // Bandă verticală gri, discretă, în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
     return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
 
@@ -415,8 +415,8 @@ add_action('wp_enqueue_scripts', function () {
         $css .= '.ai-note{display:flex;align-items:stretch;clear:both;margin:2rem 0 0;padding:0;overflow:hidden;border:1px solid var(--c-border,#e6e6e6);'
               . 'border-radius:var(--radius,6px);background:var(--c-surface,#f7f7f8);font-size:.82rem;line-height:1.55;color:var(--c-text-muted,#555)}'
               . '.ai-note__band{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35rem;'
-              . 'background:#0f1b2d;color:#fff;font:700 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.06em}'
-              . '.ai-note__band svg{width:15px;height:15px;fill:#3ddbc1;display:block}'
+              . 'background:#eceef1;border-right:1px solid #e1e4e8;color:#6b7280;font:700 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;letter-spacing:.06em}'
+              . '.ai-note__band svg{width:15px;height:15px;fill:#8a93a0;display:block}'
               . '.ai-note p,.entry-content .ai-note p{margin:0;padding:.9rem 1.1rem;font-size:inherit;line-height:inherit}.ai-note strong{color:var(--c-text,#1a1a1a)}';
     }
     wp_add_inline_style('magpress-main', $css);
