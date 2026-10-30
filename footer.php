@@ -5,7 +5,7 @@
 if (!defined('ABSPATH')) { exit; }
 ?>
 </main><!-- /#main -->
-<?php ob_start(); // v0.9.257: ce s-a tipărit în footer → bannerele ANPC/SOL nu se dublează ?>
+<?php ob_start(); // v0.9.258: ce s-a tipărit în footer → bannerele ANPC/SOL nu se dublează ?>
 
 <footer class="site-footer">
   <div class="site-footer__inner container">
