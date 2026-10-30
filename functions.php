@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.253');
+define('MAGPRESS_VERSION', '0.9.254');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -18,6 +18,9 @@ define('MAGPRESS_VERSION', '0.9.253');
 define('MAGPRESS_UPDATED_SINCE_DEFAULT', '2026-08-06');
 define('MAGPRESS_DIR', get_template_directory());
 define('MAGPRESS_URI', get_template_directory_uri());
+
+// v0.9.254 — AI Act: iconiță pe imaginile generate cu AI + notă de informare sub articole.
+require_once MAGPRESS_DIR . '/inc/ai-act.php';
 
 /**
  * Setup tema.
