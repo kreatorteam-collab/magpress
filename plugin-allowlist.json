@@ -1,6 +1,6 @@
 {
   "_info": "ZIP-urile de plugin permise la /install-plugin. Cheie = SHA-256 al fisierului ZIP exact trimis de push-plugin.ps1, valoare = nota (slug + versiune). Un ZIP care nu e aici e refuzat cu zip_not_allowlisted (raspunsul contine sha256-ul lui).",
   "sha256": {
-    "d6e97e8537f43771aeffeaf9ccf8bdc23d9a6c7a97b59dd7fc8cbe322d434d7f": "sd-link-sponsored 1.1.1 (bifa Marcheaza ca sponsored in popover-ul de link)"
+    "7ff630f6c67fd462f389031a90f1caaa97aefcde82003a6b654e59eeffc25b64": "sd-link-sponsored 1.1.2 (bifa Marcheaza ca sponsored in popover-ul de link)"
   }
 }
