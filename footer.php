@@ -5,6 +5,7 @@
 if (!defined('ABSPATH')) { exit; }
 ?>
 </main><!-- /#main -->
+<?php ob_start(); // v0.9.257: ce s-a tipărit în footer → bannerele ANPC/SOL nu se dublează ?>
 
 <footer class="site-footer">
   <div class="site-footer__inner container">
@@ -53,6 +54,9 @@ if (!defined('ABSPATH')) { exit; }
     </div>
 
     <?php echo magpress_render_socials(); ?>
+
+    <?php $mp_footer_so_far = ob_get_clean(); echo $mp_footer_so_far;
+    echo magpress_footer_badges_html($mp_footer_so_far); // SAL (ANPC) + SOL + AI Act ?>
 
     <div class="footer-bottom">
       <p>&copy; <?php echo esc_html(date('Y')); ?> <?php bloginfo('name'); ?>. Toate drepturile rezervate.</p>
