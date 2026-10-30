@@ -695,24 +695,19 @@ function magpress_rest_ai_act(WP_REST_Request $request) {
 // =========================================================================
 
 /**
- * Rândul de bannere de deasupra copyright-ului. $footer_html = ce s-a tipărit deja în
- * footer (widget-uri, meniuri) — pe site-urile care au DEJA bannerele ANPC / SOL (în
- * widget sau în codul personalizat din Customizer), nu le mai punem încă o dată.
+ * Rândul de bannere de deasupra copyright-ului — la fel pe toate site-urile, toate trei
+ * împreună. Unde footer-ul avea deja bannerele ANPC / SOL (widget, meniu), alea vechi se
+ * ascund din CSS (nu ștergem nimic din widget-uri: oprind bannerele temei, reapar).
  */
 function magpress_footer_badges_html($footer_html = '') {
     if (!get_theme_mod('magpress_footer_badges', 1)) return '';
-    $existing = $footer_html . (string) get_theme_mod('magpress_code_footer', '') . (string) get_theme_mod('magpress_code_body_open', '');
     $uri = get_template_directory_uri() . '/assets/img/';
     $out = '';
 
-    if (!preg_match('~reclamatiisal|anpc\.ro~i', $existing)) {
-        $out .= '<a href="https://reclamatiisal.anpc.ro/" target="_blank" rel="nofollow noopener">'
-              . '<img src="' . esc_url($uri . 'anpc-sal.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="ANPC — Soluționarea alternativă a litigiilor"></a>';
-    }
-    if (!preg_match('~consumer-redress|ec\.europa\.eu/consumers/odr|webgate\.ec\.europa\.eu/odr~i', $existing)) {
-        $out .= '<a href="https://consumer-redress.ec.europa.eu/index_ro" target="_blank" rel="nofollow noopener">'
-              . '<img src="' . esc_url($uri . 'anpc-sol.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="Soluționarea online a litigiilor"></a>';
-    }
+    $out .= '<a href="https://reclamatiisal.anpc.ro/" target="_blank" rel="nofollow noopener">'
+          . '<img src="' . esc_url($uri . 'anpc-sal.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="ANPC — Soluționarea alternativă a litigiilor"></a>';
+    $out .= '<a href="https://consumer-redress.ec.europa.eu/index_ro" target="_blank" rel="nofollow noopener">'
+          . '<img src="' . esc_url($uri . 'anpc-sol.webp') . '" width="202" height="50" loading="lazy" decoding="async" alt="Soluționarea online a litigiilor"></a>';
     // AI Act: secțiunea din Termeni și condiții (sau URL-ul setat în Customizer).
     $ai_url = trim((string) get_theme_mod('magpress_ai_footer_url', ''));
     if ($ai_url === '') {
@@ -728,5 +723,8 @@ function magpress_footer_badges_html($footer_html = '') {
     if ($out === '') return '';
     return '<div class="footer-badges">' . $out . '</div>'
          . '<style>.footer-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin:0 0 1.25rem}'
-         . '.footer-badges a{display:block;line-height:0}.footer-badges img{width:202px;height:50px;max-width:100%;display:block}</style>';
+         . '.footer-badges a{display:block;line-height:0}.footer-badges img{width:202px;height:50px;max-width:100%;display:block}'
+         // Bannerele ANPC / SOL puse înainte de mână în widget-urile footer-ului: ascunse, ca să nu apară de două ori.
+         . '.site-footer :is(a[href*="anpc.ro"],a[href*="consumer-redress"],a[href*="ec.europa.eu/consumers/odr"],a[href*="webgate.ec.europa.eu/odr"]):not(.footer-badges a){display:none!important}'
+         . '.site-footer :is(p,figure,.wp-block-image,.widget_media_image):has(> :is(a[href*="anpc.ro"],a[href*="consumer-redress"],a[href*="ec.europa.eu/consumers/odr"]):only-child){display:none!important}</style>';
 }
