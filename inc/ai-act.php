@@ -365,8 +365,25 @@ function magpress_ai_note_html() {
     $short = trim((string) get_theme_mod('magpress_ai_badge_short', ''));
     if ($short === '') $short = get_theme_mod('magpress_ai_badge_style', 'mini') === 'pill' ? 'AI' : 'IA';
     // Bandă verticală gri, discretă, în stânga (✦ deasupra, IA dedesubt), pe toată înălțimea notei.
+    // Link spre pagina legală „Politica privind utilizarea inteligenței artificiale”
+    // (sincronizată din app.targetseo.ro → Pagini legale), dacă există pe site.
+    $url = magpress_ai_policy_url();
+    if ($url) $txt .= ' <a href="' . esc_url($url) . '">Detalii despre utilizarea AI</a>.';
     return '<aside class="ai-note"><span class="ai-note__band" aria-hidden="true">' . magpress_ai_star_svg() . '<span>' . esc_html($short) . '</span></span><p>' . $txt . '</p></aside>';
 }
+
+/** URL-ul paginii de politică AI (cache 12h; gol dacă pagina nu există încă). */
+function magpress_ai_policy_url() {
+    $url = get_transient('magpress_ai_policy_url');
+    if ($url === false) {
+        $page = function_exists('magpress_find_legal_page') ? magpress_find_legal_page('politica-inteligenta-artificiala') : null;
+        $url  = $page ? (string) get_permalink($page) : '';
+        set_transient('magpress_ai_policy_url', $url, 12 * HOUR_IN_SECONDS);
+    }
+    return $url;
+}
+// Pagina tocmai creată / redenumită la sync → linkul din notă se actualizează imediat.
+add_action('save_post_page', function () { delete_transient('magpress_ai_policy_url'); });
 
 add_filter('the_content', function ($content) {
     if (!get_theme_mod('magpress_ai_note', 1) || is_admin() || is_feed() || !magpress_ai_visible()) return $content;
