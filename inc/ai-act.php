@@ -36,7 +36,7 @@ const MAGPRESS_AI_META_FORCE = '_magpress_ai_override'; // "" (auto) / "yes" / "
 const MAGPRESS_AI_META_VISION = '_magpress_ai_vision';  // "ai|real|unsure|error" + "|încredere|motiv" (verificare vizuală din app)
 
 function magpress_ai_default_note() {
-    return '<strong>Informare privind utilizarea inteligenței artificiale.</strong> Imaginile și textele publicate pe acest site pot fi generate sau modificate cu ajutorul instrumentelor de inteligență artificială. Conținutul are caracter exclusiv informativ, imaginile au rol ilustrativ, iar materialele nu constituie consultanță juridică, medicală, financiară sau de altă natură. Pentru sesizări sau corecturi, ne puteți contacta la adresa de contact din pagina site-ului.';
+    return '<strong>Informare privind utilizarea inteligenței artificiale.</strong> Imaginile și textele publicate pe acest site pot fi generate sau modificate cu ajutorul instrumentelor de inteligență artificială. Inteligența artificială poate face greșeli, de aceea vă recomandăm să verificați informațiile importante din surse oficiale. Conținutul are caracter exclusiv informativ, imaginile au rol ilustrativ, iar materialele nu constituie consultanță juridică, medicală, financiară sau de altă natură. Pentru sesizări sau corecturi, ne puteți contacta la adresa de contact din pagina site-ului.';
 }
 
 // =========================================================================
