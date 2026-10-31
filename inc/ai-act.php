@@ -30,7 +30,7 @@
  */
 if (!defined('ABSPATH')) { exit; }
 
-const MAGPRESS_AI_DETECT_VER = 2;   // v2: rescanare după fixul cu _hz_imagegen (marcat DUPĂ upload)          // crește-l când se schimbă regulile → rescanare
+const MAGPRESS_AI_DETECT_VER = 3;   // v3: + numele ai-<hex> al generatorului AI Writer (rescanare)          // crește-l când se schimbă regulile → rescanare
 const MAGPRESS_AI_META_AUTO  = '_magpress_ai_auto';     // "ver|clasă|motiv" (clasă: 1 AI, c cameră, 0 necunoscut)
 const MAGPRESS_AI_META_FORCE = '_magpress_ai_override'; // "" (auto) / "yes" / "no"
 const MAGPRESS_AI_META_VISION = '_magpress_ai_vision';  // "ai|real|unsure|error" + "|încredere|motiv" (verificare vizuală din app)
@@ -161,6 +161,10 @@ function magpress_ai_detect_attachment($id) {
     if (!$file || !is_readable($file)) $file = get_attached_file($id);
 
     $names = strtolower(($file ? wp_basename($file) : '') . ' ' . get_the_title($id));
+    // Numele dat de generatorul AI Writer (HZ_ImageGen::convert): ai-<10 hex>[-scaled].jpg/png/webp
+    if ($file && preg_match('/^ai-[0-9a-f]{10}(?:-\d+)?(?:-scaled)?\.(?:jpe?g|png|webp)$/i', wp_basename($file))) {
+        return 'generator AI Writer (nume fișier)';
+    }
     if (preg_match('/dall[\W_]?e|midjourney|chatgpt[\W_]+image|gemini[\W_]+generated|firefly|stable[\W_]?diffusion|openai|ai[\W_]+generated|generat[a-z]*[\W_]+cu[\W_]+ai|ideogram|leonardo[\W_]+ai|nano[\W_]+banana/', $names, $m)) {
         return 'nume fișier: ' . $m[0];
     }
@@ -290,7 +294,9 @@ add_action('add_attachment', function ($id) {
 add_filter('attachment_fields_to_edit', function ($fields, $post) {
     if (!wp_attachment_is_image($post->ID)) return $fields;
     $force = (string) get_post_meta($post->ID, MAGPRESS_AI_META_FORCE, true);
-    $res   = magpress_ai_auto_result($post->ID);
+    $res   = get_post_meta($post->ID, '_hz_imagegen', true) !== ''
+        ? ['1', 'generator AI Writer']
+        : magpress_ai_auto_result($post->ID);
     $auto  = ['1' => 'AI — ' . $res[1], 'c' => 'fotografie reală — ' . $res[1], '0' => 'necunoscut, fără metadate'][$res[0]] ?? 'necunoscut';
     $name  = 'attachments[' . $post->ID . '][magpress_ai]';
     $opts  = ['' => 'Automat (detectat: ' . $auto . ')', 'yes' => 'Da — afișează iconița AI', 'no' => 'Nu — fără iconiță'];
