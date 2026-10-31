@@ -30,7 +30,7 @@
  */
 if (!defined('ABSPATH')) { exit; }
 
-const MAGPRESS_AI_DETECT_VER = 1;          // crește-l când se schimbă regulile → rescanare
+const MAGPRESS_AI_DETECT_VER = 2;   // v2: rescanare după fixul cu _hz_imagegen (marcat DUPĂ upload)          // crește-l când se schimbă regulile → rescanare
 const MAGPRESS_AI_META_AUTO  = '_magpress_ai_auto';     // "ver|clasă|motiv" (clasă: 1 AI, c cameră, 0 necunoscut)
 const MAGPRESS_AI_META_FORCE = '_magpress_ai_override'; // "" (auto) / "yes" / "no"
 const MAGPRESS_AI_META_VISION = '_magpress_ai_vision';  // "ai|real|unsure|error" + "|încredere|motiv" (verificare vizuală din app)
@@ -255,6 +255,9 @@ function magpress_ai_image_is_ai($id) {
     $force = (string) get_post_meta($id, MAGPRESS_AI_META_FORCE, true);
     if ($force === 'yes' || $force === 'no') {
         $is = $force === 'yes';
+    } elseif (get_post_meta($id, '_hz_imagegen', true) !== '') {
+        // Generată de pluginul Horoscop Zilnic / AI Writer: AI sigur, indiferent de scanare.
+        $is = true;
     } elseif (get_theme_mod('magpress_ai_all_images', 0)) {
         $is = true;
     } else {
@@ -267,6 +270,14 @@ function magpress_ai_image_is_ai($id) {
     }
     return $cache[$id] = (bool) apply_filters('magpress_ai_image_is_ai', $is, $id);
 }
+
+// Pluginul Horoscop Zilnic (AI Writer) pune `_hz_imagegen` DUPĂ media_handle_sideload, deci
+// scanarea de la upload (add_attachment) a văzut-o încă nemarcată — și, cum pluginul o și
+// re-encodează (metadatele AI se pierd), o clasa „necunoscută”. Corectăm când apare marcajul.
+add_action('added_post_meta', function ($mid, $att_id, $key) {
+    if ($key !== '_hz_imagegen') return;
+    update_post_meta($att_id, MAGPRESS_AI_META_AUTO, MAGPRESS_AI_DETECT_VER . '|1|generator Horoscop Zilnic');
+}, 10, 3);
 
 // Scanare la upload (inclusiv imaginile descărcate de pluginuri prin sideload).
 add_action('add_attachment', function ($id) {
