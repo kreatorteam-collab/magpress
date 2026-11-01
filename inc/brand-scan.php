@@ -1,33 +1,67 @@
 <?php
 /**
- * v0.9.276 — Scanare „SEO Digital” pe site (doar citire, nu modifică nimic).
+ * v0.9.276 — Scanare „SEO Digital” pe site.
+ * v0.9.277 — căutare custom (termenii tăi) + rel sponsored / nofollow pe linkurile găsite (bulk).
  *
- * Caută în baza de date a site-ului unde apare:
- *  - textul „SEO Digital” / „seodigital” (orice formă: spațiu, &nbsp;, cratimă);
- *  - linkuri către seodigital.ro — separat cele către https://seodigital.ro/advertoriale/;
- *  - linkuri către o pagină de advertoriale (URL care conține „advertorial”) și
- *    paginile / articolele care au „advertorial” în titlu sau slug.
+ * Caută în baza de date a site-ului:
+ *  Implicit („SEO Digital”):
+ *   - link_sd_advertoriale — linkuri către https://seodigital.ro/advertoriale/
+ *   - link_seodigital      — linkuri către alte pagini seodigital.ro
+ *   - link_advertorial     — linkuri către alte adrese care conțin „advertorial”
+ *   - page_advertorial     — pagini / articole cu „advertorial” în titlu sau slug (fără imagini)
+ *   - text                 — textul „SEO Digital” / „seodigital” (orice formă)
+ *  Custom (până la 5 termeni, ex. „exemplu.ro”, „/promo/”, „Firma X”):
+ *   - link_match — linkuri al căror URL conține un termen
+ *   - page_match — pagini / articole cu termenul în titlu sau slug
+ *   - text       — termenul în text (în afara linkurilor de mai sus)
  *
- * Locuri verificate: articole, pagini și orice tip de conținut (toate statusurile, fără
- * revizii), meta (Elementor, câmpuri custom, URL-urile din meniuri), opțiuni (widget-uri,
- * theme_mods / Customizer, setări pluginuri — fără tranziente), descrieri de categorii,
- * comentarii aprobate, profiluri de utilizator.
+ * Locuri: articole, pagini și orice tip de conținut (toate statusurile, fără revizii), meta
+ * (Elementor, câmpuri custom, URL-urile din meniuri), opțiuni (widget-uri, Customizer,
+ * setări pluginuri — fără tranziente), descrieri de categorii, comentarii aprobate, autori.
+ *
+ * set_rel: pune rel="sponsored" / "nofollow" / "sponsored nofollow" (sau „dofollow” = le
+ * scoate) pe linkurile de tipurile alese, în: conținut + rezumat, meta (inclusiv Elementor —
+ * acolo există doar „nofollow”), meniuri (_menu_item_xfn), widget-uri, opțiuni, categorii.
+ * Scrie direct în DB (fără wp_update_post: fără user, kses ar tăia din conținut), după ce
+ * salvează o revizie a articolului (backup). Comentariile și autorii nu se modifică.
  *
  * REST pentru app.targetseo.ro → „SEO Digital pe site-uri”:
- * POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret (X-Magpress-Signature).
+ * POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret (X-Magpress-Signature)
+ *  {action:"scan", terms?:[...]}
+ *  {action:"set_rel", rel, kinds:[...], terms?:[...], targets?:[key,...]}
  */
 if (!defined('ABSPATH')) { exit; }
 
-const MAGPRESS_BS_MAX_ITEMS = 400;   // locuri raportate (articole / opțiuni / meniuri...)
+const MAGPRESS_BS_MAX_ITEMS = 400;   // locuri raportate la scanare
 const MAGPRESS_BS_MAX_HITS  = 15;    // potriviri raportate per loc
+const MAGPRESS_BS_LINK_KINDS = ['link_sd_advertoriale', 'link_seodigital', 'link_advertorial', 'link_match'];
+
+/** Termenii custom ai cererii curente ([] = căutarea implicită „SEO Digital”). */
+function magpress_bs_terms($set = null) {
+    static $terms = [];
+    if ($set !== null) {
+        $clean = [];
+        foreach ((array) $set as $t) {
+            $t = trim(wp_strip_all_tags((string) $t));
+            if (mb_strlen($t) >= 3 && mb_strlen($t) <= 100) $clean[mb_strtolower($t)] = $t;
+        }
+        $terms = array_slice(array_values($clean), 0, 5);
+    }
+    return $terms;
+}
 
 /** Fragmente pentru filtrul SQL (LIKE e case-insensitive pe colațiile WP). */
 function magpress_bs_like_terms() {
-    return ['seodigital', 'seo digital', 'seo&nbsp;digital', 'seo-digital', 'seo_digital', 'seo.digital', 'advertorial'];
+    $t = magpress_bs_terms();
+    return $t ?: ['seodigital', 'seo digital', 'seo&nbsp;digital', 'seo-digital', 'seo_digital', 'seo.digital', 'advertorial'];
 }
 
-/** „SEO Digital” în orice formă (inclusiv domeniul seodigital.ro). */
+/** Regex pentru text: termenii custom sau „SEO Digital” în orice formă. */
 function magpress_bs_mention_re() {
+    $t = magpress_bs_terms();
+    if ($t) {
+        return '~' . implode('|', array_map(function ($x) { return preg_quote($x, '~'); }, $t)) . '~iu';
+    }
     return '~seo(?:\s|&nbsp;|&#160;|\x{00A0}|[-_.])?digital~iu';
 }
 
@@ -64,25 +98,38 @@ function magpress_bs_is_seodigital_url($href) {
     return (bool) preg_match('~^(?:https?:)?//(?:www\.)?seo-?digital\.~i', $h);
 }
 
-/**
- * Tipul unui URL: link_sd_advertoriale (seodigital.ro/advertoriale — cel mai important),
- * link_seodigital (altă pagină seodigital.ro), link_advertorial (altă adresă cu
- * „advertorial”), '' (irelevant).
- */
+/** Tipul unui URL ('' = irelevant) — după termenii custom sau regulile implicite. */
 function magpress_bs_url_kind($href) {
-    if (magpress_bs_is_seodigital_url($href)) {
-        return stripos((string) $href, 'advertorial') !== false ? 'link_sd_advertoriale' : 'link_seodigital';
+    $h = html_entity_decode((string) $href, ENT_QUOTES, 'UTF-8');
+    $terms = magpress_bs_terms();
+    if ($terms) {
+        foreach ($terms as $t) {
+            if (mb_stripos($h, $t) !== false) return 'link_match';
+        }
+        return '';
     }
-    return stripos((string) $href, 'advertorial') !== false ? 'link_advertorial' : '';
+    if (magpress_bs_is_seodigital_url($h)) {
+        return stripos($h, 'advertorial') !== false ? 'link_sd_advertoriale' : 'link_seodigital';
+    }
+    return stripos($h, 'advertorial') !== false ? 'link_advertorial' : '';
+}
+
+/** Tipul „pagină” pentru un titlu/slug ('' = nu e). */
+function magpress_bs_page_kind($title, $slug) {
+    $s = $title . ' ' . $slug;
+    $terms = magpress_bs_terms();
+    if ($terms) {
+        foreach ($terms as $t) {
+            if (mb_stripos($s, $t) !== false) return 'page_match';
+        }
+        return '';
+    }
+    return stripos($s, 'advertorial') !== false ? 'page_advertorial' : '';
 }
 
 /**
  * Analizează un text (HTML, JSON, serializat) și întoarce potrivirile:
- *  link_sd_advertoriale — <a href> către seodigital.ro/advertoriale/
- *  link_seodigital  — <a href> către altă pagină seodigital.ro
- *  link_advertorial — <a href> către o adresă care conține „advertorial”
- *  text             — „SEO Digital” / „seodigital” în afara linkurilor de mai sus
- *                     (inclusiv ancore „SEO Digital” spre alte adrese, atribute, cod)
+ * linkuri (<a href> și URL-uri fără ancoră) de tipurile de mai sus + text.
  */
 function magpress_bs_analyze($raw) {
     $raw = (string) $raw;
@@ -94,9 +141,9 @@ function magpress_bs_analyze($raw) {
 
     if (preg_match_all('~<a\b([^>]*)>(.*?)</a\s*>~isu', $html, $m, PREG_SET_ORDER)) {
         foreach ($m as $a) {
-            if (!preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $a[1], $hm)
-                && !preg_match('~\bhref\s*=\s*([^\s>]+)~is', $a[1], $hm2)) continue;
-            $href = isset($hm[2]) ? $hm[2] : $hm2[1];
+            if (preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $a[1], $hm)) $href = $hm[2];
+            elseif (preg_match('~\bhref\s*=\s*([^\s>]+)~is', $a[1], $hm)) $href = $hm[1];
+            else continue;
             $kind = magpress_bs_url_kind($href);
             if ($kind === '') continue;
             $rel = preg_match('~\brel\s*=\s*(["\'])(.*?)\1~is', $a[1], $rm) ? strtolower(trim($rm[2])) : '';
@@ -114,7 +161,7 @@ function magpress_bs_analyze($raw) {
     if (preg_match_all('~(?:https?:)?//[^\s"\'<>()\\\\]+~i', $rest, $um)) {
         foreach (array_unique($um[0]) as $u) {
             $kind = magpress_bs_url_kind($u);
-            if ($kind === '' || ($kind === 'link_advertorial' && !preg_match('~^(?:https?:)?//~i', $u))) continue;
+            if ($kind === '') continue;
             $hits[] = ['kind' => $kind, 'href' => mb_substr(html_entity_decode($u, ENT_QUOTES, 'UTF-8'), 0, 300), 'anchor' => '', 'rel' => '', 'field_note' => 'URL fără ancoră (meniu / cod / text)'];
             $rest = str_replace($u, ' ', $rest);
         }
@@ -132,24 +179,33 @@ function magpress_bs_analyze($raw) {
     return array_slice($hits, 0, MAGPRESS_BS_MAX_HITS);
 }
 
-function magpress_bs_scan() {
+/** Cheia unui loc (folosită de app ca să aplice rel doar pe locurile alese). */
+function magpress_bs_key(array $it) {
+    return $it['where'] . '|' . (int) ($it['id'] ?? 0) . '|' . (string) ($it['field'] ?? '') . '|' . (int) ($it['meta_id'] ?? 0);
+}
+
+function magpress_bs_scan($max_items = MAGPRESS_BS_MAX_ITEMS) {
     global $wpdb;
     $t0 = microtime(true);
     $items = [];
     $truncated = false;
-    $add = function (array $item) use (&$items, &$truncated) {
+    $add = function (array $item) use (&$items, &$truncated, $max_items) {
         if (empty($item['hits'])) return;
-        if (count($items) >= MAGPRESS_BS_MAX_ITEMS) { $truncated = true; return; }
+        if (count($items) >= $max_items) { $truncated = true; return; }
+        $item['key'] = magpress_bs_key($item);
         $items[] = $item;
     };
 
     // ---- 1. articole / pagini / orice tip de conținut ----
+    $slug_or = [];
+    foreach (magpress_bs_terms() ?: ['advertorial'] as $t) {
+        $slug_or[] = $wpdb->prepare('post_name LIKE %s', '%' . $wpdb->esc_like(sanitize_title($t)) . '%');
+    }
     $ids = $wpdb->get_col(
         "SELECT ID FROM {$wpdb->posts}
          WHERE post_type NOT IN ('revision','customize_changeset','oembed_cache','nav_menu_item')
            AND post_status NOT IN ('auto-draft')
-           AND (" . magpress_bs_where(['post_content', 'post_title', 'post_excerpt']) . "
-                OR post_name LIKE '%advertorial%')
+           AND (" . magpress_bs_where(['post_content', 'post_title', 'post_excerpt']) . ' OR ' . implode(' OR ', $slug_or) . ")
          ORDER BY ID DESC LIMIT 3000"
     );
     foreach (array_chunk(array_map('intval', $ids), 100) as $chunk) {
@@ -159,8 +215,10 @@ function magpress_bs_scan() {
             $hits = magpress_bs_analyze($p->post_content);
             foreach (magpress_bs_analyze($p->post_excerpt) as $h) $hits[] = $h + ['field' => 'rezumat'];
             foreach (magpress_bs_analyze($p->post_title) as $h) $hits[] = $h + ['field' => 'titlu'];
-            if (stripos($p->post_title . ' ' . $p->post_name, 'advertorial') !== false) {
-                $hits[] = ['kind' => 'page_advertorial', 'snippet' => 'Titlu/slug: ' . magpress_bs_clip($p->post_title, 80) . ' (/' . $p->post_name . '/)'];
+            // Imaginile (ex. bannerul „advertoriale728x90”) nu sunt pagini.
+            $pk = $p->post_type === 'attachment' ? '' : magpress_bs_page_kind($p->post_title, $p->post_name);
+            if ($pk !== '') {
+                $hits[] = ['kind' => $pk, 'snippet' => 'Titlu/slug: ' . magpress_bs_clip($p->post_title, 80) . ' (/' . $p->post_name . '/)'];
             }
             $add([
                 'where'  => 'post',
@@ -176,14 +234,14 @@ function magpress_bs_scan() {
     }
 
     // ---- 2. meta (meniuri, Elementor, câmpuri custom) ----
-    $skip_meta = "'_edit_lock','_edit_last','_wp_old_slug','_wp_attachment_metadata','_magpress_ai_auto','_magpress_ai_vision'";
+    $skip_meta = "'_edit_lock','_edit_last','_wp_old_slug','_wp_attachment_metadata','_magpress_ai_auto','_magpress_ai_vision','_menu_item_xfn','_elementor_css'";
     $metas = $wpdb->get_results(
         "SELECT m.meta_id, m.post_id, m.meta_key, m.meta_value, p.post_type, p.post_status, p.post_title
          FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id
          WHERE m.meta_key NOT IN ($skip_meta)
            AND p.post_type NOT IN ('revision') AND p.post_status NOT IN ('auto-draft')
            AND " . magpress_bs_where(['m.meta_value']) . "
-         ORDER BY m.post_id DESC LIMIT 600"
+         ORDER BY m.post_id DESC LIMIT 1500"
     );
     foreach ($metas as $mrow) {
         $hits = magpress_bs_analyze($mrow->meta_value);
@@ -192,7 +250,11 @@ function magpress_bs_scan() {
             $menus = wp_get_object_terms((int) $mrow->post_id, 'nav_menu');
             $menu  = (!is_wp_error($menus) && $menus) ? $menus[0] : null;
             $title = $item && isset($item->title) ? $item->title : $mrow->post_title;
-            foreach ($hits as &$h) { if (isset($h['anchor']) && $h['anchor'] === '') $h['anchor'] = magpress_bs_clip($title, 100); }
+            $xfn   = strtolower(trim((string) get_post_meta((int) $mrow->post_id, '_menu_item_xfn', true)));
+            foreach ($hits as &$h) {
+                if (isset($h['anchor']) && $h['anchor'] === '') $h['anchor'] = magpress_bs_clip($title, 100);
+                if (isset($h['href'])) { $h['rel'] = $xfn; unset($h['field_note']); }
+            }
             unset($h);
             $add([
                 'where'  => 'menu',
@@ -208,15 +270,16 @@ function magpress_bs_scan() {
             continue;
         }
         $add([
-            'where'  => 'meta',
-            'id'     => (int) $mrow->post_id,
-            'type'   => $mrow->post_type,
-            'status' => $mrow->post_status,
-            'title'  => magpress_bs_clip($mrow->post_title, 120),
-            'url'    => $mrow->post_status === 'publish' ? (string) get_permalink((int) $mrow->post_id) : '',
-            'edit'   => admin_url('post.php?post=' . (int) $mrow->post_id . '&action=edit'),
-            'field'  => $mrow->meta_key,
-            'hits'   => $hits,
+            'where'   => 'meta',
+            'id'      => (int) $mrow->post_id,
+            'meta_id' => (int) $mrow->meta_id,
+            'type'    => $mrow->post_type,
+            'status'  => $mrow->post_status,
+            'title'   => magpress_bs_clip($mrow->post_title, 120),
+            'url'     => $mrow->post_status === 'publish' ? (string) get_permalink((int) $mrow->post_id) : '',
+            'edit'    => admin_url('post.php?post=' . (int) $mrow->post_id . '&action=edit'),
+            'field'   => $mrow->meta_key,
+            'hits'    => $hits,
         ]);
     }
 
@@ -237,7 +300,7 @@ function magpress_bs_scan() {
                 $hits = magpress_bs_analyze(serialize($inst));
                 $wt = isset($inst['title']) && $inst['title'] !== '' ? ' „' . magpress_bs_clip($inst['title'], 60) . '”' : '';
                 $add([
-                    'where' => 'widget', 'id' => 0, 'type' => $name, 'status' => '',
+                    'where' => 'widget', 'id' => (int) $idx, 'type' => $name, 'status' => '',
                     'title' => 'Widget ' . substr($name, 7) . '-' . $idx . $wt,
                     'url' => '', 'edit' => admin_url('widgets.php'), 'field' => $name, 'hits' => $hits,
                 ]);
@@ -267,6 +330,7 @@ function magpress_bs_scan() {
             'title' => ucfirst($t->taxonomy) . ': ' . magpress_bs_clip($t->name, 80),
             'url'   => is_wp_error($link) ? '' : (string) $link,
             'edit'  => admin_url('term.php?taxonomy=' . rawurlencode($t->taxonomy) . '&tag_ID=' . (int) $t->term_id),
+            'field' => $t->taxonomy,
             'hits'  => $hits,
         ]);
     }
@@ -312,7 +376,7 @@ function magpress_bs_scan() {
         ]);
     }
 
-    $counts = ['link_sd_advertoriale' => 0, 'text' => 0, 'link_seodigital' => 0, 'link_advertorial' => 0, 'page_advertorial' => 0];
+    $counts = array_fill_keys(['link_sd_advertoriale', 'link_seodigital', 'link_advertorial', 'page_advertorial', 'link_match', 'page_match', 'text'], 0);
     foreach ($items as $it) {
         foreach ($it['hits'] as $h) {
             if (isset($counts[$h['kind']])) $counts[$h['kind']]++;
@@ -320,6 +384,7 @@ function magpress_bs_scan() {
     }
 
     return [
+        'terms'     => magpress_bs_terms(),
         'counts'    => $counts,
         'items'     => $items,
         'truncated' => $truncated,
@@ -328,8 +393,178 @@ function magpress_bs_scan() {
 }
 
 // =========================================================================
+// rel sponsored / nofollow pe linkurile găsite
+// =========================================================================
+
+/** Noua valoare a atributului rel. $rel: sponsored | nofollow | sponsored nofollow | dofollow (scoate). */
+function magpress_bs_rel_value($existing, $rel) {
+    $t = preg_split('~\s+~', strtolower(trim((string) $existing)), -1, PREG_SPLIT_NO_EMPTY);
+    $t = array_values(array_diff($t, ['dofollow', 'follow']));
+    if ($rel === 'dofollow') {
+        $t = array_diff($t, ['nofollow', 'sponsored', 'ugc']);
+    } else {
+        foreach (explode(' ', $rel) as $x) if (!in_array($x, $t, true)) $t[] = $x;
+    }
+    return implode(' ', array_values(array_unique($t)));
+}
+
+/** Pune rel pe <a>-urile din HTML care duc la URL-uri de tipurile $kinds. */
+function magpress_bs_html_set_rel($html, array $kinds, $rel, &$n) {
+    if (stripos($html, '<a') === false) return $html;
+    return preg_replace_callback('~<a\b[^>]*>~i', function ($m) use ($kinds, $rel, &$n) {
+        $tag = $m[0];
+        if (preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $tag, $hm)) $href = $hm[2];
+        elseif (preg_match('~\bhref\s*=\s*([^\s>]+)~is', $tag, $hm)) $href = $hm[1];
+        else return $tag;
+        if (!in_array(magpress_bs_url_kind($href), $kinds, true)) return $tag;
+
+        if (preg_match('~\s+rel\s*=\s*(["\'])(.*?)\1~is', $tag, $rm) || preg_match('~\s+rel\s*=\s*([^\s"\'>]+)~is', $tag, $rm)) {
+            $old = isset($rm[2]) ? $rm[2] : $rm[1];
+            $new = magpress_bs_rel_value($old, $rel);
+            if (strtolower(trim($old)) === $new) return $tag;
+            $n++;
+            return str_replace($rm[0], $new === '' ? '' : ' rel="' . esc_attr($new) . '"', $tag);
+        }
+        $new = magpress_bs_rel_value('', $rel);
+        if ($new === '') return $tag;
+        $n++;
+        return preg_replace('~\s*(/?)>$~', ' rel="' . esc_attr($new) . '"$1>', $tag, 1);
+    }, $html);
+}
+
+/**
+ * Parcurge o valoare (string HTML / JSON / serializat, array) și pune rel. Elementor:
+ * controalele de link {url, is_external, nofollow} primesc nofollow="on" (Elementor nu
+ * are „sponsored”); HTML-ul din widget-urile text primește rel normal.
+ */
+function magpress_bs_walk_set_rel($v, array $kinds, $rel, &$n) {
+    if (is_string($v)) {
+        $s = ltrim($v);
+        if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+            $dec = json_decode($v, true);
+            if (is_array($dec)) {
+                $before = $n;
+                $dec = magpress_bs_walk_set_rel($dec, $kinds, $rel, $n);
+                return $n > $before ? wp_json_encode($dec) : $v;
+            }
+        }
+        if (is_serialized($v)) {
+            $un = @unserialize($v, ['allowed_classes' => false]);
+            if (is_array($un)) {
+                $before = $n;
+                $un = magpress_bs_walk_set_rel($un, $kinds, $rel, $n);
+                return $n > $before ? serialize($un) : $v;
+            }
+            return $v;
+        }
+        return magpress_bs_html_set_rel($v, $kinds, $rel, $n);
+    }
+    if (is_array($v)) {
+        if (isset($v['url']) && is_string($v['url']) && array_key_exists('nofollow', $v)
+            && in_array(magpress_bs_url_kind($v['url']), $kinds, true)) {
+            $want = $rel === 'dofollow' ? '' : 'on';
+            if ((string) $v['nofollow'] !== $want) { $v['nofollow'] = $want; $n++; }
+        }
+        foreach ($v as $k => $x) {
+            if (is_string($x) || is_array($x)) $v[$k] = magpress_bs_walk_set_rel($x, $kinds, $rel, $n);
+        }
+    }
+    return $v;
+}
+
+/**
+ * Aplică rel pe locurile găsite la scanare (toate sau doar cheile din $targets).
+ * @return array [changed_links, changed_places, skipped]
+ */
+function magpress_bs_set_rel($rel, array $kinds, $targets = null) {
+    global $wpdb;
+    $kinds = array_values(array_intersect($kinds, MAGPRESS_BS_LINK_KINDS));
+    if (!$kinds) return [0, 0, 0];
+    $scan = magpress_bs_scan(5000);
+    $links = 0; $places = 0; $skipped = 0;
+    $elementor = false;
+
+    foreach ($scan['items'] as $it) {
+        if (is_array($targets) && !in_array($it['key'], $targets, true)) continue;
+        $has = false;
+        foreach ($it['hits'] as $h) if (in_array($h['kind'], $kinds, true)) { $has = true; break; }
+        if (!$has) continue;
+
+        $n = 0;
+        switch ($it['where']) {
+            case 'post':
+                $p = get_post((int) $it['id']);
+                if (!$p) break;
+                $content = magpress_bs_html_set_rel($p->post_content, $kinds, $rel, $n);
+                $excerpt = magpress_bs_html_set_rel($p->post_excerpt, $kinds, $rel, $n);
+                if ($n) {
+                    if (function_exists('wp_save_post_revision') && $p->post_type !== 'attachment') wp_save_post_revision($p->ID);
+                    $wpdb->update($wpdb->posts, ['post_content' => $content, 'post_excerpt' => $excerpt], ['ID' => $p->ID]);
+                    clean_post_cache($p->ID);
+                }
+                break;
+
+            case 'meta':
+                $row = $wpdb->get_row($wpdb->prepare("SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_id = %d", (int) $it['meta_id']));
+                if (!$row) break;
+                $new = magpress_bs_walk_set_rel($row->meta_value, $kinds, $rel, $n);
+                if ($n) {
+                    $wpdb->update($wpdb->postmeta, ['meta_value' => $new], ['meta_id' => (int) $it['meta_id']]);
+                    wp_cache_delete((int) $row->post_id, 'post_meta');
+                    if ($row->meta_key === '_elementor_data') {
+                        delete_post_meta((int) $row->post_id, '_elementor_css');
+                        $elementor = true;
+                    }
+                }
+                break;
+
+            case 'menu':
+                $url = (string) get_post_meta((int) $it['id'], '_menu_item_url', true);
+                if (!in_array(magpress_bs_url_kind($url), $kinds, true)) break;
+                $old = (string) get_post_meta((int) $it['id'], '_menu_item_xfn', true);
+                $new = magpress_bs_rel_value($old, $rel);
+                if (strtolower(trim($old)) !== $new) { update_post_meta((int) $it['id'], '_menu_item_xfn', $new); $n++; }
+                break;
+
+            case 'widget':
+                $opt = get_option($it['field']);
+                if (!is_array($opt) || !isset($opt[$it['id']]) || !is_array($opt[$it['id']])) break;
+                $opt[$it['id']] = magpress_bs_walk_set_rel($opt[$it['id']], $kinds, $rel, $n);
+                if ($n) update_option($it['field'], $opt);
+                break;
+
+            case 'option':
+                $opt = get_option($it['field']);
+                $new = magpress_bs_walk_set_rel($opt, $kinds, $rel, $n);
+                if ($n) update_option($it['field'], $new);
+                break;
+
+            case 'term':
+                $desc = (string) $wpdb->get_var($wpdb->prepare("SELECT description FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = %s", (int) $it['id'], $it['field']));
+                $new = magpress_bs_html_set_rel($desc, $kinds, $rel, $n);
+                if ($n) {
+                    $wpdb->update($wpdb->term_taxonomy, ['description' => $new], ['term_id' => (int) $it['id'], 'taxonomy' => $it['field']]);
+                    clean_term_cache((int) $it['id'], $it['field']);
+                }
+                break;
+
+            default: // comentarii, autori: nu le modificăm
+                $skipped++;
+        }
+        if ($n) { $links += $n; $places++; }
+    }
+
+    if ($elementor && class_exists('\Elementor\Plugin') && isset(\Elementor\Plugin::$instance->files_manager)) {
+        \Elementor\Plugin::$instance->files_manager->clear_cache();
+    }
+    if ($places && function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
+    return [$links, $places, $skipped];
+}
+
+// =========================================================================
 // REST: POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret
-// {action:"scan"} → {ok, theme_version, home, counts, items[], truncated, took_ms}
+// {action:"scan", terms?} | {action:"set_rel", rel, kinds, terms?, targets?}
+// → {ok, theme_version, home, terms, counts, items[], truncated, took_ms [, set_rel]}
 // =========================================================================
 add_action('rest_api_init', function () {
     register_rest_route('magpress/v1', '/brand-scan', [
@@ -350,8 +585,23 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
     if (isset($data['ts']) && abs(time() - (int) $data['ts']) > 3600) {
         return new WP_REST_Response(['ok' => false, 'error' => 'expired'], 403);
     }
-    if (function_exists('set_time_limit')) @set_time_limit(60);
+    if (function_exists('set_time_limit')) @set_time_limit(90);
 
+    magpress_bs_terms((array) ($data['terms'] ?? []));
     $out = ['ok' => true, 'theme_version' => MAGPRESS_VERSION, 'home' => home_url('/')];
+    $action = (string) ($data['action'] ?? 'scan');
+
+    if ($action === 'set_rel') {
+        $rel = (string) ($data['rel'] ?? '');
+        if (!in_array($rel, ['sponsored', 'nofollow', 'sponsored nofollow', 'dofollow'], true)) {
+            return new WP_REST_Response(['ok' => false, 'error' => 'invalid_rel'], 400);
+        }
+        $targets = isset($data['targets']) && is_array($data['targets']) ? array_map('strval', $data['targets']) : null;
+        list($links, $places, $skipped) = magpress_bs_set_rel($rel, (array) ($data['kinds'] ?? []), $targets);
+        $out['set_rel'] = ['rel' => $rel, 'links' => $links, 'places' => $places, 'skipped' => $skipped];
+    } elseif ($action !== 'scan') {
+        return new WP_REST_Response(['ok' => false, 'error' => 'invalid_action'], 400);
+    }
+
     return new WP_REST_Response($out + magpress_bs_scan(), 200);
 }
