@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.270');
+define('MAGPRESS_VERSION', '0.9.271');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -1214,6 +1214,20 @@ function magpress_customize_register($wp_customize) {
     ]);
 
     // Google Discover follow box (homepage + single)
+    // v0.9.271: cate articole similare sub articol (implicit 3; grila se potriveste numarului)
+    $wp_customize->add_setting('magpress_related_count', [
+        'default'           => 3,
+        'sanitize_callback' => function($v) { $v = (int) $v; return in_array($v, [3, 4, 6], true) ? $v : 3; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_related_count', [
+        'label'       => 'Articole similare (sub articol)',
+        'description' => 'Câte articole din aceeași categorie apar sub articol. 3 și 6 = rânduri de câte 3; 4 = un rând de 4 (2+2 pe ecrane mai înguste).',
+        'section'     => 'magpress_layout',
+        'type'        => 'select',
+        'choices'     => [3 => '3 articole', 4 => '4 articole', 6 => '6 articole'],
+    ]);
+
     $wp_customize->add_setting('magpress_show_google_discover', [
         'default'           => 1,
         'sanitize_callback' => function($v) { return $v ? 1 : 0; },

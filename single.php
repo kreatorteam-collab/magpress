@@ -66,8 +66,11 @@ $cats = get_the_category();
   <?php echo magpress_render_post_tags(); // News feature toggle ?>
 
   <?php
-  // Related — 4 articole din aceeasi categorie, excluzand pe asta.
+  // Related — 3/4/6 articole din aceeasi categorie, excluzand pe asta.
   if ($cats):
+    // v0.9.271: numarul vine din Customizer (implicit 3)
+    $mp_rel_n = (int) get_theme_mod('magpress_related_count', 3);
+    if (!in_array($mp_rel_n, [3, 4, 6], true)) $mp_rel_n = 3;
     $cat_ids = wp_list_pluck($cats, 'term_id');
     // v0.9.208: ORDER BY RAND() pe zeci de mii de articole era cel mai scump query
     // al temei si rula la fiecare afisare de articol. Luam ultimele 12 din categorie
@@ -81,7 +84,7 @@ $cats = get_the_category();
     ]);
     if ($related->have_posts()):
       shuffle($related->posts);
-      $related->posts      = array_slice($related->posts, 0, 4);
+      $related->posts      = array_slice($related->posts, 0, $mp_rel_n);
       $related->post_count = count($related->posts);
       ?>
       <section class="related-row">
@@ -90,7 +93,7 @@ $cats = get_the_category();
           set_query_var('section_url', get_category_link($cats[0]));
           get_template_part('template-parts/section-header');
         ?>
-        <div class="card-grid">
+        <div class="card-grid <?php echo $mp_rel_n === 4 ? 'card-grid--related4' : 'card-grid--3 card-grid--related3'; ?>">
           <?php while ($related->have_posts()): $related->the_post();
             get_template_part('template-parts/card');
           endwhile; ?>
