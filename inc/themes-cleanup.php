@@ -163,7 +163,8 @@ function magpress_rest_themes(WP_REST_Request $request) {
 
     if ($action === 'delete') {
         if (is_multisite()) {
-            return new WP_REST_Response(['ok' => false, 'error' => 'multisite'], 400);
+            // 200 + error: app-ul (FleetWriter) afișează `message` doar la HTTP 200.
+            return new WP_REST_Response(['ok' => false, 'error' => 'multisite', 'message' => 'multisite — temele nu se șterg de aici (pot fi active pe alte site-uri din rețea)'], 200);
         }
         $only = isset($data['only']) && is_array($data['only']) ? $data['only'] : null;
         list($deleted, $failed, $skipped) = magpress_tc_delete((array) ($data['keep'] ?? []), $only, !empty($data['purge_mods']));
