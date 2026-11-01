@@ -320,6 +320,9 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 @media (min-width:1100px){.card-grid{grid-template-columns:repeat(4,1fr)}}
 /* Arhive (categorie, etichetă, autor, dată): 3 coloane, 9 articole = 3 rânduri pline */
 @media (min-width:1100px){.card-grid--3{grid-template-columns:repeat(3,1fr)}}
+/* v0.9.271: articole similare — 3/6 = randuri de 3 (de la 640px), 4 = 2+2 apoi 4 pe rand */
+@media (min-width:640px){.card-grid--related3{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:900px) and (max-width:1099.98px){.card-grid--related4{grid-template-columns:repeat(2,1fr)}}
 
 .category-row,
 .related-row{margin:2.5rem 0}
@@ -758,6 +761,16 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
 /* In coloana principala, grilele de carduri se adapteaza la latimea coloanei, nu a ecranului */
 .mp-layout__main .card-grid,
 .mp-layout__main .card-grid--3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+/* v0.9.271: articole similare in coloana de langa sidebar: 3 -> 3 pe rand, 4 -> 2+2 apoi 4
+   (coloana are >=580px de la 640px ecran si >=840px de la 1300px). Fara container queries:
+   ar crea containing block pentru elementele position:fixed din articol. */
+@media (min-width:640px){
+  .mp-layout__main .card-grid--related3{grid-template-columns:repeat(3,1fr)}
+  .mp-layout__main .card-grid--related4{grid-template-columns:repeat(2,1fr)}
+}
+@media (min-width:1300px){
+  .mp-layout__main .card-grid--related4{grid-template-columns:repeat(4,1fr)}
+}
 .mp-layout__main .related-row,
 .mp-layout__main .article-comments{max-width:none}
 .site-sidebar{min-width:0;font-size:.95rem}
