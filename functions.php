@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.274');
+define('MAGPRESS_VERSION', '0.9.275');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3432,9 +3432,15 @@ function magpress_render_ad_html($html, $context = 'homepage') {
     // Scriptul loader e emis global în <head>; push() se face din IO callback cu safety checks.
     if (preg_match('/(<ins\b[^>]*\badsbygoogle\b[^>]*(?:\/>|>.*?<\/ins>))/is', $html, $m)) {
         $ins_tag = $m[1];
-        return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '">'
-             . $ins_tag
-             . '</div>';
+        // v0.9.275: <ins>-ul NU mai sta in pagina pana la activare (sta in data-ad-ins si e
+        // inserat de JS chiar inainte de push). push({}) umple PRIMUL <ins> neprocesat din
+        // pagina, deci un cod AdSense brut (widget, bloc HTML, alt plugin) cu push() inline
+        // „fura” <ins>-ul unui slot lazy de mai sus, iar slotul lui ramanea gol pentru totdeauna.
+        $client = preg_match('/data-ad-client=["\'](ca-pub-\d+)["\']/', $ins_tag, $cm) ? $cm[1] : '';
+        return '<div class="ad-slot ad-slot--lazy-push ad-slot--' . esc_attr($context) . '"'
+             . ' data-ad-ins="' . esc_attr($ins_tag) . '"'
+             . ($client !== '' ? ' data-ad-client="' . esc_attr($client) . '"' : '')
+             . '></div>';
     }
 
     // Fallback: cod custom (banner image, etc.) — lazy total prin data-ad-html (păstrat din versiunea veche)
@@ -3778,7 +3784,8 @@ function magpress_adsense_loader_guard() {
 <script id="magpress-ad-guard" data-no-optimize="1" data-no-defer="1" data-cfasync="false">
 (function(){
   if (document.querySelector('script[src*="adsbygoogle.js"]')) return; // deja încărcat
-  var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"]');
+  // v0.9.275: sloturile lazy tin <ins>-ul in data-ad-ins pana la activare -> client-ul e si pe slot
+  var firstIns = document.querySelector('ins.adsbygoogle[data-ad-client^="ca-pub-"], .ad-slot[data-ad-client^="ca-pub-"]');
   if (!firstIns) return;
   var client = firstIns.getAttribute('data-ad-client');
   if (!/^ca-pub-\d+$/.test(client)) return;
@@ -3940,6 +3947,15 @@ function magpress_adsense_lazy_script() {
 
   function activatePushSlot(slot){
     var ins = slot.querySelector('ins.adsbygoogle');
+    // v0.9.275: <ins>-ul vine din data-ad-ins si intra in pagina abia acum, ca push({})
+    // sa-l gaseasca pe EL (vezi magpress_render_ad_html).
+    if (!ins && slot.getAttribute('data-ad-ins')){
+      var t = document.createElement('div');
+      t.innerHTML = slot.getAttribute('data-ad-ins');
+      ins = t.querySelector('ins.adsbygoogle');
+      if (ins) slot.appendChild(ins);
+      slot.removeAttribute('data-ad-ins');
+    }
     // pending INAINTE de a scoate lazy-push, ca rezerva de 280px sa nu clipeasca la 0.
     slot.classList.add('ad-slot--loaded', 'ad-slot--pending');
     slot.classList.remove('ad-slot--lazy-push');
