@@ -6056,13 +6056,13 @@ function magpress_theme_update_info($result, $action, $args) {
         'name'         => $info['name']    ?? 'Magpress',
         'slug'         => get_stylesheet(),
         'version'      => $info['version'] ?? '',
-        'author'       => '<a href="https://seodigital.ro">SEO Digital</a>',
+        'author'       => 'Magpress',
         'requires'     => $info['requires']     ?? '6.0',
         'tested'       => $info['tested']       ?? '6.7',
         'requires_php' => $info['requires_php'] ?? '8.0',
         'download_link'=> $info['package']      ?? '',
         'sections'     => [
-            'description' => 'Tema WordPress magazine ultra-performantă pentru rețeaua de site-uri SEO Digital.',
+            'description' => 'Tema WordPress magazine ultra-performantă pentru rețeaua de site-uri Magpress.',
             'changelog'   => '<p>Vezi <a href="' . esc_url($info['changelog_url'] ?? 'https://github.com/kreatorteam-collab/magpress/commits/main') . '" target="_blank">istoricul commit-urilor pe GitHub</a>.</p>',
         ],
     ];
