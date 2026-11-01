@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.268');
+define('MAGPRESS_VERSION', '0.9.269');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -3450,6 +3450,7 @@ function magpress_litespeed_fleet_tune() {
         '_mgq', 'mgid.com', 'adskeeper',      // MGID / AdsKeeper (coada _mgq + loader)
         'magpress-adsense-lazy',              // scriptul temei care face push() la sloturi
         'magpress-ad-guard',                  // garanția că loader-ul AdSense există
+        'profitshare',                        // v0.9.269: bannere Profitshare (document.write) — defer le golea
     ];
     foreach (['optm-js_exc', 'optm-js_defer_exc'] as $key) {
         $cur = apply_filters('litespeed_conf', $key);
@@ -3673,7 +3674,60 @@ function magpress_adsense_lazy_script() {
   // afișează bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
   // nu se randează când scriptul e încărcat lazy (browserul ignoră document.write
   // după ce pagina s-a parsat). Capturăm output-ul și-l mutăm în slot.
+  // v0.9.269: shim document.write PERMANENT, instalat abia dupa ce pagina s-a parsat
+  // (atunci document.write nativ ar sterge toata pagina, deci nu exista niciun apel
+  // legitim de pastrat). Inainte shim-ul tinea doar cat se incarca scriptul din slot si
+  // insera HTML-ul cu innerHTML => un <script> scris de reclama (ex. profitshare/ai care
+  // incarca alt script) ramanea INERT, iar un document.write venit mai tarziu ajungea la
+  // functia nativa si era ignorat => slot gol. Acum: output-ul se insereaza imediat dupa
+  // scriptul care scrie (document.currentScript), in ordine, iar scripturile din el ruleaza.
+  var dwFallback = null, dwInstalled = false;
+  function cloneScript(o){
+    var n = document.createElement('script');
+    Array.prototype.slice.call(o.attributes).forEach(function(a){ n.setAttribute(a.name, a.value); });
+    n.textContent = o.textContent;
+    n.setAttribute('data-magpress-executed', '1');
+    return n;
+  }
+  function writeHTML(s){
+    var cs = document.currentScript;
+    var parent = (cs && cs.parentNode) || dwFallback || document.body;
+    var after = (cs && cs.parentNode === parent) ? (cs.__mpLast && cs.__mpLast.parentNode === parent ? cs.__mpLast : cs) : null;
+    var holder = document.createElement('div');
+    holder.innerHTML = String(s);
+    var added = [];
+    while (holder.firstChild){
+      var n = holder.firstChild;
+      parent.insertBefore(n, after ? after.nextSibling : null);
+      if (after) after = n;
+      added.push(n);
+    }
+    if (cs && after) cs.__mpLast = after;
+    added.forEach(function(n){
+      var list = n.nodeName === 'SCRIPT' ? [n] : (n.querySelectorAll ? Array.prototype.slice.call(n.querySelectorAll('script')) : []);
+      list.forEach(function(o){
+        if (!o.parentNode) return;
+        var c = cloneScript(o);
+        // ultimul nod scris poate fi chiar scriptul inlocuit: urmatoarea scriere vine dupa clona
+        if (cs && cs.__mpLast === o) cs.__mpLast = c;
+        o.parentNode.replaceChild(c, o);
+        // scriptul inline a rulat deja si poate a scris si el: continuam dupa output-ul lui
+        if (cs && cs.__mpLast === c && c.__mpLast && c.__mpLast.parentNode) cs.__mpLast = c.__mpLast;
+      });
+    });
+  }
+  function installWriteShim(){
+    if (dwInstalled) return;
+    dwInstalled = true;
+    document.write = function(){ writeHTML(Array.prototype.join.call(arguments, '')); };
+    document.writeln = function(){ writeHTML(Array.prototype.join.call(arguments, '') + '\n'); };
+  }
+
+  // Injectează HTML custom + execută scripturile (în ordine; următorul după ce s-a
+  // încărcat cel extern dinainte). Suportă reclame cu document.write (vezi mai sus).
   function executeScripts(container, html, done){
+    installWriteShim();
+    dwFallback = container;
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
     // Mută TOATE nodurile copil în container, păstrând structura (div-urile wrapper rămân).
@@ -3688,35 +3742,15 @@ function magpress_adsense_lazy_script() {
     function runNext(i){
       if (i >= scripts.length) { if (done) done(); return; }
       var oldS = scripts[i];
-      var newS = document.createElement('script');
-      Array.prototype.slice.call(oldS.attributes).forEach(function(a){ newS.setAttribute(a.name, a.value); });
-      newS.textContent = oldS.textContent;
-      newS.setAttribute('data-magpress-executed', '1');
-
+      var newS = cloneScript(oldS);
       var parent = oldS.parentNode || container;
-
-      // Shim document.write: inserăm SINCRON output-ul în parent-ul scriptului
-      // (ex: profitshare face document.write(<div id=...>) și imediat după
-      // document.getElementById(id) — dacă nu inserăm pe loc, găsesc null).
-      var origWrite = document.write, origWriteln = document.writeln;
-      document.write = document.writeln = function(s){
-        var holder = document.createElement('div');
-        holder.innerHTML = s;
-        while (holder.firstChild) parent.appendChild(holder.firstChild);
-      };
-      function finish(){
-        document.write = origWrite;
-        document.writeln = origWriteln;
-        runNext(i + 1);
-      }
-
+      dwFallback = parent;
       if (newS.src){
-        newS.onload = finish;
-        newS.onerror = finish;
+        newS.onload = newS.onerror = function(){ runNext(i + 1); };
         parent.replaceChild(newS, oldS);
       } else {
         parent.replaceChild(newS, oldS);
-        finish();
+        runNext(i + 1);
       }
     }
     runNext(0);
@@ -3824,6 +3858,12 @@ function magpress_adsense_lazy_script() {
   }
 
   function activateFullSlot(slot){
+    // Shim-ul document.write se instaleaza doar dupa parsare (vezi installWriteShim).
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){ activateFullSlot(slot); }, {once:true});
+      return;
+    }
+    if (slot.classList.contains('ad-slot--loaded')) return;
     // Slot fără <ins> (banner custom HTML/img) — inject totul
     var html = slot.dataset.adHtml || '';
     var ph = slot.querySelector('.ad-slot__placeholder');
