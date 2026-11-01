@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.275');
+define('MAGPRESS_VERSION', '0.9.276');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -793,6 +793,30 @@ function magpress_widget_adsense($html) {
 }
 add_filter('widget_custom_html_content', 'magpress_widget_adsense', 100);
 add_filter('widget_block_content', 'magpress_widget_adsense', 100);
+
+/**
+ * v0.9.276: AdSense lipit DIRECT în articol (bloc HTML) trece și el prin sistemul temei.
+ * Altfel: loader-ul se încarcă a doua oară, iar dacă autorul nu e administrator WordPress
+ * îi șterge <script>-ul (kses) și rămâne un <ins> fără push() — un <ins> „orfan” pe care
+ * următorul push() al oricărui slot îl umple în locul slotului propriu (push({}) umple
+ * PRIMUL <ins> neprocesat din pagină). Fiecare <ins> (+ loader-ul și push-ul de lângă el)
+ * devine un slot lazy normal.
+ */
+function magpress_content_adsense($html) {
+    if (!is_string($html) || stripos($html, 'adsbygoogle') === false) return $html;
+    if (is_admin() || is_feed() || (defined('REST_REQUEST') && REST_REQUEST)) return $html;
+    // Fara lazy, sloturile temei pun <ins> brut in continut -> nu le mai infasuram o data.
+    if (!magpress_is_adsense_lazy_enabled()) return $html;
+    return preg_replace_callback(
+        '#(?:<script\b[^>]*\bsrc=["\'][^"\']*adsbygoogle\.js[^"\']*["\'][^>]*>\s*</script>\s*)?'
+        . '(?:<!--(?:(?!-->).)*-->\s*)?'
+        . '<ins\b[^>]*\badsbygoogle\b[^>]*>.*?</ins>'
+        . '(?:\s*<script\b[^>]*>\s*\(\s*adsbygoogle\s*=\s*window\.adsbygoogle\s*\|\|\s*\[\s*\]\s*\)\.push\(\s*\{\s*\}\s*\)\s*;?\s*</script>)?#is',
+        function ($m) { return magpress_render_ad_html($m[0], 'in-content'); },
+        $html
+    );
+}
+add_filter('the_content', 'magpress_content_adsense', 98);
 
 /** Închide coloana principală, afișează sidebarul și închide grila. */
 function magpress_layout_close() {
