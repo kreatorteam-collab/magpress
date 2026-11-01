@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.266');
+define('MAGPRESS_VERSION', '0.9.268');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -671,6 +671,9 @@ function magpress_layout_open() {
     $pos = magpress_sidebar_position();
     if ($pos === '') return;
     $cls = ['mp-layout', 'mp-layout--sidebar-' . $pos];
+    // Articol / pagina: textul are max 1000px; grila se strange la 1000 + spatiu + sidebar si
+    // se centreaza, ca marginea din dreapta a sidebarului = marginea din stanga a articolului.
+    if (in_array(magpress_sidebar_context(), ['single', 'page'], true)) $cls[] = 'mp-layout--narrow';
     if (get_theme_mod('magpress_sidebar_sticky', 1)) $cls[] = 'mp-layout--sticky';
     if (get_theme_mod('magpress_sidebar_mobile', 'below') === 'hide') $cls[] = 'mp-layout--hide-mobile';
     echo '<div class="' . esc_attr(implode(' ', $cls)) . '"><div class="mp-layout__main">';
@@ -3670,7 +3673,7 @@ function magpress_adsense_lazy_script() {
   // afișează bannerul prin document.write() (ex: profitshare.ro/ai), care altfel
   // nu se randează când scriptul e încărcat lazy (browserul ignoră document.write
   // după ce pagina s-a parsat). Capturăm output-ul și-l mutăm în slot.
-  function executeScripts(container, html){
+  function executeScripts(container, html, done){
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
     // Mută TOATE nodurile copil în container, păstrând structura (div-urile wrapper rămân).
@@ -3683,7 +3686,7 @@ function magpress_adsense_lazy_script() {
     var scripts = Array.prototype.slice.call(container.querySelectorAll('script:not([data-magpress-executed])'));
 
     function runNext(i){
-      if (i >= scripts.length) return;
+      if (i >= scripts.length) { if (done) done(); return; }
       var oldS = scripts[i];
       var newS = document.createElement('script');
       Array.prototype.slice.call(oldS.attributes).forEach(function(a){ newS.setAttribute(a.name, a.value); });
@@ -3825,10 +3828,17 @@ function magpress_adsense_lazy_script() {
     var html = slot.dataset.adHtml || '';
     var ph = slot.querySelector('.ad-slot__placeholder');
     if (ph) ph.remove();
-    executeScripts(slot, html);
+    // v0.9.268: scriptul extern (ex. profitshare) deseneaza bannerul abia DUPA ce se
+    // descarca, deci scalarea trebuie refacuta dupa ce ruleaza scripturile + cand apare
+    // bannerul in DOM (altfel un 728x90 iesea din sidebarul de 300px).
+    executeScripts(slot, html, function(){ fitFixedAd(slot); });
     slot.classList.remove('ad-slot--lazy-full');
     slot.classList.add('ad-slot--loaded');
-    fitFixedAd(slot);
+    if (!fitFixedAd(slot) && window.MutationObserver){
+      var fitMo = new MutationObserver(function(){ if (fitFixedAd(slot)) fitMo.disconnect(); });
+      fitMo.observe(slot, {childList:true, subtree:true});
+      setTimeout(function(){ fitMo.disconnect(); }, 15000);
+    }
   }
 
   function activate(slot){
@@ -3871,6 +3881,47 @@ function magpress_adsense_lazy_script() {
     <?php
 }
 add_action('wp_footer', 'magpress_adsense_lazy_script', 5);
+
+/* =====================================================================
+ * v0.9.268 — BANNERE PROFITSHARE DIN WIDGET-URI ȘI DIN ARTICOL, ÎNCĂRCATE LENEȘ.
+ * Codul Profitshare (<script src="//app.profitshare.ro/ai/ID">) e un script
+ * SINCRON care desenează bannerul cu document.write(): pus ca atare într-un widget
+ * (sidebar/footer) sau într-un bloc HTML din articol, oprește randarea paginii până
+ * răspunde serverul lor (TBT/LCP mai proaste), iar dacă LiteSpeed îl amână
+ * (defer/delay JS), document.write nu mai merge și bannerul dispare.
+ * Acum fiecare astfel de script devine un slot lazy (ca reclamele din Customizer):
+ * se încarcă când ajunge la ~600px de ecran, cu shim pentru document.write, și se
+ * scalează dacă e mai lat decât coloana (ex. 728x90 în sidebarul de 300px).
+ * Scriptul NU îl copiem local: alege bannerul și numără afișările/click-urile la
+ * fiecare cerere — o copie din cache ar strica rotația și comisioanele.
+ * ===================================================================== */
+function magpress_lazy_profitshare($html) {
+    if (!is_string($html) || stripos($html, 'profitshare') === false) return $html;
+    if (is_admin() || is_feed() || (defined('REST_REQUEST') && REST_REQUEST)) return $html;
+    if (!magpress_is_adsense_lazy_enabled()) return $html;
+    return preg_replace_callback(
+        '#<script\b[^>]*\bsrc=["\'](?:https?:)?//(?:[a-z0-9-]+\.)*profitshare\.ro/[^"\']*["\'][^>]*>\s*</script>#i',
+        function ($m) { return magpress_render_ad_html($m[0], 'widget'); },
+        $html
+    );
+}
+add_filter('widget_block_content', 'magpress_lazy_profitshare', 99);
+add_filter('widget_custom_html_content', 'magpress_lazy_profitshare', 99);
+add_filter('widget_text', 'magpress_lazy_profitshare', 99);
+add_filter('the_content', 'magpress_lazy_profitshare', 99);
+
+// DNS-ul pentru Profitshare se rezolvă din timp (ieftin, fără avertisment Lighthouse),
+// doar dacă există bannere Profitshare în widget-uri sau în reclamele din Customizer.
+add_filter('wp_resource_hints', function ($urls, $relation_type) {
+    if ($relation_type !== 'dns-prefetch' || is_admin()) return $urls;
+    static $has = null;
+    if ($has === null) {
+        $blob = serialize([get_option('widget_block'), get_option('widget_custom_html'), get_option('widget_text'), get_theme_mods()]);
+        $has = stripos($blob, 'profitshare.ro') !== false;
+    }
+    if ($has) $urls[] = '//app.profitshare.ro';
+    return $urls;
+}, 10, 2);
 
 /**
  * Lightbox pentru imagini din articol (.entry-content) — auto-detectează imaginile

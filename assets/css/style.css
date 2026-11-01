@@ -420,6 +420,14 @@ ul,ol{padding-left:1.25em;margin:0 0 1em}
 .ad-slot:has(ins.adsbygoogle[data-ad-status="unfilled"]){min-height:0;margin:0}
 .ad-slot:has(ins.adsbygoogle[data-ad-status="unfilled"]) ins.adsbygoogle{min-height:0}
 .ad-slot--loaded{min-height:0}
+/* v0.9.268: bannere din widget-uri (Profitshare lazy) - fara marginile mari din articol,
+   spatiu rezervat 250px (bannerul tipic de sidebar 300x250) ca sa nu sara pagina */
+.site-sidebar .ad-slot,
+.footer-col .ad-slot{margin:0 auto;max-width:100%;overflow:hidden}
+.site-sidebar .ad-slot--lazy-full,
+.footer-col .ad-slot--lazy-full{min-height:250px}
+.site-sidebar .ad-slot--lazy-full .ad-slot__placeholder,
+.footer-col .ad-slot--lazy-full .ad-slot__placeholder{height:250px}
 /* Hide slot-urile unfilled (oficial Google) — evită spațiu gol când AdSense nu returnează ad.
    Min-height stă pe .ad-slot (wrapper), nu pe <ins>, ca să eviți CLS dar permiți colaps cand unfilled. */
 ins.adsbygoogle[data-ad-status="unfilled"]{display:none!important}
@@ -743,6 +751,10 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
 /* ===================== SIDEBAR (v0.9.266, optional din Customizer) ===================== */
 .mp-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:start}
 .mp-layout__main{min-width:0}
+/* v0.9.267: sidebarul incepe la aceeasi inaltime cu firimiturile / titlul arhivei (ambele au margin-top 1rem) */
+.mp-layout > .site-sidebar{margin-top:1rem}
+/* Articol / pagina: 1000px text + spatiu + sidebar, centrat => margini egale stanga/dreapta */
+.mp-layout--narrow{max-width:calc(1000px + 2.5rem + 300px);margin-left:auto;margin-right:auto}
 /* In coloana principala, grilele de carduri se adapteaza la latimea coloanei, nu a ecranului */
 .mp-layout__main .card-grid,
 .mp-layout__main .card-grid--3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
@@ -775,9 +787,9 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
   .mp-layout--sidebar-left .mp-layout__main{grid-column:2;grid-row:1}
   .mp-layout--sticky .site-sidebar{align-self:stretch}
   .mp-layout--sticky .site-sidebar__inner{position:sticky;top:1.5rem}
-  .has-sticky-header .mp-layout--sticky .site-sidebar__inner{top:6.5rem}
+  .has-sticky-header .mp-layout--sticky .site-sidebar__inner{top:6rem}
   .admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(1.5rem + 32px)}
-  .has-sticky-header.admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(6.5rem + 32px)}
+  .has-sticky-header.admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(6rem + 32px)}
 }
 @media (min-width:1024px) and (max-width:1199.98px){
   .mp-layout{gap:1.75rem}
