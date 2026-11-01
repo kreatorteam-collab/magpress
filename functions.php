@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.279');
+define('MAGPRESS_VERSION', '0.9.280');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -23,6 +23,8 @@ define('MAGPRESS_URI', get_template_directory_uri());
 require_once MAGPRESS_DIR . '/inc/ai-act.php';
 // v0.9.276 — scanare „SEO Digital” (text + linkuri seodigital.ro / advertoriale); v0.9.277 — termeni custom + rel sponsored/nofollow (bulk); v0.9.278 — înlocuire link vechi → nou; v0.9.279 — termeni separați pentru URL și ancoră.
 require_once MAGPRESS_DIR . '/inc/brand-scan.php';
+// v0.9.280 — teme inactive: listare + ștergere din app.targetseo.ro (magpress/v1/themes).
+require_once MAGPRESS_DIR . '/inc/themes-cleanup.php';
 
 /**
  * Setup tema.
