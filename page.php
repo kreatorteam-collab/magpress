@@ -8,6 +8,7 @@ the_post();
 ?>
 
 <div class="container site-content">
+<?php magpress_layout_open(); ?>
 
   <header class="article-hero">
     <?php magpress_breadcrumbs(); ?>
@@ -26,6 +27,7 @@ the_post();
     </section>
   <?php endif; ?>
 
+<?php magpress_layout_close(); ?>
 </div>
 
 <?php get_footer();

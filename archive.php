@@ -7,6 +7,7 @@ get_header();
 ?>
 
 <div class="container site-content">
+<?php magpress_layout_open(); ?>
 
   <header class="archive-header">
     <?php magpress_breadcrumbs(); ?>
@@ -51,6 +52,7 @@ get_header();
     <p class="no-results">Nu există articole în această categorie.</p>
   <?php endif; ?>
 
+<?php magpress_layout_close(); ?>
 </div>
 
 <?php get_footer();

@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.265');
+define('MAGPRESS_VERSION', '0.9.266');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -623,6 +623,67 @@ function magpress_register_sidebars() {
 }
 add_action('widgets_init', 'magpress_register_sidebars');
 
+/* =====================================================================
+ * v0.9.266 — SIDEBAR OPȚIONAL, pe tipul de pagină ales.
+ * Customizer → „Magpress: Sidebar”: pentru homepage / articole / pagini /
+ * categorii (+ arhive, căutare) alegi Fără / Dreapta / Stânga. Conținutul se
+ * pune din Aspect → Widget-uri → „Sidebar”. Implicit peste tot „Fără”, deci
+ * pe site-urile unde nu se setează nimic, nu se schimbă nimic.
+ * Responsive: sub 1024px sidebarul coboară sub conținut (sau se ascunde).
+ * ===================================================================== */
+function magpress_register_main_sidebar() {
+    register_sidebar([
+        'name'          => __('Sidebar', 'magpress'),
+        'id'            => 'sidebar-main',
+        'description'   => __('Coloana laterală. Unde apare (homepage, articole, pagini, categorii) și în ce parte se alege din Customizer → Magpress: Sidebar.', 'magpress'),
+        'before_widget' => '<section class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h3 class="widget-title">',
+        'after_title'   => '</h3>',
+    ]);
+}
+add_action('widgets_init', 'magpress_register_main_sidebar');
+
+/** Tipul paginii curente pentru sidebar: home | single | page | archive | ''. */
+function magpress_sidebar_context() {
+    if (is_front_page())       return 'home';
+    if (is_singular('post'))   return 'single';
+    if (is_page())             return 'page';
+    if (is_archive() || is_search() || is_home()) return 'archive';
+    return '';
+}
+
+/** 'left' | 'right' | '' (fără sidebar pe pagina curentă). */
+function magpress_sidebar_position() {
+    static $pos = null;
+    if ($pos !== null) return $pos;
+    $ctx = magpress_sidebar_context();
+    if ($ctx === '') return $pos = '';
+    $v = get_theme_mod('magpress_sidebar_' . $ctx, 'none');
+    if (!in_array($v, ['left', 'right'], true)) return $pos = '';
+    // Fără widget-uri în zonă => nu rezervăm o coloană goală.
+    if (!is_active_sidebar('sidebar-main')) return $pos = '';
+    return $pos = $v;
+}
+
+/** Deschide grila conținut + sidebar (apelat în template, imediat după .container). */
+function magpress_layout_open() {
+    $pos = magpress_sidebar_position();
+    if ($pos === '') return;
+    $cls = ['mp-layout', 'mp-layout--sidebar-' . $pos];
+    if (get_theme_mod('magpress_sidebar_sticky', 1)) $cls[] = 'mp-layout--sticky';
+    if (get_theme_mod('magpress_sidebar_mobile', 'below') === 'hide') $cls[] = 'mp-layout--hide-mobile';
+    echo '<div class="' . esc_attr(implode(' ', $cls)) . '"><div class="mp-layout__main">';
+}
+
+/** Închide coloana principală, afișează sidebarul și închide grila. */
+function magpress_layout_close() {
+    if (magpress_sidebar_position() === '') return;
+    echo '</div><aside class="site-sidebar" aria-label="' . esc_attr__('Sidebar', 'magpress') . '"><div class="site-sidebar__inner">';
+    dynamic_sidebar('sidebar-main');
+    echo '</div></aside></div>';
+}
+
 /**
  * Citeste configul per-site (culori, branding, categorii homepage).
  * Path: /wp-content/themes/magpress-config/site-config.json
@@ -1061,6 +1122,58 @@ add_action('customize_controls_print_footer_scripts', 'magpress_customize_contro
  * Customizer: secțiune Magpress cu culori + layout header.
  */
 function magpress_customize_register($wp_customize) {
+
+    // ---------- Sectiune: Sidebar (v0.9.266) ----------
+    $wp_customize->add_section('magpress_sidebar', [
+        'title'       => 'Magpress: Sidebar',
+        'priority'    => 26,
+        'description' => 'Alege pe ce pagini apare coloana laterală și în ce parte. Ce conține se setează din Aspect → Widget-uri → „Sidebar” (dacă zona n-are widget-uri, sidebarul nu apare deloc). Pe ecrane sub 1024px (tabletă, mobil) sidebarul coboară sub conținut.',
+    ]);
+    $mp_sb_choices = ['none' => 'Fără sidebar', 'right' => 'Sidebar în dreapta', 'left' => 'Sidebar în stânga'];
+    $mp_sb_sanitize = function($v) { return in_array($v, ['none', 'left', 'right'], true) ? $v : 'none'; };
+    foreach ([
+        'single'  => 'Articole',
+        'archive' => 'Categorii, etichete, autori, căutare',
+        'page'    => 'Pagini statice (Despre, Contact etc.)',
+        'home'    => 'Homepage',
+    ] as $mp_sb_ctx => $mp_sb_label) {
+        $wp_customize->add_setting('magpress_sidebar_' . $mp_sb_ctx, [
+            'default'           => 'none',
+            'sanitize_callback' => $mp_sb_sanitize,
+            'transport'         => 'refresh',
+        ]);
+        $wp_customize->add_control('magpress_sidebar_' . $mp_sb_ctx, [
+            'label'   => $mp_sb_label,
+            'section' => 'magpress_sidebar',
+            'type'    => 'select',
+            'choices' => $mp_sb_choices,
+        ]);
+    }
+    $wp_customize->add_setting('magpress_sidebar_sticky', [
+        'default'           => 1,
+        'sanitize_callback' => function($v) { return $v ? 1 : 0; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_sidebar_sticky', [
+        'label'       => 'Sidebar fix la derulare (desktop)',
+        'description' => 'Sidebarul rămâne vizibil cât timp cititorul derulează conținutul (dacă e mai scurt decât ecranul).',
+        'section'     => 'magpress_sidebar',
+        'type'        => 'checkbox',
+    ]);
+    $wp_customize->add_setting('magpress_sidebar_mobile', [
+        'default'           => 'below',
+        'sanitize_callback' => function($v) { return in_array($v, ['below', 'hide'], true) ? $v : 'below'; },
+        'transport'         => 'refresh',
+    ]);
+    $wp_customize->add_control('magpress_sidebar_mobile', [
+        'label'   => 'Pe tabletă și mobil (sub 1024px)',
+        'section' => 'magpress_sidebar',
+        'type'    => 'radio',
+        'choices' => [
+            'below' => 'Sidebarul apare sub conținut',
+            'hide'  => 'Sidebarul se ascunde',
+        ],
+    ]);
 
     // ---------- Sectiune: Layout ----------
     $wp_customize->add_section('magpress_layout', [

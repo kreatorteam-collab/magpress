@@ -8,6 +8,7 @@ get_header();
 ?>
 
 <div class="container site-content">
+<?php magpress_layout_open(); ?>
 
   <header class="archive-header">
     <h1 class="archive-title"><?php is_home() ? bloginfo('name') : single_post_title(); ?></h1>
@@ -24,6 +25,7 @@ get_header();
     <p>Nu există articole publicate încă.</p>
   <?php endif; ?>
 
+<?php magpress_layout_close(); ?>
 </div>
 
 <?php get_footer();

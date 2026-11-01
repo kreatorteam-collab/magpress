@@ -10,6 +10,7 @@ get_header();
 ?>
 
 <div class="container site-content">
+<?php magpress_layout_open(); ?>
 
   <?php
   // Featured posts — layout din Customizer
@@ -201,6 +202,7 @@ get_header();
 
   <?php echo magpress_render_partners(); ?>
 
+<?php magpress_layout_close(); ?>
 </div>
 
 <?php get_footer();
