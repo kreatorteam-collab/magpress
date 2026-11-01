@@ -26,6 +26,9 @@
  * Scrie direct în DB (fără wp_update_post: fără user, kses ar tăia din conținut), după ce
  * salvează o revizie a articolului (backup). Comentariile și autorii nu se modifică.
  *
+ * v0.9.280 — set_rel: `domains` (rel doar pe linkurile spre acele domenii) + rel „-sponsored”
+ * / „-nofollow” (scoate doar acel cuvânt, restul rel-ului rămâne).
+ *
  * v0.9.279 — termeni separați: `terms` pentru URL-ul linkului, `anchor_terms` pentru ancoră,
  * `match` = any (URL SAU ancoră) | both (URL ȘI ancoră, în același link). Text și titlu/slug: toți.
  *
@@ -161,8 +164,35 @@ function magpress_bs_anchor_kind($anchor_html) {
     return '';
 }
 
+/** Domeniul unui link (fără www., litere mici); '' pentru linkuri relative. */
+function magpress_bs_host($href) {
+    $h = strtolower(trim(html_entity_decode((string) $href, ENT_QUOTES, 'UTF-8')));
+    if (!preg_match('~^(?:https?:)?//([^/?#:]+)~', $h, $m)) return '';
+    return preg_replace('~^www\.~', '', $m[1]);
+}
+
+/**
+ * v0.9.280: limitare la domenii (doar pentru set_rel) — rel-ul se pune DOAR pe linkurile
+ * spre aceste domenii (ex. seodigital.ro), chiar dacă textul căutat apare și în alte URL-uri
+ * (ex. psk.ro/advertoriale/). [] = fără limitare.
+ */
+function magpress_bs_domains($set = null) {
+    static $d = [];
+    if ($set !== null) {
+        $d = [];
+        foreach ((array) $set as $x) {
+            $x = magpress_bs_host('//' . preg_replace('~^(?:https?:)?//~i', '', trim((string) $x)));
+            if ($x !== '') $d[] = $x;
+        }
+        $d = array_values(array_unique($d));
+    }
+    return $d;
+}
+
 /** Tipul unui link: după URL, apoi după ancoră; în modul „both” trebuie să se potrivească amândouă. */
 function magpress_bs_link_kind($href, $anchor_html) {
+    $doms = magpress_bs_domains();
+    if ($doms && !in_array(magpress_bs_host($href), $doms, true)) return '';
     $c = magpress_bs_search();
     $k = magpress_bs_url_kind($href);
     if ($c['mode'] === 'both' && $c['url'] && $c['anchor']) {
@@ -530,12 +560,17 @@ function magpress_bs_scan($max_items = MAGPRESS_BS_MAX_ITEMS) {
 // rel sponsored / nofollow pe linkurile găsite
 // =========================================================================
 
-/** Noua valoare a atributului rel. $rel: sponsored | nofollow | sponsored nofollow | dofollow (scoate). */
+/**
+ * Noua valoare a atributului rel. $rel: sponsored | nofollow | sponsored nofollow |
+ * dofollow (scoate nofollow, sponsored, ugc) | -sponsored (scoate doar sponsored) | -nofollow (scoate doar nofollow).
+ */
 function magpress_bs_rel_value($existing, $rel) {
     $t = preg_split('~\s+~', strtolower(trim((string) $existing)), -1, PREG_SPLIT_NO_EMPTY);
     $t = array_values(array_diff($t, ['dofollow', 'follow']));
     if ($rel === 'dofollow') {
         $t = array_diff($t, ['nofollow', 'sponsored', 'ugc']);
+    } elseif ($rel === '-sponsored' || $rel === '-nofollow') {
+        $t = array_diff($t, [substr($rel, 1)]);
     } else {
         foreach (explode(' ', $rel) as $x) if (!in_array($x, $t, true)) $t[] = $x;
     }
@@ -601,8 +636,11 @@ function magpress_bs_walk_set_rel($v, array $kinds, $rel, &$n) {
     if (is_array($v)) {
         if (isset($v['url']) && is_string($v['url']) && array_key_exists('nofollow', $v)
             && in_array(magpress_bs_link_kind($v['url'], ''), $kinds, true)) {
-            $want = $rel === 'dofollow' ? '' : 'on';
-            if ((string) $v['nofollow'] !== $want) { $v['nofollow'] = $want; $n++; }
+            // Elementor are doar „nofollow”: -sponsored nu-l atinge
+            if ($rel !== '-sponsored') {
+                $want = ($rel === 'dofollow' || $rel === '-nofollow') ? '' : 'on';
+                if ((string) $v['nofollow'] !== $want) { $v['nofollow'] = $want; $n++; }
+            }
         }
         foreach ($v as $k => $x) {
             if (is_string($x) || is_array($x)) $v[$k] = magpress_bs_walk_set_rel($x, $kinds, $rel, $n);
@@ -882,12 +920,14 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
 
     if ($action === 'set_rel') {
         $rel = (string) ($data['rel'] ?? '');
-        if (!in_array($rel, ['sponsored', 'nofollow', 'sponsored nofollow', 'dofollow'], true)) {
+        if (!in_array($rel, ['sponsored', 'nofollow', 'sponsored nofollow', 'dofollow', '-sponsored', '-nofollow'], true)) {
             return new WP_REST_Response(['ok' => false, 'error' => 'invalid_rel'], 400);
         }
         $targets = isset($data['targets']) && is_array($data['targets']) ? array_map('strval', $data['targets']) : null;
+        magpress_bs_domains((array) ($data['domains'] ?? []));
         list($links, $places, $skipped) = magpress_bs_set_rel($rel, (array) ($data['kinds'] ?? []), $targets);
-        $out['set_rel'] = ['rel' => $rel, 'links' => $links, 'places' => $places, 'skipped' => $skipped];
+        magpress_bs_domains([]); // scanarea din răspuns arată toate rezultatele căutării
+        $out['set_rel'] = ['rel' => $rel, 'links' => $links, 'places' => $places, 'skipped' => $skipped, 'domains' => (array) ($data['domains'] ?? [])];
     } elseif ($action === 'replace_url') {
         $from = trim((string) ($data['from'] ?? ''));
         $to   = esc_url_raw(trim((string) ($data['to'] ?? '')), ['http', 'https']);
