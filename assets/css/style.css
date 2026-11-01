@@ -740,6 +740,56 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
 .wp-block-table.is-style-stripes table tbody tr:nth-child(even) td,
 .wp-block-table.is-style-stripes tbody tr:nth-child(even) td{background:transparent}
 
+/* ===================== SIDEBAR (v0.9.266, optional din Customizer) ===================== */
+.mp-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:start}
+.mp-layout__main{min-width:0}
+/* In coloana principala, grilele de carduri se adapteaza la latimea coloanei, nu a ecranului */
+.mp-layout__main .card-grid,
+.mp-layout__main .card-grid--3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.mp-layout__main .related-row,
+.mp-layout__main .article-comments{max-width:none}
+.site-sidebar{min-width:0;font-size:.95rem}
+.site-sidebar__inner{display:flex;flex-direction:column;gap:1.75rem}
+.site-sidebar .widget{margin:0;min-width:0}
+.site-sidebar .widget-title,
+.site-sidebar .wp-block-heading{font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1rem;padding-bottom:.6rem;border-bottom:2px solid var(--c-accent);line-height:1.3}
+.site-sidebar ul{list-style:none;margin:0;padding:0}
+.site-sidebar li{padding:.55rem 0;border-bottom:1px solid var(--c-border);line-height:1.4}
+.site-sidebar li:last-child{border-bottom:0}
+.site-sidebar a{color:var(--c-text);text-decoration:none}
+.site-sidebar a:hover{color:var(--c-accent)}
+.site-sidebar img{max-width:100%;height:auto;border-radius:var(--radius)}
+.site-sidebar iframe,.site-sidebar ins{max-width:100%}
+.site-sidebar .wp-block-latest-posts__featured-image img{margin-bottom:.4rem}
+.site-sidebar .wp-block-search__inside-wrapper,
+.site-sidebar .search-form{display:flex;gap:.5rem}
+.site-sidebar input[type=search],
+.site-sidebar input[type=text],
+.site-sidebar input[type=email]{flex:1;min-width:0;padding:.55rem .75rem;border:1px solid var(--c-border);border-radius:6px;font:inherit}
+.site-sidebar button,
+.site-sidebar .wp-block-search__button{padding:.55rem .9rem;border:0;border-radius:6px;background:var(--c-accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+@media (min-width:1024px){
+  .mp-layout--sidebar-right{grid-template-columns:minmax(0,1fr) 300px}
+  .mp-layout--sidebar-left{grid-template-columns:300px minmax(0,1fr)}
+  .mp-layout--sidebar-left .site-sidebar{grid-column:1;grid-row:1}
+  .mp-layout--sidebar-left .mp-layout__main{grid-column:2;grid-row:1}
+  .mp-layout--sticky .site-sidebar{align-self:stretch}
+  .mp-layout--sticky .site-sidebar__inner{position:sticky;top:1.5rem}
+  .has-sticky-header .mp-layout--sticky .site-sidebar__inner{top:6.5rem}
+  .admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(1.5rem + 32px)}
+  .has-sticky-header.admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(6.5rem + 32px)}
+}
+@media (min-width:1024px) and (max-width:1199.98px){
+  .mp-layout{gap:1.75rem}
+  .mp-layout--sidebar-right{grid-template-columns:minmax(0,1fr) 260px}
+  .mp-layout--sidebar-left{grid-template-columns:260px minmax(0,1fr)}
+}
+@media (max-width:1023.98px){
+  .mp-layout{gap:2rem}
+  .mp-layout--hide-mobile .site-sidebar{display:none}
+  .site-sidebar{border-top:1px solid var(--c-border);padding-top:1.75rem}
+}
+
 /* Tabele in widget-uri sau alte zone */
 .site-sidebar table,
 .footer-col table{width:100%;font-size:.85rem;margin:.5rem 0}

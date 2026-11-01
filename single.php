@@ -9,6 +9,7 @@ $cats = get_the_category();
 ?>
 
 <div class="container site-content">
+<?php magpress_layout_open(); ?>
 
   <?php /* v0.9.249 — ordinea cerută: firimituri → TITLU → poză → sapou + profil redactor
            (titlul a urcat deasupra pozei; înainte, din v0.9.212, era sub ea). */ ?>
@@ -107,6 +108,7 @@ $cats = get_the_category();
     </section>
   <?php endif; ?>
 
+<?php magpress_layout_close(); ?>
 </div>
 
 <?php get_footer();
