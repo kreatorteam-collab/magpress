@@ -21,7 +21,7 @@ define('MAGPRESS_URI', get_template_directory_uri());
 
 // v0.9.254 — AI Act: iconiță pe imaginile generate cu AI + notă de informare sub articole.
 require_once MAGPRESS_DIR . '/inc/ai-act.php';
-// v0.9.276 — scanare „SEO Digital” (text + linkuri seodigital.ro / advertoriale); v0.9.277 — termeni custom + rel sponsored/nofollow (bulk); v0.9.278 — înlocuire link vechi → nou; v0.9.279 — termeni separați pentru URL și ancoră.
+// v0.9.276 — scanare „SEO Digital” (text + linkuri seodigital.ro / advertoriale); v0.9.277 — termeni custom + rel sponsored/nofollow (bulk); v0.9.278 — înlocuire link vechi → nou; v0.9.279 — termeni separați pentru URL și ancoră; v0.9.280 — rel doar pe domeniile alese + „scoate doar sponsored / nofollow”.
 require_once MAGPRESS_DIR . '/inc/brand-scan.php';
 // v0.9.280 — teme inactive: listare + ștergere din app.targetseo.ro (magpress/v1/themes).
 require_once MAGPRESS_DIR . '/inc/themes-cleanup.php';
