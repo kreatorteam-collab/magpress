@@ -26,6 +26,9 @@
  * Scrie direct în DB (fără wp_update_post: fără user, kses ar tăia din conținut), după ce
  * salvează o revizie a articolului (backup). Comentariile și autorii nu se modifică.
  *
+ * v0.9.279 — termeni separați: `terms` pentru URL-ul linkului, `anchor_terms` pentru ancoră,
+ * `match` = any (URL SAU ancoră) | both (URL ȘI ancoră, în același link). Text și titlu/slug: toți.
+ *
  * v0.9.278 — replace_url: înlocuiește un link vechi cu unul nou (href în conținut, meta /
  * Elementor, meniuri, widget-uri, opțiuni, categorii). Potrivire fără http/https, www și
  * „/” final (ex. https://site.ro/pagina-veche/ = http://www.site.ro/pagina-veche).
@@ -43,18 +46,39 @@ const MAGPRESS_BS_MAX_ITEMS = 400;   // locuri raportate la scanare
 const MAGPRESS_BS_MAX_HITS  = 15;    // potriviri raportate per loc
 const MAGPRESS_BS_LINK_KINDS = ['link_sd_advertoriale', 'link_seodigital', 'link_advertorial', 'link_match', 'anchor_match'];
 
-/** Termenii custom ai cererii curente ([] = căutarea implicită „SEO Digital”). */
-function magpress_bs_terms($set = null) {
-    static $terms = [];
-    if ($set !== null) {
-        $clean = [];
-        foreach ((array) $set as $t) {
-            $t = trim(wp_strip_all_tags((string) $t));
-            if (mb_strlen($t) >= 3 && mb_strlen($t) <= 100) $clean[mb_strtolower($t)] = $t;
-        }
-        $terms = array_slice(array_values($clean), 0, 5);
+/** Max 5 termeni curățați (3-100 caractere). */
+function magpress_bs_clean_terms($set) {
+    $clean = [];
+    foreach ((array) $set as $t) {
+        $t = trim(wp_strip_all_tags((string) $t));
+        if (mb_strlen($t) >= 3 && mb_strlen($t) <= 100) $clean[mb_strtolower($t)] = $t;
     }
-    return $terms;
+    return array_slice(array_values($clean), 0, 5);
+}
+
+/**
+ * Căutarea curentă: termeni pentru URL-ul linkului, termeni pentru ancoră și modul
+ * (any = linkul se potrivește după URL SAU după ancoră; both = după URL ȘI după ancoră).
+ * Fără termeni = căutarea implicită „SEO Digital”.
+ */
+function magpress_bs_search($url = null, $anchor = null, $mode = null) {
+    static $ctx = ['url' => [], 'anchor' => [], 'mode' => 'any'];
+    if ($url !== null)    $ctx['url'] = magpress_bs_clean_terms($url);
+    if ($anchor !== null) $ctx['anchor'] = magpress_bs_clean_terms($anchor);
+    if ($mode !== null)   $ctx['mode'] = $mode === 'both' ? 'both' : 'any';
+    return $ctx;
+}
+
+/**
+ * Toți termenii căutării (URL + ancoră), folosiți pentru filtrul SQL, text și titlu/slug.
+ * Cu $set: aceiași termeni pentru URL și ancoră, mod „oricare” (compatibil cu v0.9.278).
+ */
+function magpress_bs_terms($set = null) {
+    if ($set !== null) magpress_bs_search($set, $set, 'any');
+    $c = magpress_bs_search();
+    $all = [];
+    foreach (array_merge($c['url'], $c['anchor']) as $t) $all[mb_strtolower($t)] = $t;
+    return array_values($all);
 }
 
 /** Fragmente pentru filtrul SQL (LIKE e case-insensitive pe colațiile WP). */
@@ -111,12 +135,11 @@ function magpress_bs_is_seodigital_url($href) {
     return (bool) preg_match('~^(?:https?:)?//(?:www\.)?seo-?digital\.~i', $h);
 }
 
-/** Tipul unui URL ('' = irelevant) — după termenii custom sau regulile implicite. */
+/** Tipul unui URL ('' = irelevant) — după termenii de URL sau regulile implicite. */
 function magpress_bs_url_kind($href) {
     $h = html_entity_decode((string) $href, ENT_QUOTES, 'UTF-8');
-    $terms = magpress_bs_terms();
-    if ($terms) {
-        foreach ($terms as $t) {
+    if (magpress_bs_terms()) {
+        foreach (magpress_bs_search()['url'] as $t) {
             if (mb_stripos($h, $t) !== false) return 'link_match';
         }
         return '';
@@ -129,7 +152,7 @@ function magpress_bs_url_kind($href) {
 
 /** v0.9.278: link găsit după ancoră — textul vizibil al linkului conține un termen custom. */
 function magpress_bs_anchor_kind($anchor_html) {
-    $terms = magpress_bs_terms();
+    $terms = magpress_bs_search()['anchor'];
     if (!$terms) return '';
     $txt = html_entity_decode(wp_strip_all_tags((string) $anchor_html), ENT_QUOTES, 'UTF-8');
     foreach ($terms as $t) {
@@ -138,9 +161,13 @@ function magpress_bs_anchor_kind($anchor_html) {
     return '';
 }
 
-/** Tipul unui link: după URL, apoi după ancoră. */
+/** Tipul unui link: după URL, apoi după ancoră; în modul „both” trebuie să se potrivească amândouă. */
 function magpress_bs_link_kind($href, $anchor_html) {
+    $c = magpress_bs_search();
     $k = magpress_bs_url_kind($href);
+    if ($c['mode'] === 'both' && $c['url'] && $c['anchor']) {
+        return ($k !== '' && magpress_bs_anchor_kind($anchor_html) !== '') ? 'link_match' : '';
+    }
     return $k !== '' ? $k : magpress_bs_anchor_kind($anchor_html);
 }
 
@@ -175,7 +202,11 @@ function magpress_bs_analyze($raw) {
             elseif (preg_match('~\bhref\s*=\s*([^\s>]+)~is', $a[1], $hm)) $href = $hm[1];
             else continue;
             $kind = magpress_bs_link_kind($href, $a[2]);
-            if ($kind === '') continue;
+            if ($kind === '') {
+                // link care nu se potrivește: rămâne doar textul lui (pentru căutarea în text)
+                $rest = str_replace($a[0], ' ' . $a[2] . ' ', $rest);
+                continue;
+            }
             $rel = preg_match('~\brel\s*=\s*(["\'])(.*?)\1~is', $a[1], $rm) ? strtolower(trim($rm[2])) : '';
             $hits[] = [
                 'kind'   => $kind,
@@ -190,13 +221,15 @@ function magpress_bs_analyze($raw) {
     // URL-uri fără <a> (meta _menu_item_url, atribute de bloc/Elementor, text simplu)
     if (preg_match_all('~(?:https?:)?//[^\s"\'<>()\\\\]+~i', $rest, $um)) {
         foreach (array_unique($um[0]) as $u) {
-            $kind = magpress_bs_url_kind($u);
+            $kind = magpress_bs_link_kind($u, '');
             if ($kind === '') continue;
             $hits[] = ['kind' => $kind, 'href' => mb_substr(html_entity_decode($u, ENT_QUOTES, 'UTF-8'), 0, 300), 'anchor' => '', 'rel' => '', 'field_note' => 'URL fără ancoră (meniu / cod / text)'];
             $rest = str_replace($u, ' ', $rest);
         }
     }
 
+    // Text: doar ce se vede (fără tag-uri / atribute HTML).
+    $rest = preg_replace('~<[^>]*>~', ' ', $rest);
     if (preg_match_all(magpress_bs_mention_re(), $rest, $tm, PREG_OFFSET_CAPTURE)) {
         $last = -1000;
         foreach ($tm[0] as $t) {
@@ -483,7 +516,9 @@ function magpress_bs_scan($max_items = MAGPRESS_BS_MAX_ITEMS) {
     }
 
     return [
-        'terms'     => magpress_bs_terms(),
+        'terms'        => magpress_bs_search()['url'],
+        'anchor_terms' => magpress_bs_search()['anchor'],
+        'match'        => magpress_bs_search()['mode'],
         'counts'    => $counts,
         'items'     => $items,
         'truncated' => $truncated,
@@ -565,7 +600,7 @@ function magpress_bs_walk_set_rel($v, array $kinds, $rel, &$n) {
     }
     if (is_array($v)) {
         if (isset($v['url']) && is_string($v['url']) && array_key_exists('nofollow', $v)
-            && in_array(magpress_bs_url_kind($v['url']), $kinds, true)) {
+            && in_array(magpress_bs_link_kind($v['url'], ''), $kinds, true)) {
             $want = $rel === 'dofollow' ? '' : 'on';
             if ((string) $v['nofollow'] !== $want) { $v['nofollow'] = $want; $n++; }
         }
@@ -734,10 +769,10 @@ function magpress_bs_walk_replace_url($v, $from_n, $to, &$n) {
 function magpress_bs_replace_url($from, $to, $targets = null) {
     global $wpdb;
     $from_n = magpress_bs_norm_url($from);
-    $prev_terms = magpress_bs_terms();
+    $prev = magpress_bs_search();
     magpress_bs_terms([$from_n]);
     $scan = magpress_bs_scan(5000);
-    magpress_bs_terms($prev_terms);
+    magpress_bs_search($prev['url'], $prev['anchor'], $prev['mode']);
 
     $links = 0; $places = 0; $elementor = false;
     foreach ($scan['items'] as $it) {
@@ -838,7 +873,10 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
     }
     if (function_exists('set_time_limit')) @set_time_limit(90);
 
-    magpress_bs_terms((array) ($data['terms'] ?? []));
+    // v0.9.279: terms = URL-ul linkului, anchor_terms = ancora, match = any | both.
+    // Fără anchor_terms (app mai vechi): aceiași termeni pentru URL și ancoră.
+    $t_url = (array) ($data['terms'] ?? []);
+    magpress_bs_search($t_url, array_key_exists('anchor_terms', $data) ? (array) $data['anchor_terms'] : $t_url, (string) ($data['match'] ?? 'any'));
     $out = ['ok' => true, 'theme_version' => MAGPRESS_VERSION, 'home' => home_url('/')];
     $action = (string) ($data['action'] ?? 'scan');
 
