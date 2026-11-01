@@ -743,6 +743,10 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
 /* ===================== SIDEBAR (v0.9.266, optional din Customizer) ===================== */
 .mp-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:start}
 .mp-layout__main{min-width:0}
+/* v0.9.267: sidebarul incepe la aceeasi inaltime cu firimiturile / titlul arhivei (ambele au margin-top 1rem) */
+.mp-layout > .site-sidebar{margin-top:1rem}
+/* Articol / pagina: 1000px text + spatiu + sidebar, centrat => margini egale stanga/dreapta */
+.mp-layout--narrow{max-width:calc(1000px + 2.5rem + 300px);margin-left:auto;margin-right:auto}
 /* In coloana principala, grilele de carduri se adapteaza la latimea coloanei, nu a ecranului */
 .mp-layout__main .card-grid,
 .mp-layout__main .card-grid--3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
@@ -775,9 +779,9 @@ figure.wp-block-table table{width:100%;border-collapse:collapse;margin:0;border:
   .mp-layout--sidebar-left .mp-layout__main{grid-column:2;grid-row:1}
   .mp-layout--sticky .site-sidebar{align-self:stretch}
   .mp-layout--sticky .site-sidebar__inner{position:sticky;top:1.5rem}
-  .has-sticky-header .mp-layout--sticky .site-sidebar__inner{top:6.5rem}
+  .has-sticky-header .mp-layout--sticky .site-sidebar__inner{top:6rem}
   .admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(1.5rem + 32px)}
-  .has-sticky-header.admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(6.5rem + 32px)}
+  .has-sticky-header.admin-bar .mp-layout--sticky .site-sidebar__inner{top:calc(6rem + 32px)}
 }
 @media (min-width:1024px) and (max-width:1199.98px){
   .mp-layout{gap:1.75rem}

@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.266');
+define('MAGPRESS_VERSION', '0.9.267');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -671,6 +671,9 @@ function magpress_layout_open() {
     $pos = magpress_sidebar_position();
     if ($pos === '') return;
     $cls = ['mp-layout', 'mp-layout--sidebar-' . $pos];
+    // Articol / pagina: textul are max 1000px; grila se strange la 1000 + spatiu + sidebar si
+    // se centreaza, ca marginea din dreapta a sidebarului = marginea din stanga a articolului.
+    if (in_array(magpress_sidebar_context(), ['single', 'page'], true)) $cls[] = 'mp-layout--narrow';
     if (get_theme_mod('magpress_sidebar_sticky', 1)) $cls[] = 'mp-layout--sticky';
     if (get_theme_mod('magpress_sidebar_mobile', 'below') === 'hide') $cls[] = 'mp-layout--hide-mobile';
     echo '<div class="' . esc_attr(implode(' ', $cls)) . '"><div class="mp-layout__main">';
