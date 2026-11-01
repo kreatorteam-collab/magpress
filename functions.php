@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.271');
+define('MAGPRESS_VERSION', '0.9.274');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -627,9 +627,9 @@ add_action('widgets_init', 'magpress_register_sidebars');
  * v0.9.266 — SIDEBAR OPȚIONAL, pe tipul de pagină ales.
  * Customizer → „Magpress: Sidebar”: pentru homepage / articole / pagini /
  * categorii (+ arhive, căutare) alegi Fără / Dreapta / Stânga. Conținutul se
- * pune din Aspect → Widget-uri → „Sidebar”. v0.9.270: implicit „Dreapta” peste tot;
- * sidebarul apare totuși DOAR dacă zona „Sidebar” are widget-uri, deci pe site-urile
- * fără widget-uri nu se schimbă nimic.
+ * pune din Aspect → Widget-uri → „Sidebar”. v0.9.272: implicit „Dreapta” DOAR pe articole,
+ * „Fără” pe restul (homepage, categorii, pagini). Sidebarul apare totuși DOAR dacă zona
+ * „Sidebar” are widget-uri, deci pe site-urile fără widget-uri nu se schimbă nimic.
  * Responsive: sub 1024px sidebarul coboară sub conținut (sau se ascunde).
  * ===================================================================== */
 function magpress_register_main_sidebar() {
@@ -654,13 +654,18 @@ function magpress_sidebar_context() {
     return '';
 }
 
+/** Implicit: sidebar în dreapta doar pe articole. */
+function magpress_sidebar_default($ctx) {
+    return $ctx === 'single' ? 'right' : 'none';
+}
+
 /** 'left' | 'right' | '' (fără sidebar pe pagina curentă). */
 function magpress_sidebar_position() {
     static $pos = null;
     if ($pos !== null) return $pos;
     $ctx = magpress_sidebar_context();
     if ($ctx === '') return $pos = '';
-    $v = get_theme_mod('magpress_sidebar_' . $ctx, 'right');
+    $v = get_theme_mod('magpress_sidebar_' . $ctx, magpress_sidebar_default($ctx));
     if (!in_array($v, ['left', 'right'], true)) return $pos = '';
     // Fără widget-uri în zonă => nu rezervăm o coloană goală.
     if (!is_active_sidebar('sidebar-main')) return $pos = '';
@@ -1251,7 +1256,7 @@ function magpress_customize_register($wp_customize) {
         'home'    => 'Homepage',
     ] as $mp_sb_ctx => $mp_sb_label) {
         $wp_customize->add_setting('magpress_sidebar_' . $mp_sb_ctx, [
-            'default'           => 'right',
+            'default'           => magpress_sidebar_default($mp_sb_ctx),
             'sanitize_callback' => $mp_sb_sanitize,
             'transport'         => 'refresh',
         ]);
