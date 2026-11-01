@@ -680,6 +680,115 @@ function magpress_layout_open() {
     echo '<div class="' . esc_attr(implode(' ', $cls)) . '"><div class="mp-layout__main">';
 }
 
+/* =====================================================================
+ * v0.9.273 — SIDEBAR PRECOMPLETAT PE FLOTĂ (o singură dată per site).
+ * Pe fiecare site (în afară de lista de excepții) zona „Sidebar” primește:
+ *   1. HTML personalizat „Poate te interesează” — anunțul AdSense vertical
+ *   2. Articole recente
+ *   3. Categorii
+ * NU se atinge un site al cărui Sidebar are deja widget-uri (configurat de mână).
+ * Rulează o singură dată (opțiunea magpress_sidebar_seed_v1); după aceea widget-urile
+ * se pot muta / șterge liber din Aspect → Widget-uri și nu mai revin.
+ * ===================================================================== */
+function magpress_sidebar_seed_excluded_hosts() {
+    return [
+        'gradina-casa.ro', 'revistacasamea.ro', 'amenajaricasa.ro', 'ideicasasigradina.ro',
+        'blogcasaconcept.ro', 'idei-casa.ro', 'blogcasa.ro', 'blogulcasei.ro', 'homme.ro',
+        'idei-practice.ro', 'homelandia.ro', 'sfaturipentrucasa.ro',
+    ];
+}
+
+function magpress_sidebar_seed_ad_code() {
+    return '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6440481690686486"' . "\n"
+         . '     crossorigin="anonymous"></script>' . "\n"
+         . '<!-- Anunț grafic vertical -->' . "\n"
+         . '<ins class="adsbygoogle"' . "\n"
+         . '     style="display:block"' . "\n"
+         . '     data-ad-client="ca-pub-6440481690686486"' . "\n"
+         . '     data-ad-slot="4897833062"' . "\n"
+         . '     data-ad-format="auto"' . "\n"
+         . '     data-full-width-responsive="true"></ins>' . "\n"
+         . '<script>' . "\n"
+         . '     (adsbygoogle = window.adsbygoogle || []).push({});' . "\n"
+         . '</script>';
+}
+
+/** Adaugă o instanță nouă de widget clasic și întoarce id-ul ei (ex. custom_html-3). */
+function magpress_sidebar_seed_add_widget($id_base, array $instance) {
+    $opt = get_option('widget_' . $id_base);
+    if (!is_array($opt)) $opt = [];
+    $nums = array_filter(array_keys($opt), 'is_int');
+    $n = $nums ? max($nums) + 1 : 2;
+    $opt[$n] = $instance;
+    $opt['_multiwidget'] = 1;
+    update_option('widget_' . $id_base, $opt);
+    return $id_base . '-' . $n;
+}
+
+function magpress_sidebar_seed() {
+    if (get_option('magpress_sidebar_seed_v1')) return;
+    if (wp_doing_ajax()) return;
+    if (get_transient('magpress_sidebar_seed_lock')) return;
+    set_transient('magpress_sidebar_seed_lock', 1, MINUTE_IN_SECONDS);
+
+    $host = strtolower(preg_replace('/^www\./i', '', (string) parse_url(home_url(), PHP_URL_HOST)));
+    if (in_array($host, magpress_sidebar_seed_excluded_hosts(), true)) {
+        update_option('magpress_sidebar_seed_v1', 'exceptie', 'no');
+        return;
+    }
+    $sw = get_option('sidebars_widgets');
+    if (!is_array($sw)) $sw = [];
+    if (!empty($sw['sidebar-main'])) {
+        update_option('magpress_sidebar_seed_v1', 'avea_widgeturi', 'no');
+        return;
+    }
+    $sw['sidebar-main'] = [
+        magpress_sidebar_seed_add_widget('custom_html', ['title' => 'Poate te interesează', 'content' => magpress_sidebar_seed_ad_code()]),
+        magpress_sidebar_seed_add_widget('recent-posts', ['title' => 'Articole recente', 'number' => 5, 'show_date' => false]),
+        magpress_sidebar_seed_add_widget('categories', ['title' => 'Categorii', 'count' => 0, 'hierarchical' => 0, 'dropdown' => 0]),
+    ];
+    if (!isset($sw['array_version'])) $sw['array_version'] = 3;
+    update_option('sidebars_widgets', $sw);
+    update_option('magpress_sidebar_seed_v1', 'completat ' . current_time('Y-m-d H:i'), 'no');
+    if (function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
+}
+add_action('wp_loaded', 'magpress_sidebar_seed', 20);
+
+/**
+ * v0.9.273: sidebarul DOAR pe articole, pe toată flota. Setările „dreapta/stânga” salvate
+ * înainte pentru homepage / categorii / pagini se șterg o singură dată (revin la „Fără”).
+ * După asta, cine vrea sidebar și acolo îl poate reactiva din Customizer.
+ */
+function magpress_sidebar_only_single_once() {
+    if (get_option('magpress_sidebar_only_single_v1')) return;
+    if (wp_doing_ajax()) return;
+    $changed = 0;
+    foreach (['home', 'archive', 'page'] as $ctx) {
+        if (get_theme_mod('magpress_sidebar_' . $ctx, null) !== null) {
+            remove_theme_mod('magpress_sidebar_' . $ctx);
+            $changed++;
+        }
+    }
+    update_option('magpress_sidebar_only_single_v1', 'ok ' . $changed, 'no');
+    if ($changed && function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
+}
+add_action('wp_loaded', 'magpress_sidebar_only_single_once', 19);
+
+/**
+ * v0.9.273: AdSense pus într-un widget (HTML personalizat / bloc HTML) trece prin același
+ * sistem ca reclamele din Customizer: loader-ul nu se mai repetă (e deja în <head>, o
+ * singură dată), push() se face când slotul ajunge aproape de ecran, cu spațiu rezervat.
+ */
+function magpress_widget_adsense($html) {
+    if (!is_string($html) || stripos($html, 'adsbygoogle') === false) return $html;
+    if (is_admin() || is_feed() || (defined('REST_REQUEST') && REST_REQUEST)) return $html;
+    if (!preg_match('/<ins\b[^>]*\badsbygoogle\b/i', $html)) return $html;
+    if (strpos($html, 'ad-slot') !== false) return $html; // deja trecut prin render
+    return magpress_render_ad_html($html, 'widget');
+}
+add_filter('widget_custom_html_content', 'magpress_widget_adsense', 100);
+add_filter('widget_block_content', 'magpress_widget_adsense', 100);
+
 /** Închide coloana principală, afișează sidebarul și închide grila. */
 function magpress_layout_close() {
     if (magpress_sidebar_position() === '') return;
