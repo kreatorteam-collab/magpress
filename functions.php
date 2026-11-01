@@ -8,7 +8,7 @@
 
 if (!defined('ABSPATH')) { exit; }
 
-define('MAGPRESS_VERSION', '0.9.275');
+define('MAGPRESS_VERSION', '0.9.276');
 /**
  * Prag implicit pentru „Actualizat la": modificările ANTERIOARE acestei date nu se
  * afișează. E data la care a intrat regula (v0.9.188) — tot ce era înainte pe flotă
@@ -21,6 +21,8 @@ define('MAGPRESS_URI', get_template_directory_uri());
 
 // v0.9.254 — AI Act: iconiță pe imaginile generate cu AI + notă de informare sub articole.
 require_once MAGPRESS_DIR . '/inc/ai-act.php';
+// v0.9.276 — scanare „SEO Digital” (text + linkuri seodigital.ro / advertoriale), doar citire.
+require_once MAGPRESS_DIR . '/inc/brand-scan.php';
 
 /**
  * Setup tema.
