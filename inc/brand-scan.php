@@ -47,6 +47,7 @@
  *  {action:"scan", terms?:[...]}
  *  {action:"set_rel", rel, kinds:[...], terms?:[...], targets?:[key,...]}
  *  {action:"replace_url", from, to, terms?:[...], targets?:[key,...]}
+ *  {action:"restore_rel", keep:[domenii], apply:bool}   (v0.9.281)
  */
 if (!defined('ABSPATH')) { exit; }
 
@@ -901,6 +902,199 @@ function magpress_bs_replace_url($from, $to, $targets = null) {
 }
 
 // =========================================================================
+// v0.9.281 — Reparare: rel-ul linkurilor spre ALTE domenii (ex. clienții din advertoriale),
+// atins din greșeală de set_rel (v0.9.277–0.9.279 nu limitau domeniile), revine la valoarea
+// din ultima revizie a articolului. set_rel scrie direct în DB și nu creează revizie după
+// modificare, deci diferența de rel dintre ultima revizie și conținutul de acum e a noastră.
+// Se schimbă DOAR atributul rel (sau nofollow-ul din Elementor), doar dacă diferă numai prin
+// sponsored / nofollow / ugc. Linkurile spre domeniile din $keep (ale noastre) nu se ating.
+// =========================================================================
+
+const MAGPRESS_BS_REL_TOKENS = ['sponsored', 'nofollow', 'ugc', 'dofollow', 'follow'];
+
+/** Cheia unui link pentru potrivirea cu revizia: URL normalizat + textul ancorei. */
+function magpress_bs_restore_key($href, $anchor_html) {
+    return magpress_bs_norm_url($href) . '|' . mb_strtolower(trim(preg_replace('~\s+~u', ' ', html_entity_decode(wp_strip_all_tags((string) $anchor_html), ENT_QUOTES, 'UTF-8'))));
+}
+
+/** <a>-urile dintr-un HTML: [[tag, href, anchor_html, rel], ...]; null la eroare PCRE. */
+function magpress_bs_restore_links($html) {
+    $html = (string) $html;
+    if (stripos($html, '<a') === false) return [];
+    if (preg_match_all('~(<a\b[^>]*>)(.*?)</a\s*>~is', $html, $m, PREG_SET_ORDER) === false) return null;
+    $out = [];
+    foreach ($m as $a) {
+        if (preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $a[1], $hm)) $href = $hm[2];
+        elseif (preg_match('~\bhref\s*=\s*([^\s"\'>]+)~is', $a[1], $hm)) $href = $hm[1];
+        else continue;
+        $rel = preg_match('~\srel\s*=\s*(["\'])(.*?)\1~is', $a[1], $rm) ? $rm[2] : (preg_match('~\srel\s*=\s*([^\s"\'>]+)~is', $a[1], $rm) ? $rm[1] : '');
+        $out[] = [$a[1], $href, $a[2], $rel];
+    }
+    return $out;
+}
+
+/** rel-urile diferă doar prin sponsored / nofollow / ugc (adică le-a schimbat set_rel)? */
+function magpress_bs_rel_only_tokens_differ($a, $b) {
+    $ta = preg_split('~\s+~', strtolower(trim((string) $a)), -1, PREG_SPLIT_NO_EMPTY);
+    $tb = preg_split('~\s+~', strtolower(trim((string) $b)), -1, PREG_SPLIT_NO_EMPTY);
+    sort($ta); sort($tb);
+    if ($ta === $tb) return false;
+    $ra = array_values(array_diff($ta, MAGPRESS_BS_REL_TOKENS));
+    $rb = array_values(array_diff($tb, MAGPRESS_BS_REL_TOKENS));
+    return $ra === $rb;
+}
+
+/** Linkul e spre unul din domeniile noastre (care NU se repară)? */
+function magpress_bs_restore_is_keep($href, array $keep) {
+    $h = magpress_bs_host($href);
+    return $h === '' || in_array($h, $keep, true) || ($h === magpress_bs_host(home_url('/')));
+}
+
+/**
+ * Readuce rel-ul din $old_html pe linkurile din $html (doar spre alte domenii decât $keep).
+ * $log primește [href, anchor, rel_acum, rel_refăcut] pentru fiecare link reparat.
+ */
+function magpress_bs_html_restore_rel($html, $old_html, array $keep, &$n, array &$log) {
+    $html = (string) $html;
+    if (stripos($html, '<a') === false || (string) $old_html === $html) return $html;
+    $old = magpress_bs_restore_links($old_html);
+    if (!$old) return $html;
+    $map = [];
+    foreach ($old as $l) $map[magpress_bs_restore_key($l[1], $l[2])][] = $l[3];
+    $before = $n; $log_before = count($log);
+    $out = preg_replace_callback('~(<a\b[^>]*>)(.*?)(</a\s*>)~is', function ($m) use (&$map, $keep, &$n, &$log) {
+        $tag = $m[1];
+        if (preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $tag, $hm)) $href = $hm[2];
+        elseif (preg_match('~\bhref\s*=\s*([^\s"\'>]+)~is', $tag, $hm)) $href = $hm[1];
+        else return $m[0];
+        $key = magpress_bs_restore_key($href, $m[2]);
+        if (empty($map[$key])) return $m[0];
+        $old_rel = array_shift($map[$key]); // aceeași ordine ca în revizie
+        if (magpress_bs_restore_is_keep($href, $keep)) return $m[0];
+        $has = preg_match('~\s+rel\s*=\s*(["\'])(.*?)\1~is', $tag, $rm) || preg_match('~\s+rel\s*=\s*([^\s"\'>]+)~is', $tag, $rm);
+        $cur_rel = $has ? (isset($rm[2]) ? $rm[2] : $rm[1]) : '';
+        if (!magpress_bs_rel_only_tokens_differ($cur_rel, $old_rel)) return $m[0];
+        $new_attr = trim($old_rel) === '' ? '' : ' rel="' . esc_attr(trim($old_rel)) . '"';
+        $tag = $has ? str_replace($rm[0], $new_attr, $tag) : preg_replace('~\s*(/?)>$~', $new_attr . '$1>', $tag, 1);
+        $n++;
+        $log[] = [mb_substr(html_entity_decode($href, ENT_QUOTES, 'UTF-8'), 0, 300), magpress_bs_clip($m[2], 100), strtolower(trim($cur_rel)), strtolower(trim($old_rel))];
+        return $tag . $m[2] . $m[3];
+    }, $html);
+    if (!is_string($out)) { $n = $before; $log = array_slice($log, 0, $log_before); return $html; }
+    return $out;
+}
+
+/** Ca magpress_bs_html_restore_rel, în paralel pe structura curentă și cea din revizie (Elementor JSON). */
+function magpress_bs_walk_restore_rel($cur, $old, array $keep, &$n, array &$log) {
+    if (is_string($cur)) {
+        if (!is_string($old) || $cur === $old) return $cur;
+        $s = ltrim($cur);
+        if ($s !== '' && ($s[0] === '[' || $s[0] === '{')) {
+            $dc = json_decode($cur, true); $do = json_decode($old, true);
+            if (is_array($dc)) {
+                if (!is_array($do)) return $cur;
+                $before = $n;
+                $dc = magpress_bs_walk_restore_rel($dc, $do, $keep, $n, $log);
+                return $n > $before ? wp_json_encode($dc) : $cur;
+            }
+        }
+        if (is_serialized($cur)) {
+            $uc = @unserialize($cur, ['allowed_classes' => false]);
+            $uo = @unserialize($old, ['allowed_classes' => false]);
+            if (is_array($uc) && is_array($uo)) {
+                $before = $n;
+                $uc = magpress_bs_walk_restore_rel($uc, $uo, $keep, $n, $log);
+                return $n > $before ? serialize($uc) : $cur;
+            }
+            return $cur;
+        }
+        return magpress_bs_html_restore_rel($cur, $old, $keep, $n, $log);
+    }
+    if (!is_array($cur) || !is_array($old)) return $cur;
+    // Control de link Elementor {url, nofollow}: nofollow ca în revizie, dacă e același URL.
+    if (isset($cur['url'], $old['url']) && is_string($cur['url']) && array_key_exists('nofollow', $cur) && array_key_exists('nofollow', $old)
+        && magpress_bs_norm_url($cur['url']) === magpress_bs_norm_url($old['url'])
+        && !magpress_bs_restore_is_keep($cur['url'], $keep) && (string) $cur['nofollow'] !== (string) $old['nofollow']) {
+        $log[] = [mb_substr((string) $cur['url'], 0, 300), '(Elementor)', $cur['nofollow'] === 'on' ? 'nofollow' : '', $old['nofollow'] === 'on' ? 'nofollow' : ''];
+        $cur['nofollow'] = $old['nofollow'];
+        $n++;
+    }
+    // Liste de elemente Elementor: potrivire după id (dacă ordinea s-a schimbat).
+    $by_id = [];
+    foreach ($old as $x) if (is_array($x) && isset($x['id']) && is_scalar($x['id'])) $by_id[(string) $x['id']] = $x;
+    foreach ($cur as $k => $x) {
+        if (!is_string($x) && !is_array($x)) continue;
+        if (is_array($x) && isset($x['id']) && is_scalar($x['id']) && $by_id) {
+            if (isset($by_id[(string) $x['id']])) $cur[$k] = magpress_bs_walk_restore_rel($x, $by_id[(string) $x['id']], $keep, $n, $log);
+        } elseif (array_key_exists($k, $old)) {
+            $cur[$k] = magpress_bs_walk_restore_rel($x, $old[$k], $keep, $n, $log);
+        }
+    }
+    return $cur;
+}
+
+/**
+ * Repară pe tot site-ul: articole / pagini (conținut + rezumat) și Elementor (_elementor_data),
+ * față de ultima revizie (fără autosave). $apply=false: doar lista, fără modificări.
+ * @return array {links, places, items:[{title,url,edit,where,links:[[href,anchor,acum,refăcut]]}], truncated}
+ */
+function magpress_bs_restore_rel(array $keep, $apply) {
+    global $wpdb;
+    $rows = $wpdb->get_results(
+        "SELECT p.ID, x.rid FROM {$wpdb->posts} p
+         JOIN (SELECT post_parent, MAX(ID) rid FROM {$wpdb->posts}
+               WHERE post_type = 'revision' AND post_name NOT LIKE '%autosave%' GROUP BY post_parent) x ON x.post_parent = p.ID
+         WHERE p.post_type NOT IN ('revision','customize_changeset','oembed_cache','nav_menu_item','attachment')
+           AND p.post_status NOT IN ('auto-draft','trash')"
+    );
+    $links = 0; $places = 0; $items = []; $truncated = false; $elementor = false;
+    foreach ((array) $rows as $r) {
+        $p   = get_post((int) $r->ID);
+        $rev = $wpdb->get_row($wpdb->prepare("SELECT post_content, post_excerpt FROM {$wpdb->posts} WHERE ID = %d", (int) $r->rid));
+        if (!$p || !$rev) continue;
+        $log = []; $n = 0;
+
+        if ($p->post_content !== $rev->post_content || $p->post_excerpt !== $rev->post_excerpt) {
+            $content = magpress_bs_html_restore_rel($p->post_content, $rev->post_content, $keep, $n, $log);
+            $excerpt = magpress_bs_html_restore_rel($p->post_excerpt, $rev->post_excerpt, $keep, $n, $log);
+            if ($n && $apply) {
+                $wpdb->update($wpdb->posts, ['post_content' => $content, 'post_excerpt' => $excerpt], ['ID' => $p->ID]);
+                clean_post_cache($p->ID);
+            }
+        }
+
+        $meta = $wpdb->get_row($wpdb->prepare("SELECT meta_id, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_elementor_data' LIMIT 1", (int) $p->ID));
+        $old_meta = $meta ? $wpdb->get_var($wpdb->prepare("SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_elementor_data' LIMIT 1", (int) $r->rid)) : null;
+        if ($meta && is_string($old_meta) && $old_meta !== $meta->meta_value) {
+            $m0 = $n;
+            $new = magpress_bs_walk_restore_rel($meta->meta_value, $old_meta, $keep, $n, $log);
+            if ($n > $m0 && $apply) {
+                $wpdb->update($wpdb->postmeta, ['meta_value' => $new], ['meta_id' => (int) $meta->meta_id]);
+                wp_cache_delete((int) $p->ID, 'post_meta');
+                delete_post_meta((int) $p->ID, '_elementor_css');
+                $elementor = true;
+            }
+        }
+
+        if (!$n) continue;
+        $links += $n; $places++;
+        if (count($items) < 300) {
+            $items[] = [
+                'id' => (int) $p->ID, 'title' => magpress_bs_clip(get_the_title($p), 120), 'url' => get_permalink($p),
+                'edit' => admin_url('post.php?post=' . (int) $p->ID . '&action=edit'), 'links' => array_slice($log, 0, 30),
+            ];
+        } else {
+            $truncated = true;
+        }
+    }
+    if ($apply && $elementor && class_exists('\Elementor\Plugin') && isset(\Elementor\Plugin::$instance->files_manager)) {
+        \Elementor\Plugin::$instance->files_manager->clear_cache();
+    }
+    if ($apply && $places && function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
+    return ['applied' => (bool) $apply, 'keep' => $keep, 'links' => $links, 'places' => $places, 'items' => $items, 'truncated' => $truncated];
+}
+
+// =========================================================================
 // REST: POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret
 // {action:"scan", terms?} | {action:"set_rel", rel, kinds, terms?, targets?}
 // | {action:"replace_url", from, to, terms?, targets?}
@@ -926,6 +1120,17 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
         return new WP_REST_Response(['ok' => false, 'error' => 'expired'], 403);
     }
     if (function_exists('set_time_limit')) @set_time_limit(90);
+
+    // v0.9.281: reparare rel pe linkurile spre alte domenii (fără scanare în răspuns).
+    if ((string) ($data['action'] ?? '') === 'restore_rel') {
+        $keep = magpress_bs_domains((array) ($data['keep'] ?? []));
+        magpress_bs_domains([]);
+        if (!$keep) return new WP_REST_Response(['ok' => false, 'error' => 'keep_required'], 400);
+        $t0 = microtime(true);
+        $res = magpress_bs_restore_rel($keep, !empty($data['apply']));
+        return new WP_REST_Response(['ok' => true, 'theme_version' => MAGPRESS_VERSION, 'home' => home_url('/'),
+            'restore' => $res, 'took_ms' => (int) round((microtime(true) - $t0) * 1000)], 200);
+    }
 
     // v0.9.279: terms = URL-ul linkului, anchor_terms = ancora, match = any | both.
     // Fără anchor_terms (app mai vechi): aceiași termeni pentru URL și ancoră.
