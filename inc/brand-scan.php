@@ -1053,27 +1053,36 @@ function magpress_bs_restore_rel(array $keep, $apply) {
         $rev = $wpdb->get_row($wpdb->prepare("SELECT post_content, post_excerpt FROM {$wpdb->posts} WHERE ID = %d", (int) $r->rid));
         if (!$p || !$rev) continue;
         $log = []; $n = 0;
-
+        $content = $p->post_content; $excerpt = $p->post_excerpt;
         if ($p->post_content !== $rev->post_content || $p->post_excerpt !== $rev->post_excerpt) {
             $content = magpress_bs_html_restore_rel($p->post_content, $rev->post_content, $keep, $n, $log);
             $excerpt = magpress_bs_html_restore_rel($p->post_excerpt, $rev->post_excerpt, $keep, $n, $log);
-            if ($n && $apply) {
-                $wpdb->update($wpdb->posts, ['post_content' => $content, 'post_excerpt' => $excerpt], ['ID' => $p->ID]);
-                clean_post_cache($p->ID);
-            }
         }
+        $n_post = $n;
 
         $meta = $wpdb->get_row($wpdb->prepare("SELECT meta_id, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_elementor_data' LIMIT 1", (int) $p->ID));
         $old_meta = $meta ? $wpdb->get_var($wpdb->prepare("SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = '_elementor_data' LIMIT 1", (int) $r->rid)) : null;
+        $new_meta = null;
         if ($meta && is_string($old_meta) && $old_meta !== $meta->meta_value) {
-            $m0 = $n;
-            $new = magpress_bs_walk_restore_rel($meta->meta_value, $old_meta, $keep, $n, $log);
-            if ($n > $m0 && $apply) {
-                $wpdb->update($wpdb->postmeta, ['meta_value' => $new], ['meta_id' => (int) $meta->meta_id]);
+            $new_meta = magpress_bs_walk_restore_rel($meta->meta_value, $old_meta, $keep, $n, $log);
+        }
+        $n_meta = $n - $n_post;
+
+        if ($n && $apply) {
+            // backup: starea de acum (cu rel-ul greșit) ca revizie, ca reparația să se poată anula
+            if (function_exists('wp_save_post_revision')) wp_save_post_revision($p->ID);
+            if ($n_post) {
+                $wpdb->update($wpdb->posts, ['post_content' => $content, 'post_excerpt' => $excerpt], ['ID' => $p->ID]);
+                clean_post_cache($p->ID);
+            }
+            if ($n_meta) {
+                $wpdb->update($wpdb->postmeta, ['meta_value' => $new_meta], ['meta_id' => (int) $meta->meta_id]);
                 wp_cache_delete((int) $p->ID, 'post_meta');
                 delete_post_meta((int) $p->ID, '_elementor_css');
                 $elementor = true;
             }
+            // starea reparată devine ultima revizie: o rulare nouă nu mai vede nimic de „reparat”
+            if ($n_post && function_exists('wp_save_post_revision')) wp_save_post_revision($p->ID);
         }
 
         if (!$n) continue;
@@ -1091,8 +1100,25 @@ function magpress_bs_restore_rel(array $keep, $apply) {
         \Elementor\Plugin::$instance->files_manager->clear_cache();
     }
     if ($apply && $places && function_exists('magpress_purge_litespeed')) magpress_purge_litespeed();
-    return ['applied' => (bool) $apply, 'keep' => $keep, 'links' => $links, 'places' => $places, 'items' => $items, 'truncated' => $truncated];
+    $res = ['applied' => (bool) $apply, 'keep' => $keep, 'links' => $links, 'places' => $places, 'items' => $items, 'truncated' => $truncated, 'at' => current_time('mysql')];
+    if ($apply) update_option('magpress_bs_restore_log', $res, false);
+    return $res;
 }
+
+/** Domeniile noastre la reparația automată: pe ele rel-ul rămâne cum e. */
+const MAGPRESS_BS_RESTORE_KEEP = ['seodigital.ro', 'targetseo.ro'];
+
+// v0.9.281: reparația rulează singură, O DATĂ pe fiecare site, la primul cron după update.
+add_action('init', function () {
+    if (get_option('magpress_bs_restore_281_done')) return;
+    if (!wp_next_scheduled('magpress_bs_restore_281')) wp_schedule_single_event(time() + 30, 'magpress_bs_restore_281');
+});
+add_action('magpress_bs_restore_281', function () {
+    if (get_option('magpress_bs_restore_281_done')) return;
+    update_option('magpress_bs_restore_281_done', current_time('mysql'), false); // înainte: nu rulează de două ori
+    if (function_exists('set_time_limit')) @set_time_limit(300);
+    magpress_bs_restore_rel(MAGPRESS_BS_RESTORE_KEEP, true);
+});
 
 // =========================================================================
 // REST: POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret
@@ -1129,7 +1155,7 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
         $t0 = microtime(true);
         $res = magpress_bs_restore_rel($keep, !empty($data['apply']));
         return new WP_REST_Response(['ok' => true, 'theme_version' => MAGPRESS_VERSION, 'home' => home_url('/'),
-            'restore' => $res, 'took_ms' => (int) round((microtime(true) - $t0) * 1000)], 200);
+            'restore' => $res, 'auto' => get_option('magpress_bs_restore_log', null), 'took_ms' => (int) round((microtime(true) - $t0) * 1000)], 200);
     }
 
     // v0.9.279: terms = URL-ul linkului, anchor_terms = ancora, match = any | both.
