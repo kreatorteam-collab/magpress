@@ -29,6 +29,11 @@
  * v0.9.280 — set_rel: `domains` (rel doar pe linkurile spre acele domenii) + rel „-sponsored”
  * / „-nofollow” (scoate doar acel cuvânt, restul rel-ului rămâne).
  *
+ * v0.9.281 — REGULA DE AUR: linkurile spre alte domenii (ex. linkurile clienților din
+ * advertoriale) nu se ating niciodată. set_rel fără `domains` e refuzat (domains_required) și
+ * nu modifică nimic; rel-ul se pune doar pe linkurile spre domeniile alese. Dacă un regex
+ * eșuează (conținut foarte mare), textul rămâne neschimbat (nu se mai poate goli un articol).
+ *
  * v0.9.279 — termeni separați: `terms` pentru URL-ul linkului, `anchor_terms` pentru ancoră,
  * `match` = any (URL SAU ancoră) | both (URL ȘI ancoră, în același link). Text și titlu/slug: toți.
  *
@@ -580,10 +585,13 @@ function magpress_bs_rel_value($existing, $rel) {
 /** Pune rel pe <a>-urile din HTML care duc la URL-uri de tipurile $kinds. */
 function magpress_bs_html_set_rel($html, array $kinds, $rel, &$n) {
     if (stripos($html, '<a') === false) return $html;
-    return preg_replace_callback('~(<a\b[^>]*>)(.*?)(</a\s*>)~is', function ($m) use ($kinds, $rel, &$n) {
+    $before = $n;
+    $out = preg_replace_callback('~(<a\b[^>]*>)(.*?)(</a\s*>)~is', function ($m) use ($kinds, $rel, &$n) {
         $tag = magpress_bs_tag_set_rel($m[1], $m[2], $kinds, $rel, $n);
         return $tag . $m[2] . $m[3];
     }, $html);
+    if (!is_string($out)) { $n = $before; return $html; } // eroare PCRE: nu atingem textul
+    return $out;
 }
 
 /** Tag-ul de deschidere <a ...> cu rel-ul nou (dacă linkul e de tipurile $kinds). */
@@ -591,6 +599,9 @@ function magpress_bs_tag_set_rel($tag, $anchor_html, array $kinds, $rel, &$n) {
     if (preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $tag, $hm)) $href = $hm[2];
     elseif (preg_match('~\bhref\s*=\s*([^\s>]+)~is', $tag, $hm)) $href = $hm[1];
     else return $tag;
+    // Regula de aur: fără domenii alese nu se atinge niciun link; altfel doar cele spre ele.
+    $doms = magpress_bs_domains();
+    if (!$doms || !in_array(magpress_bs_host($href), $doms, true)) return $tag;
     if (!in_array(magpress_bs_link_kind($href, $anchor_html), $kinds, true)) return $tag;
 
     if (preg_match('~\s+rel\s*=\s*(["\'])(.*?)\1~is', $tag, $rm) || preg_match('~\s+rel\s*=\s*([^\s"\'>]+)~is', $tag, $rm)) {
@@ -635,6 +646,7 @@ function magpress_bs_walk_set_rel($v, array $kinds, $rel, &$n) {
     }
     if (is_array($v)) {
         if (isset($v['url']) && is_string($v['url']) && array_key_exists('nofollow', $v)
+            && magpress_bs_domains() && in_array(magpress_bs_host($v['url']), magpress_bs_domains(), true)
             && in_array(magpress_bs_link_kind($v['url'], ''), $kinds, true)) {
             // Elementor are doar „nofollow”: -sponsored nu-l atinge
             if ($rel !== '-sponsored') {
@@ -656,7 +668,7 @@ function magpress_bs_walk_set_rel($v, array $kinds, $rel, &$n) {
 function magpress_bs_set_rel($rel, array $kinds, $targets = null) {
     global $wpdb;
     $kinds = array_values(array_intersect($kinds, MAGPRESS_BS_LINK_KINDS));
-    if (!$kinds) return [0, 0, 0];
+    if (!$kinds || !magpress_bs_domains()) return [0, 0, 0]; // regula de aur: doar domeniile alese
     $scan = magpress_bs_scan(5000);
     $links = 0; $places = 0; $skipped = 0;
     $elementor = false;
@@ -698,6 +710,7 @@ function magpress_bs_set_rel($rel, array $kinds, $targets = null) {
             case 'menu':
                 $mi  = wp_setup_nav_menu_item(get_post((int) $it['id']));
                 $url = $mi && !empty($mi->url) ? (string) $mi->url : (string) get_post_meta((int) $it['id'], '_menu_item_url', true);
+                if (!in_array(magpress_bs_host($url), magpress_bs_domains(), true)) break;
                 if (!in_array(magpress_bs_link_kind($url, $mi->title ?? ''), $kinds, true)) break;
                 $old = (string) get_post_meta((int) $it['id'], '_menu_item_xfn', true);
                 $new = magpress_bs_rel_value($old, $rel);
@@ -754,7 +767,8 @@ function magpress_bs_norm_url($u) {
 /** Înlocuiește href-ul <a>-urilor care duc la $from_n (normalizat) cu $to. */
 function magpress_bs_html_replace_url($html, $from_n, $to, &$n) {
     if (stripos($html, '<a') === false) return $html;
-    return preg_replace_callback('~<a\b[^>]*>~i', function ($m) use ($from_n, $to, &$n) {
+    $before = $n;
+    $out = preg_replace_callback('~<a\b[^>]*>~i', function ($m) use ($from_n, $to, &$n) {
         $tag = $m[0];
         if (!preg_match('~\bhref\s*=\s*(["\'])(.*?)\1~is', $tag, $hm) && !preg_match('~\bhref\s*=\s*([^\s"\'>]+)~is', $tag, $hm)) return $tag;
         $href = isset($hm[2]) ? $hm[2] : $hm[1];
@@ -762,6 +776,8 @@ function magpress_bs_html_replace_url($html, $from_n, $to, &$n) {
         $n++;
         return str_replace($hm[0], 'href="' . esc_attr($to) . '"', $tag);
     }, $html);
+    if (!is_string($out)) { $n = $before; return $html; } // eroare PCRE: nu atingem textul
+    return $out;
 }
 
 /** Ca magpress_bs_walk_set_rel: JSON / serializat / array; un string care e doar un URL se înlocuiește întreg. */
@@ -924,7 +940,10 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
             return new WP_REST_Response(['ok' => false, 'error' => 'invalid_rel'], 400);
         }
         $targets = isset($data['targets']) && is_array($data['targets']) ? array_map('strval', $data['targets']) : null;
-        magpress_bs_domains((array) ($data['domains'] ?? []));
+        // Regula de aur: rel doar pe linkurile spre domeniile alese explicit; fără ele, refuz.
+        if (!magpress_bs_domains((array) ($data['domains'] ?? []))) {
+            return new WP_REST_Response(['ok' => false, 'error' => 'domains_required'], 400);
+        }
         list($links, $places, $skipped) = magpress_bs_set_rel($rel, (array) ($data['kinds'] ?? []), $targets);
         magpress_bs_domains([]); // scanarea din răspuns arată toate rezultatele căutării
         $out['set_rel'] = ['rel' => $rel, 'links' => $links, 'places' => $places, 'skipped' => $skipped, 'domains' => (array) ($data['domains'] ?? [])];
