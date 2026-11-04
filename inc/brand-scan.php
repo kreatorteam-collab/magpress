@@ -48,6 +48,7 @@
  *  {action:"set_rel", rel, kinds:[...], terms?:[...], targets?:[key,...]}
  *  {action:"replace_url", from, to, terms?:[...], targets?:[key,...]}
  *  {action:"restore_rel", keep:[domenii], apply:bool}   (v0.9.281)
+ *  {action:"post_diag", url}                            (v0.9.282, doar citire)
  */
 if (!defined('ABSPATH')) { exit; }
 
@@ -1121,6 +1122,62 @@ add_action('magpress_bs_restore_281', function () {
 });
 
 // =========================================================================
+// v0.9.282 — Diagnostic pe un articol: linkurile de acum față de fiecare revizie
+// (ce link lipsește / ce rel s-a schimbat și de când). Doar citire.
+// =========================================================================
+
+/** Linkurile dintr-un HTML ca listă [href, anchor, rel] (pentru diagnostic). */
+function magpress_bs_diag_links($html) {
+    $out = [];
+    foreach ((array) magpress_bs_restore_links($html) as $l) {
+        $out[] = [mb_substr(html_entity_decode($l[1], ENT_QUOTES, 'UTF-8'), 0, 300), magpress_bs_clip($l[2], 100), strtolower(trim($l[3]))];
+    }
+    return $out;
+}
+
+function magpress_bs_post_diag($url) {
+    global $wpdb;
+    $id = url_to_postid($url);
+    if (!$id) {
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        $slug = $path === '' ? '' : basename($path);
+        if ($slug !== '') $id = (int) $wpdb->get_var($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type NOT IN ('revision','nav_menu_item') ORDER BY ID DESC LIMIT 1", $slug));
+    }
+    $p = $id ? get_post($id) : null;
+    if (!$p) return ['found' => false];
+    $now = magpress_bs_diag_links($p->post_content);
+    $now_keys = [];
+    foreach ($now as $l) $now_keys[magpress_bs_norm_url($l[0])] = $l[2];
+    $revs = $wpdb->get_results($wpdb->prepare(
+        "SELECT ID, post_author, post_date, post_name, post_content FROM {$wpdb->posts} WHERE post_parent = %d AND post_type = 'revision' ORDER BY ID DESC LIMIT 30", $p->ID));
+    $out_revs = [];
+    foreach ((array) $revs as $r) {
+        $links = magpress_bs_diag_links($r->post_content);
+        $missing = []; $rel = [];
+        foreach ($links as $l) {
+            $k = magpress_bs_norm_url($l[0]);
+            if (!array_key_exists($k, $now_keys)) $missing[] = $l;
+            elseif ($now_keys[$k] !== $l[2]) $rel[] = [$l[0], $l[1], $now_keys[$k], $l[2]];
+        }
+        $u = $r->post_author ? get_userdata((int) $r->post_author) : null;
+        $out_revs[] = [
+            'id' => (int) $r->ID, 'date' => $r->post_date, 'author' => $u ? $u->user_login : '(automat / fără user)',
+            'autosave' => strpos($r->post_name, 'autosave') !== false, 'length' => strlen($r->post_content),
+            'links' => count($links), 'missing' => array_slice($missing, 0, 30), 'rel_changed' => array_slice($rel, 0, 30),
+            'restore' => admin_url('revision.php?revision=' . (int) $r->ID),
+        ];
+    }
+    $meta = (string) get_post_meta($p->ID, '_elementor_data', true);
+    return [
+        'found' => true, 'id' => (int) $p->ID, 'title' => get_the_title($p), 'status' => $p->post_status, 'type' => $p->post_type,
+        'modified' => $p->post_modified, 'length' => strlen($p->post_content), 'links' => $now,
+        'elementor' => $meta !== '', 'elementor_links' => $meta !== '' ? magpress_bs_diag_links(str_replace(['\\"', '\\/'], ['"', '/'], $meta)) : [],
+        'edit' => admin_url('post.php?post=' . (int) $p->ID . '&action=edit'), 'revisions' => $out_revs,
+        'restore_log' => get_option('magpress_bs_restore_log', null), 'restore_done' => get_option('magpress_bs_restore_281_done', null),
+    ];
+}
+
+// =========================================================================
 // REST: POST /wp-json/magpress/v1/brand-scan, semnat HMAC cu deploy_secret
 // {action:"scan", terms?} | {action:"set_rel", rel, kinds, terms?, targets?}
 // | {action:"replace_url", from, to, terms?, targets?}
@@ -1146,6 +1203,12 @@ function magpress_rest_brand_scan(WP_REST_Request $request) {
         return new WP_REST_Response(['ok' => false, 'error' => 'expired'], 403);
     }
     if (function_exists('set_time_limit')) @set_time_limit(90);
+
+    // v0.9.282: diagnostic pe un articol (doar citire).
+    if ((string) ($data['action'] ?? '') === 'post_diag') {
+        return new WP_REST_Response(['ok' => true, 'theme_version' => MAGPRESS_VERSION, 'home' => home_url('/'),
+            'diag' => magpress_bs_post_diag((string) ($data['url'] ?? ''))], 200);
+    }
 
     // v0.9.281: reparare rel pe linkurile spre alte domenii (fără scanare în răspuns).
     if ((string) ($data['action'] ?? '') === 'restore_rel') {
